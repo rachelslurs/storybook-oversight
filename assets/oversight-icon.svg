@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="oversight-icon-title">
+  <title id="oversight-icon-title">Oversight</title>
+  <rect width="512" height="512" rx="114" fill="#CB3600"/>
+  <path d="M88 256 Q256 96 424 256 Q256 416 88 256 Z" fill="#FBF8F1"/>
+  <rect x="208" y="208" width="96" height="96" rx="8" fill="#CB3600"/>
+</svg>
