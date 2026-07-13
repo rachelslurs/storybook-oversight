@@ -1,14 +1,15 @@
-// You can use presets to augment the Storybook configuration
-// You rarely want to do this in addons,
-// so often you want to delete this file and remove the reference to it in package.json#exports and package.json#bunder.nodeEntries
-// Read more about presets at https://storybook.js.org/docs/addons/writing-presets
-
-export const viteFinal = async (config: unknown) => {
-  console.log('This addon is augmenting the Vite config');
-  return config;
-};
-
-export const webpack = async (config: unknown) => {
-  console.log('This addon is augmenting the Webpack config');
-  return config;
-};
+/**
+ * Node-side preset for Oversight. Currently a no-op; this file is the future
+ * home of manifest-serving logic.
+ *
+ * Prefer named exports for Storybook preset hooks (`viteFinal`,
+ * `experimental_serverChannel`, …) — that is the documented shape. A default
+ * export also works: root `preset.js` forwards both (`export { default }` +
+ * `export *`), because `export *` alone would silently drop `default`.
+ *
+ * The root `preset.js` and `manager.js` stubs must stay even while this is
+ * empty: the addon is registered by absolute path in
+ * `storybook/.storybook/main.ts`, so Storybook resolves `<packageDir>/preset`
+ * and `<packageDir>/manager` as plain file paths.
+ */
+export default {};
