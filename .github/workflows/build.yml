@@ -57,5 +57,8 @@ jobs:
       - name: Build addon
         run: pnpm build
 
+      - name: Run unit tests
+        run: pnpm test
+
       - name: Build Storybook
         run: pnpm build-storybook
