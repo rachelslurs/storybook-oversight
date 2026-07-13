@@ -1,90 +1,67 @@
-import React, { Fragment, memo, useCallback, useState } from 'react';
-import type { Result } from 'src/types';
+import type React from 'react';
 import { AddonPanel } from 'storybook/internal/components';
-import { Button, Placeholder, TabsState } from 'storybook/internal/components';
-import { useChannel } from 'storybook/manager-api';
-import { styled, useTheme } from 'storybook/theming';
-
-import { EVENTS } from '../constants';
-import { List } from './List';
+import { useStorybookApi } from 'storybook/manager-api';
+import { styled } from 'storybook/theming';
+import { useOversightReport } from '../useOversightReport';
+import { ReportView } from './ReportView';
+import { storybookPathId } from './markdown';
 
 interface PanelProps {
   active?: boolean;
 }
 
-export const RequestDataButton = styled(Button)({
-  marginTop: '1rem',
-});
+// The redirect-link visual: a dotted underline that firms up on hover.
+const InlineLink = styled.a(({ theme }) => ({
+  color: theme.color.secondary,
+  textDecoration: 'underline',
+  textDecorationStyle: 'dotted',
+  textDecorationColor: theme.appBorderColor,
+  textUnderlineOffset: 2,
+  '&:hover': {
+    textDecorationStyle: 'solid',
+    textDecorationColor: theme.color.secondary,
+  },
+}));
 
-export const Panel: React.FC<PanelProps> = memo(function MyPanel(props: PanelProps) {
-  const theme = useTheme();
-
-  // https://storybook.js.org/docs/react/addons/addons-api#useaddonstate
-  const [{ divs, styled }, setState] = useState<Result>({
-    divs: [],
-    styled: [],
-  });
-
-  // https://storybook.js.org/docs/react/addons/addons-api#usechannel
-  const emit = useChannel({
-    [EVENTS.RESULT]: (newResults) => {
-      setState(newResults);
-    },
-  });
-
-  const fetchData = useCallback(() => {
-    emit(EVENTS.REQUEST);
-  }, [emit]);
-
+/** Manager-side link: SPA-navigates via `api.selectStory`, href as fallback. */
+function ManagerLink({ label, target }: { label: string; target: string }) {
+  const api = useStorybookApi();
+  const id = storybookPathId(target);
   return (
-    <AddonPanel active={props.active ?? false}>
-      <TabsState initial="overview" backgroundColor={theme.background.hoverable}>
-        <div id="overview" title="Overview" color={theme.color.positive}>
-          <Placeholder>
-            <Fragment>
-              Addons can gather details about how a story is rendered. This is panel uses a tab pattern. Click the
-              button below to fetch data for the other two tabs.
-            </Fragment>
-            <Fragment>
-              <RequestDataButton onClick={fetchData}>Request data</RequestDataButton>
-            </Fragment>
-          </Placeholder>
-        </div>
-        <div id="div" title={`${divs.length} Divs`} color={theme.color.negative}>
-          {divs.length > 0 ? (
-            <Placeholder>
-              <p>The following divs have less than 2 childNodes</p>
-              <List
-                items={divs.map((item, index) => ({
-                  title: `item #${index}`,
-                  description: JSON.stringify(item, null, 2),
-                }))}
-              />
-            </Placeholder>
-          ) : (
-            <Placeholder>
-              <p>No divs found</p>
-            </Placeholder>
-          )}
-        </div>
-        <div id="all" title={`${styled.length} All`} color={theme.color.warning}>
-          {styled.length > 0 ? (
-            <Placeholder>
-              <p>The following elements have a style attribute</p>
-              <List
-                items={styled.map((item, index) => ({
-                  title: `item #${index}`,
-                  description: JSON.stringify(item, null, 2),
-                }))}
-              />
-            </Placeholder>
-          ) : (
-            <Placeholder>
-              <p>No styled elements found</p>
-            </Placeholder>
-          )}
-        </div>
-      </TabsState>
+    <InlineLink
+      href={target}
+      onClick={(event: React.MouseEvent) => {
+        // Modified/middle clicks keep native behavior (open in new tab/window).
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+          return;
+        }
+        if (!id) return; // external target — let the browser handle it
+        try {
+          api.selectStory(id);
+          event.preventDefault();
+        } catch {
+          // selectStory throws "Unknown id or title" for ids absent from the
+          // manager index — keep the href fallback alive.
+        }
+      }}
+    >
+      {label}
+    </InlineLink>
+  );
+}
+
+export function Panel({ active }: PanelProps) {
+  const { status, report, debuggerUrl, showDebuggerLink } = useOversightReport();
+  return (
+    <AddonPanel active={active ?? false}>
+      <ReportView
+        status={status}
+        report={report}
+        debuggerUrl={debuggerUrl}
+        variant="full"
+        LinkComponent={ManagerLink}
+        showDebuggerLink={showDebuggerLink}
+      />
     </AddonPanel>
   );
-});
+}
