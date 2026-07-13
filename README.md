@@ -1,4 +1,13 @@
-# storybook-addon-oversight
+<p align="center">
+  <img src="https://raw.githubusercontent.com/rachelslurs/storybook-addon-oversight/main/assets/oversight-icon-128.png" alt="Oversight" width="96" height="96" />
+</p>
+
+<h1 align="center">storybook-addon-oversight</h1>
+
+<p align="center">
+  See what your agent can and can't see.<br />
+  Diagnoses silent failures in your Storybook MCP manifest.
+</p>
 
 A Storybook addon that lints your components manifest for the **documentation
 the MCP actually consumes** — per component, while you work. It surfaces docgen
