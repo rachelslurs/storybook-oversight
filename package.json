@@ -1,29 +1,36 @@
 {
-  "name": "storybook-addon-kit",
+  "name": "storybook-addon-oversight",
   "version": "0.0.0",
-  "description": "everything you need to build a Storybook addon",
+  "description": "See what your agent can and can't see. Diagnoses silent failures in your Storybook MCP manifest.",
   "keywords": [
-    "storybook-addon"
+    "storybook-addon",
+    "storybook-addons",
+    "docs",
+    "test",
+    "mcp",
+    "ai",
+    "agents",
+    "docgen",
+    "manifest"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/storybookjs/storybook-addon-kit"
+    "url": "git+https://github.com/rachelslurs/storybook-addon-oversight.git"
+  },
+  "homepage": "https://github.com/rachelslurs/storybook-addon-oversight#readme",
+  "bugs": {
+    "url": "https://github.com/rachelslurs/storybook-addon-oversight/issues"
   },
   "license": "MIT",
-  "author": "package-author",
+  "author": "Rachel Cantor (https://github.com/rachelslurs)",
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+    "./blocks": {
+      "types": "./dist/blocks.d.ts",
+      "default": "./dist/blocks.js"
     },
-    "./preview": {
-      "types": "./dist/preview.d.ts",
-      "default": "./dist/preview.js"
-    },
-    "./preset": "./dist/preset.js",
     "./manager": "./dist/manager.js",
-    "./manager-helpers": "./dist/manager-helpers.js",
+    "./preset": "./dist/preset.js",
     "./package.json": "./package.json"
   },
   "files": [
@@ -33,26 +40,26 @@
     "*.d.ts"
   ],
   "scripts": {
-    "prebuild": "node -e \"fs.rmSync('./dist', { recursive: true, force: true })\"",
-    "build": "tsup",
+    "prebuild": "node -e \"require('node:fs').rmSync('./dist', { recursive: true, force: true })\"",
+    "build": "tsc && tsup",
+    "build:watch": "tsup --watch",
     "build-storybook": "storybook build",
-    "build:watch": "npm run build -- --watch",
-    "eject-ts": "zx scripts/eject-typescript.js",
-    "postinstall": "node scripts/welcome.js",
-    "format": "prettier --write .",
+    "storybook": "storybook dev -p 6006",
+    "start": "run-p build:watch \"storybook --quiet\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint --cache .",
     "lint:fix": "pnpm lint --fix",
+    "format": "prettier --write .",
     "prerelease": "zx scripts/prepublish-checks.js",
-    "release": "npm run build && auto shipit",
-    "start": "run-p build:watch \"storybook --quiet\"",
-    "storybook": "storybook dev -p 6006",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "release": "pnpm build && auto shipit"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
-    "@storybook/addon-docs": "next",
-    "@storybook/icons": "^2.0.0",
-    "@storybook/react-vite": "next",
+    "@storybook/addon-docs": "^10.5.0",
+    "@storybook/addon-mcp": "^0.7.0",
+    "@storybook/addon-vitest": "^10.5.0",
+    "@storybook/react-vite": "^10.5.0",
     "@types/node": "^20",
     "@types/react": "^18.2.65",
     "@types/react-dom": "^18.2.21",
@@ -63,43 +70,31 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-storybook": "next",
+    "eslint-plugin-storybook": "^10.5.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.6.2",
-    "prompts": "^2.4.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "storybook": "next",
+    "storybook": "^10.5.0",
     "ts-dedent": "^2.2.0",
     "tsup": "^8.5.0",
-    "typescript": "^5.8.3",
-    "typescript-eslint": "^8.44.1",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.63.0",
     "vite": "^7.0.5",
+    "vitest": "^3.2.4",
     "zx": "^8.7.1"
   },
   "peerDependencies": {
-    "storybook": "*"
+    "@storybook/addon-docs": "^10.3.0",
+    "storybook": "^10.3.0"
   },
   "publishConfig": {
     "access": "public"
   },
-  "bundler": {
-    "managerEntries": [
-      "src/manager.tsx",
-      "src/manager-helpers.tsx"
-    ],
-    "previewEntries": [
-      "src/preview.ts",
-      "src/index.ts"
-    ],
-    "nodeEntries": [
-      "src/preset.ts"
-    ]
-  },
   "storybook": {
-    "displayName": "Addon Kit",
+    "displayName": "Oversight",
     "supportedFrameworks": [
-      "supported-frameworks"
+      "react"
     ],
     "icon": "https://user-images.githubusercontent.com/321738/63501763-88dbf600-c4cc-11e9-96cd-94adadc2fd72.png"
   },

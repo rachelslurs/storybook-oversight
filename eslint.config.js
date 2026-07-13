@@ -33,5 +33,14 @@ export default [
   },
   ...tseslint.configs.recommended,
   ...storybook.configs['flat/recommended'],
+  {
+    rules: {
+      // Automatic JSX runtime (tsconfig `jsx: react-jsx`) — components don't
+      // import React, so the classic in-scope check would false-positive.
+      'react/react-in-jsx-scope': 'off',
+      // Props are typed by TypeScript, not runtime prop-types.
+      'react/prop-types': 'off',
+    },
+  },
   prettierRecommended,
 ];

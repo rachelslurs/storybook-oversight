@@ -1,23 +1,27 @@
 {
   "compilerOptions": {
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "target": "esnext", // Node 20 according to https://github.com/microsoft/TypeScript/wiki/Node-Target-Mapping#node-20
-    "allowJs": true,
-    "resolveJsonModule": true,
-    "moduleDetection": "force",
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
     "moduleResolution": "bundler",
-    "module": "preserve",
-    "jsx": "react",
+    "moduleDetection": "force",
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
     "isolatedModules": true,
-    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true,
     "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "noImplicitAny": true,
-    "lib": ["esnext", "dom", "dom.iterable"],
-    "baseUrl": ".",
-    "rootDir": "."
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    // tsup's dts pass injects a default `baseUrl`, which TS 6 flags as
+    // deprecated; silence it (the main `tsc` typecheck is unaffected).
+    "ignoreDeprecations": "6.0"
   },
-  "include": ["src/**/*", "tsup.config.ts"]
+  // `stories` is included so react-docgen-typescript (which builds its program
+  // from this tsconfig) can extract JSDoc from the demo components. `.storybook`
+  // is intentionally omitted: preview.ts imports the built `../dist/blocks.js`,
+  // which doesn't exist when `tsc` runs before `tsup` in `pnpm build`.
+  "include": ["src", "stories", "tsup.config.ts", "vitest.config.ts"]
 }
