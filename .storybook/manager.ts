@@ -1,15 +1,18 @@
 import { addons } from 'storybook/manager-api';
 
-import { renderLabel } from '../src/manager-helpers';
-
 /*
- * This is an example of opt-in usage of addon exports. Your users can choose to
- * import and use this helper, or not. Opt-in helpers should be exported in their
- * own file rather than in `manager.tsx`, because importing `manager.tsx` multiple
- * times can cause the addon registration code to run multiple times.
+ * Demonstrates Oversight's config channel. Addon options can't reach the manager
+ * bundle, so consumers configure the panel here and the addon reads it back via
+ * `addons.getConfig()['storybook-addon-oversight']`. Uncomment to try it.
  */
 addons.setConfig({
-  sidebar: {
-    renderLabel,
+  'storybook-addon-oversight': {
+    // expectedExtractor: 'react-docgen-typescript',
+    // debuggerLink: false, // hide the manifest-debugger footer link
+    rules: {
+      // Valid values: 'off' | 'error' | 'warning' | 'info'.
+      // 'deprecated-tag': 'off',
+      // 'prop-descriptions-missing': 'error',
+    },
   },
 });

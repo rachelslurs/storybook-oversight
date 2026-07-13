@@ -1,0 +1,29 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Overview" />
+
+# storybook-addon-oversight — demo
+
+This Storybook dogfoods the addon. `@storybook/addon-mcp` serves the components
+manifest, and **Oversight** lints it — surfacing coverage in two places:
+
+- the **Oversight panel** in the addons drawer, on every component's _story_ view;
+- the **coverage block** at the bottom of every component's _Docs_ page.
+
+Each demo component is engineered to trip one rule, so you can see the panel and
+block react:
+
+- **Actions/Button** — fully documented → clean. Its description ends with a
+  valid `?path=` redirect to Card, rendered as a working link in the panel.
+- **Data Display/Card** — an undocumented required prop → `required-prop-undocumented`
+  (error) plus `prop-descriptions-missing` (warning).
+- **Data Display/Badge** — no component description → `component-description-missing`.
+- **Data Display/Tile** — a `?path=` link to a component that isn't in the
+  manifest → `docs-link-dangling`.
+- **Feedback/Banner** — a `@deprecated` tag → `deprecated-tag` (info).
+- **Layout/Panel** — `@oversightIgnore` exempts its prop-coverage rule and names
+  a rule that doesn't exist → `unknown-ignore-rule`.
+
+Three rules need extraction _failures_ (`docgen-missing`,
+`story-extraction-error`, `extractor-drift`) and can't be staged with
+well-formed components — they're covered by the unit tests instead.
