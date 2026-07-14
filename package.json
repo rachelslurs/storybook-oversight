@@ -22,7 +22,7 @@
     "url": "https://github.com/rachelslurs/storybook-addon-oversight/issues"
   },
   "license": "MIT",
-  "author": "Rachel Cantor (https://github.com/rachelslurs)",
+  "author": "Rachel Cantor <rachelslurs@users.noreply.github.com> (https://github.com/rachelslurs)",
   "type": "module",
   "exports": {
     "./blocks": {

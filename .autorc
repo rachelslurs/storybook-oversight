@@ -1,5 +1,6 @@
 {
   "baseBranch": "main",
   "onlyPublishWithReleaseLabel": true,
-  "plugins": ["npm"]
+  "plugins": ["npm"],
+  "author": "rachelslurs <rachelslurs@users.noreply.github.com>"
 }
