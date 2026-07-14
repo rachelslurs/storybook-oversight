@@ -85,12 +85,12 @@ block (Docs view):
   `deprecated-tag` (info).
 - **[Panel](?path=/docs/layout-panel--docs)**: an undocumented `slot` prop that
   would trip `prop-descriptions-missing`, but `@oversightIgnore` exempts this
-  component from that rule → **clean**. The exemption at work.
+  component from that rule → **clean**.
 
-## Why these are rules, not a manifest view
+## Why these are rules
 
-`@storybook/addon-mcp` already lets you _view_ the raw manifest. Oversight earns
-the panel by making calls a viewer can't:
+`@storybook/addon-mcp` already lets you _view_ the raw manifest. These three
+checks need judgment that reading it can't give you:
 
 - **`extractor-drift`** is a comparison. The manifest looks fine on its own; it's
   only wrong relative to the extractor you expected.
@@ -100,10 +100,6 @@ the panel by making calls a viewer can't:
 - **`required-prop-undocumented` vs `prop-descriptions-missing`**: every blank
   prop reads the same in a raw view. Oversight calls the required one an `error`,
   because that's the gap an agent is most likely to guess through.
-
-The `error` / `warning` / `info` severities are exactly that judgment: how likely
-a gap is to mislead an agent. A viewer can show you the manifest; only a linter
-has an opinion about it.
 
 ## The manifest-level rule
 
@@ -120,9 +116,9 @@ per-component findings:
   style={{ width: '100%', borderRadius: 8, border: '1px solid #e5e7eb', margin: '1rem 0' }}
 />
 
-This demo ships on `react-docgen-typescript`, so drift can't fire live — which is
-the point: the docs are intact. The still above is a build with the shallow
-extractor; in your project the warning appears the moment the manifest drifts.
+This demo ships on `react-docgen-typescript`, so drift can't fire live. The docs
+are intact. The still above is a build with the shallow extractor; in your
+project the warning appears the moment the manifest drifts.
 
 ## Not shown here
 

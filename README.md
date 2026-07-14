@@ -20,14 +20,14 @@ badge on the panel tab.
 
 Scope is deliberate. The manifest Oversight lints is the _upstream_ artifact:
 Storybook's MCP `get-documentation` reads from it, reformats it, and drops what
-it won't serve (JSDoc tags among them). So Oversight checks two things: that the
+it won't serve (component-level JSDoc tags among them). So Oversight checks two things: that the
 doc content the MCP will serve is present and good (component/prop descriptions),
 and that the pipeline building the manifest is healthy enough to deliver it
 (extraction succeeded, the expected docgen extractor ran). It adds no
 documentation vocabulary of its own: selection guidance ("use X instead") lives
 as a plain redirect sentence in the component description, typical Storybook
 practice and passed through verbatim by `get-documentation`. Its one tag,
-`@oversightIgnore`, is a lint-suppression directive, not documentation.
+`@oversightIgnore`, is a lint-suppression directive.
 
 ## Requirements
 
@@ -112,17 +112,17 @@ prerequisite as the panel.
 | `unknown-ignore-rule`           | warning          | `@oversightIgnore` lists a token that is not a rule name                                       |
 | `deprecated-tag`                | info             | a `@deprecated` tag is present                                                                 |
 
-## Why these are lint rules, not a manifest dump
+## Why these are lint rules
 
 The raw manifest is already viewable: `@storybook/addon-mcp` serves a debugger at
-`components.html`. Oversight earns its place by making judgments a viewer that
-only displays the manifest can't:
+`components.html`. Three of the rules need judgment that reading it can't give
+you:
 
 - **`extractor-drift` is a comparison.** The manifest looks fine on its own; it's
   only wrong _relative to_ the extractor you expected, so a raw view has nothing
   to flag against. Oversight holds the expectation (`expectedExtractor`) and
-  checks the manifest against it. It's a property of the whole manifest, not any
-  one component, which is why the panel shows it in its own **Manifest** section.
+  checks the manifest against it. It's a property of the whole manifest, so the
+  panel shows it in its own **Manifest** section.
 - **`docs-link-dangling` needs every other entry.** One component's entry can't
   tell you its `?path=` redirect points at nothing; that takes cross-referencing
   every id in the manifest. A per-component view can't see it; Oversight can.
@@ -132,16 +132,11 @@ only displays the manifest can't:
   to guess at, so it's an `error`, while a missing optional description is a
   `warning`.
 
-That is what the `error` / `warning` / `info` severities are: a judgment about
-how likely each gap is to mislead an agent. A viewer can show you the manifest;
-only a linter has an opinion about it.
-
 ## Authoring MCP-legible docs
 
-Authoring legible docs is standard Storybook practice: you write no
-addon-specific tags. Put a JSDoc block above the component (and on each prop),
-and where two components are confusable, end the description with a redirect the
-MCP passes through verbatim:
+Put a JSDoc block above the component and on each prop; no addon-specific tags.
+Where two components are confusable, end the description with a redirect the MCP
+passes through verbatim:
 
 ```ts
 /**
