@@ -1,0 +1,36 @@
+name: PR
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  statuses: write
+  pull-requests: read
+
+jobs:
+  label-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js 20.19
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # Fails until the PR carries a SemVer label (major/minor/patch/skip-release).
+      # Reads the label set from .autorc, so labels are defined in one place.
+      - name: Require a SemVer label
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm exec auto pr-check --url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

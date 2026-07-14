@@ -209,6 +209,9 @@ Diagnostic logic lives as pure functions in `src/core/` with zero Storybook
 imports (plain data in, plain data out); the panel and Docs block are thin
 renderers over it.
 
+Changes land through pull requests labelled for SemVer; see
+[CONTRIBUTING.md](./CONTRIBUTING.md) for the PR and release workflow.
+
 ## License
 
 MIT
