@@ -13,21 +13,13 @@
   <a href="https://rachelslurs.github.io/storybook-addon-oversight/"><strong>▶ Live demo</strong></a>
 </p>
 
-A Storybook addon that lints your components manifest for the **documentation
-the MCP actually consumes**, per component, while you work. It surfaces docgen
-extraction health and component/prop/story documentation coverage, with a count
-badge on the panel tab.
+Your coding agent reads your components from the manifest Storybook's MCP server
+generates. When a description never reaches that manifest (extraction failed, the
+wrong docgen extractor ran, or the JSDoc is missing), the agent sees a component
+with no docs, and nothing tells you. Oversight lints the manifest per component
+while you work, so the gap surfaces on the component in front of you.
 
-Scope is deliberate. The manifest Oversight lints is the _upstream_ artifact:
-Storybook's MCP `get-documentation` reads from it, reformats it, and drops what
-it won't serve (component-level JSDoc tags among them). So Oversight checks two things: that the
-doc content the MCP will serve is present and good (component/prop descriptions),
-and that the pipeline building the manifest is healthy enough to deliver it
-(extraction succeeded, the expected docgen extractor ran). It adds no
-documentation vocabulary of its own: selection guidance ("use X instead") lives
-as a plain redirect sentence in the component description, typical Storybook
-practice and passed through verbatim by `get-documentation`. Its one tag,
-`@oversightIgnore`, is a lint-suppression directive.
+![The Oversight panel cycling through Card, Tile, and Badge, flagging findings per component](https://raw.githubusercontent.com/rachelslurs/storybook-addon-oversight/main/stories/assets/oversight-panel.gif)
 
 ## Requirements
 
@@ -62,6 +54,19 @@ const config = {
   typescript: { reactDocgen: 'react-docgen-typescript' },
 };
 ```
+
+## What Oversight checks
+
+The manifest Oversight lints is the _upstream_ artifact: Storybook's MCP
+`get-documentation` reads from it, reformats it, and drops what it won't serve
+(component-level JSDoc tags among them). So Oversight checks two things: that the
+doc content the MCP will serve is present and good (component/prop descriptions),
+and that the pipeline building the manifest is healthy enough to deliver it
+(extraction succeeded, the expected docgen extractor ran). It adds no
+documentation vocabulary of its own: selection guidance ("use X instead") lives
+as a plain redirect sentence in the component description, typical Storybook
+practice and passed through verbatim by `get-documentation`. Its one tag,
+`@oversightIgnore`, is a lint-suppression directive.
 
 ## Surfaces
 
