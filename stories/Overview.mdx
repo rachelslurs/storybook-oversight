@@ -3,6 +3,7 @@ import icon from '../assets/oversight-icon-128.png';
 import panelShot from './assets/panel.png';
 import blockShot from './assets/block.png';
 import driftShot from './assets/manifest-drift.png';
+import findingsShot from './assets/findings.png';
 
 <Meta title="Overview" />
 
@@ -58,9 +59,17 @@ the end of any component's Docs to find it:
 
 ## The examples
 
-Each component is deliberately built to trip **one rule**, so you can see the
-panel and block react. Open each one and watch the Oversight tab (Story view) or
-scroll to the block (Docs view):
+Each component is deliberately built to trip **one rule**. A failing rule renders
+as a severity chip, the rule name, and a one-line message:
+
+<img
+  src={findingsShot}
+  alt="The Findings section showing an error and a warning: a severity chip, the rule name, and a message for each"
+  style={{ width: '100%', maxWidth: 600, borderRadius: 8, border: '1px solid #e5e7eb', margin: '1rem 0' }}
+/>
+
+Open each component and watch the Oversight tab (Story view) or scroll to the
+block (Docs view):
 
 - **[Button](?path=/docs/actions-button--docs)**: fully documented, and its
   description ends with a valid `?path=` redirect to Card → **clean**, and the
