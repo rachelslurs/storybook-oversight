@@ -10,6 +10,8 @@ function getAbsolutePath(value: string): string {
 }
 
 const config: StorybookConfig = {
+  // Keep the demo's chrome clean (no "what's new" toast) for a public showcase.
+  core: { disableWhatsNewNotifications: true },
   stories: ['../stories/**/*.mdx', '../stories/**/*.stories.@(ts|tsx)'],
   addons: [
     getAbsolutePath('@storybook/addon-docs'),
