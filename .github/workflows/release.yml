@@ -9,11 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci')"
     steps:
+      # GH_TOKEN must be a PAT for @rachelslurs (contents + pull requests).
+      # The default GITHUB_TOKEN cannot push past the main ruleset on a
+      # personal repo; Auto needs to commit the version bump as you.
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Prepare repository
-        run: git fetch --unshallow --tags
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -29,7 +32,7 @@ jobs:
 
       - name: Create Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           pnpm run release
