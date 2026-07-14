@@ -114,6 +114,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
         severity: 'error',
         componentId: id,
         message: `${name} links to unknown manifest ids: ${[...dangling].join(', ')}.`,
+        targets: [...dangling],
       });
     }
   }

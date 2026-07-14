@@ -112,6 +112,30 @@ prerequisite as the panel.
 | `unknown-ignore-rule`           | warning          | `@oversightIgnore` lists a token that is not a rule name                                       |
 | `deprecated-tag`                | info             | a `@deprecated` tag is present                                                                 |
 
+## Why these are lint rules, not a manifest dump
+
+The raw manifest is already viewable: `@storybook/addon-mcp` serves a debugger at
+`components.html`. Oversight earns its place by making judgments a viewer that
+only displays the manifest can't:
+
+- **`extractor-drift` is a comparison.** The manifest looks fine on its own; it's
+  only wrong _relative to_ the extractor you expected, so a raw view has nothing
+  to flag against. Oversight holds the expectation (`expectedExtractor`) and
+  checks the manifest against it. It's a property of the whole manifest, not any
+  one component, which is why the panel shows it in its own **Manifest** section.
+- **`docs-link-dangling` needs every other entry.** One component's entry can't
+  tell you its `?path=` redirect points at nothing; that takes cross-referencing
+  every id in the manifest. A per-component view can't see it; Oversight can.
+- **`required-prop-undocumented` vs `prop-descriptions-missing` is a severity
+  call.** Every blank prop description renders the same in a raw view. Oversight
+  decides that an undocumented _required_ prop is the one an agent is most likely
+  to guess at, so it's an `error`, while a missing optional description is a
+  `warning`.
+
+That is what the `error` / `warning` / `info` severities are: a judgment about
+how likely each gap is to mislead an agent. A viewer can show you the manifest;
+only a linter has an opinion about it.
+
 ## Authoring MCP-legible docs
 
 Authoring legible docs is standard Storybook practice: you write no

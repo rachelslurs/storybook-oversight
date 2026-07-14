@@ -59,6 +59,47 @@ describe('buildReport (fixture)', () => {
     expect(report.diagnostics).toHaveLength(0);
   });
 
+  it('routes manifest-level extractor-drift to manifestDiagnostics, not per-component', () => {
+    const drift: RawManifest = {
+      meta: { docgen: 'react-docgen' }, // ≠ the default expected react-docgen-typescript
+      components: {
+        'ui-thing': {
+          name: 'Thing',
+          path: './thing.stories.tsx',
+          description: 'A well documented thing.',
+          reactDocgen: {
+            description: 'A well documented thing.',
+            props: { label: { description: 'The label.', required: true } },
+          },
+        },
+      },
+    };
+    const report = buildReport(drift, 'ui-thing');
+    // The component itself is clean — drift must not leak into its findings/count.
+    expect(report.diagnostics).toHaveLength(0);
+    expect(report.manifestDiagnostics.map((d) => d.rule)).toEqual(['extractor-drift']);
+    expect(report.manifestDiagnostics[0].severity).toBe('warning');
+    expect(report.manifestDiagnostics[0].componentId).toBeNull();
+  });
+
+  it('has no manifest-level findings when the extractor matches the expectation', () => {
+    const clean: RawManifest = {
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ui-thing': {
+          name: 'Thing',
+          path: './thing.stories.tsx',
+          description: 'A well documented thing.',
+          reactDocgenTypescript: {
+            description: 'A well documented thing.',
+            props: { label: { description: 'The label.', required: true } },
+          },
+        },
+      },
+    };
+    expect(buildReport(clean, 'ui-thing').manifestDiagnostics).toHaveLength(0);
+  });
+
   it('passes lint options through to the resolved diagnostics', () => {
     const report = buildReport(
       {

@@ -26,6 +26,10 @@ export type ComponentReport = {
   storyFailures: StoryFailure[];
   /** Diagnostics scoped to this component. */
   diagnostics: Diagnostic[];
+  /** Manifest-level diagnostics (`componentId: null`, e.g. extractor-drift) —
+   *  the same list on every component's report, rendered in their own section
+   *  and deliberately kept out of the per-component count. */
+  manifestDiagnostics: Diagnostic[];
 };
 
 export function analyzeManifest(manifest: RawManifest, options?: LintOptions): ManifestAnalysis {
@@ -43,6 +47,7 @@ export function resolveComponent(analysis: ManifestAnalysis, componentId: string
     failure,
     storyFailures: analysis.result.storyFailures.filter((f) => f.componentId === componentId),
     diagnostics: analysis.diagnostics.filter((d) => d.componentId === componentId),
+    manifestDiagnostics: analysis.diagnostics.filter((d) => d.componentId === null),
   };
 }
 

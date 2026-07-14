@@ -1,9 +1,9 @@
 import { Fragment } from 'react';
 import type { ComponentType } from 'react';
-import { Placeholder } from 'storybook/internal/components';
+import { Badge, Placeholder } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
-import type { ComponentReport } from '../core';
-import { parseInline, splitParagraphs } from './markdown';
+import type { ComponentReport, Diagnostic, DiagnosticSeverity } from '../core';
+import { parseInline, splitParagraphs, storybookPathId } from './markdown';
 
 /** A context-appropriate link to a `?path=/docs|story/<id>` target. The manager
  *  navigates via `api.selectStory`. Only needed by the "full" variant. */
@@ -56,6 +56,15 @@ const Prose = styled.div(({ theme }) => ({
   },
 }));
 
+// A dangling `?path=` redirect: struck through in the error color and NOT a
+// link (so it can't navigate to the missing target). The `docs-link-dangling`
+// finding names it; this marks it where you read it.
+const DanglingLink = styled.span(({ theme }) => ({
+  color: theme.color.negative,
+  whiteSpace: 'nowrap',
+  '& s': { textDecorationColor: theme.color.negative },
+}));
+
 const PropList = styled.ul({
   margin: '6px 0 0',
   paddingLeft: 18,
@@ -68,9 +77,95 @@ const Footer = styled.div(({ theme }) => ({
   '& a': { color: theme.color.secondary },
 }));
 
+// Each severity maps to a Storybook Badge status, so a finding reads as a
+// colored `error`/`warning`/`info` pill next to its rule name.
+const SEVERITY_STATUS: Record<DiagnosticSeverity, 'negative' | 'warning' | 'neutral'> = {
+  error: 'negative',
+  warning: 'warning',
+  info: 'neutral',
+};
+const SEVERITY_RANK: Record<DiagnosticSeverity, number> = { error: 0, warning: 1, info: 2 };
+
+const FindingList = styled.ul({ listStyle: 'none', margin: 0, padding: 0 });
+const FindingItem = styled.li({
+  display: 'flex',
+  gap: 8,
+  alignItems: 'baseline',
+  margin: '0 0 8px',
+  '&:last-child': { margin: 0 },
+});
+const FindingBody = styled.div(({ theme }) => ({ color: theme.color.defaultText, lineHeight: 1.4 }));
+const RuleName = styled.code(({ theme }) => ({
+  fontFamily: theme.typography.fonts.mono,
+  fontSize: '0.92em',
+  color: theme.textMutedColor,
+}));
+const Note = styled.div(({ theme }) => ({
+  color: theme.textMutedColor,
+  fontSize: theme.typography.size.s1,
+  marginBottom: 8,
+}));
+
+/** A severity-badged list of diagnostics, errors first. Shared by the
+ *  per-component "Findings" section and the manifest-level "Manifest" section. */
+function FindingsList({ diagnostics }: { diagnostics: Diagnostic[] }) {
+  const sorted = [...diagnostics].sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+  return (
+    <FindingList>
+      {sorted.map((diagnostic, index) => (
+        <FindingItem key={`${diagnostic.rule}-${index}`}>
+          <Badge compact status={SEVERITY_STATUS[diagnostic.severity]}>
+            {diagnostic.severity}
+          </Badge>
+          <FindingBody>
+            <RuleName>{diagnostic.rule}</RuleName> {diagnostic.message}
+          </FindingBody>
+        </FindingItem>
+      ))}
+    </FindingList>
+  );
+}
+
+/** This component's coverage as named lint rules — or a clean-state note when
+ *  nothing fired. */
+function FindingsSection({ diagnostics }: { diagnostics: Diagnostic[] }) {
+  return (
+    <Section>
+      <Heading>Findings</Heading>
+      {diagnostics.length === 0 ? (
+        <Positive>✓ No findings — this component&apos;s docs reach the agent intact.</Positive>
+      ) : (
+        <FindingsList diagnostics={diagnostics} />
+      )}
+    </Section>
+  );
+}
+
+/** Manifest-level findings (e.g. extractor-drift) are a property of the whole
+ *  manifest, not one component, so they get their own section and stay out of
+ *  the per-component tab count. */
+function ManifestSection({ diagnostics }: { diagnostics: Diagnostic[] }) {
+  if (diagnostics.length === 0) return null;
+  return (
+    <Section>
+      <Heading>Manifest</Heading>
+      <Note>Affects every component, not just this one.</Note>
+      <FindingsList diagnostics={diagnostics} />
+    </Section>
+  );
+}
+
 /** Renders the small inline-markdown subset descriptions use, with links routed
  *  through the injected LinkComponent (plain text if none). */
-function Markdown({ text, LinkComponent }: { text: string; LinkComponent?: LinkComponent }) {
+function Markdown({
+  text,
+  LinkComponent,
+  danglingTargets,
+}: {
+  text: string;
+  LinkComponent?: LinkComponent;
+  danglingTargets?: Set<string>;
+}) {
   return (
     <Prose>
       {splitParagraphs(text).map((paragraph, pIndex) => (
@@ -83,12 +178,21 @@ function Markdown({ text, LinkComponent }: { text: string; LinkComponent?: LinkC
                 return <em key={index}>{segment.text}</em>;
               case 'code':
                 return <code key={index}>{segment.text}</code>;
-              case 'link':
+              case 'link': {
+                const targetId = storybookPathId(segment.target);
+                if (targetId && danglingTargets?.has(targetId)) {
+                  return (
+                    <DanglingLink key={index} title={`Broken link: ${segment.target} is not in the manifest`}>
+                      <s>{segment.label}</s> ⚠
+                    </DanglingLink>
+                  );
+                }
                 return LinkComponent ? (
                   <LinkComponent key={index} label={segment.label} target={segment.target} />
                 ) : (
                   <Fragment key={index}>{segment.label}</Fragment>
                 );
+              }
               default:
                 return <Fragment key={index}>{segment.text}</Fragment>;
             }
@@ -125,12 +229,14 @@ function DescriptionSection({
   name,
   variant,
   LinkComponent,
+  danglingTargets,
 }: {
   description: string | null;
   sourceFile: string | null;
   name: string;
   variant: ReportViewVariant;
   LinkComponent?: LinkComponent;
+  danglingTargets?: Set<string>;
 }) {
   return (
     <Section>
@@ -143,7 +249,7 @@ function DescriptionSection({
       ) : variant === 'compact' ? (
         <Positive>✓ Documented — the MCP and Docs page show the JSDoc for this component.</Positive>
       ) : (
-        <Markdown text={description} LinkComponent={LinkComponent} />
+        <Markdown text={description} LinkComponent={LinkComponent} danglingTargets={danglingTargets} />
       )}
     </Section>
   );
@@ -195,13 +301,15 @@ export function ReportView({
     return <Placeholder>No manifest entry for this component.</Placeholder>;
   }
 
-  const { component, failure, storyFailures, diagnostics } = report;
+  const { component, failure, storyFailures, diagnostics, manifestDiagnostics } = report;
   const componentId = component?.id ?? failure?.id ?? '';
   const storyErrorsShown = diagnostics.some((d) => d.rule === 'story-extraction-error') && storyFailures.length > 0;
 
   if (failure) {
     return (
       <>
+        <ManifestSection diagnostics={manifestDiagnostics} />
+        <FindingsSection diagnostics={diagnostics} />
         <Section>
           <Heading>Extraction</Heading>
           <Negative>
@@ -219,15 +327,21 @@ export function ReportView({
 
   const propNames = Object.keys(component.props);
   const undocumented = propNames.filter((name) => component.props[name].description === null);
+  const danglingTargets = new Set(
+    diagnostics.filter((d) => d.rule === 'docs-link-dangling').flatMap((d) => d.targets ?? []),
+  );
 
   return (
     <>
+      <ManifestSection diagnostics={manifestDiagnostics} />
+      <FindingsSection diagnostics={diagnostics} />
       <DescriptionSection
         description={component.description}
         sourceFile={component.sourceFile}
         name={component.name}
         variant={variant}
         LinkComponent={LinkComponent}
+        danglingTargets={danglingTargets}
       />
       <Section>
         <Heading>Props</Heading>

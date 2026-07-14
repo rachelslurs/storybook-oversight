@@ -110,4 +110,7 @@ export type Diagnostic = {
   componentId: string | null;
   message: string;
   props?: string[];
+  /** For `docs-link-dangling`: the `?path=` target ids that resolve to nothing,
+   *  so the renderer can strike the offending links through inline. */
+  targets?: string[];
 };

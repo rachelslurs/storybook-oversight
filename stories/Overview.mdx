@@ -2,6 +2,7 @@ import { Meta } from '@storybook/addon-docs/blocks';
 import icon from '../assets/oversight-icon-128.png';
 import panelShot from './assets/panel.png';
 import blockShot from './assets/block.png';
+import driftShot from './assets/manifest-drift.png';
 
 <Meta title="Overview" />
 
@@ -77,8 +78,45 @@ scroll to the block (Docs view):
   prop-coverage rule, but the list also names a rule that doesn't exist →
   `unknown-ignore-rule` (warning).
 
+## Why these are rules, not a manifest view
+
+`@storybook/addon-mcp` already lets you _view_ the raw manifest. Oversight earns
+the panel by making calls a viewer can't:
+
+- **`extractor-drift`** is a comparison. The manifest looks fine on its own; it's
+  only wrong relative to the extractor you expected.
+- **`docs-link-dangling`** takes every id in the manifest to know a `?path=`
+  redirect points at nothing. One component's entry can't tell (the panel strikes
+  the dead link through where it appears in the description).
+- **`required-prop-undocumented` vs `prop-descriptions-missing`**: every blank
+  prop reads the same in a raw view. Oversight calls the required one an `error`,
+  because that's the gap an agent is most likely to guess through.
+
+The `error` / `warning` / `info` severities are exactly that judgment: how likely
+a gap is to mislead an agent. A viewer can show you the manifest; only a linter
+has an opinion about it.
+
+## The manifest-level rule
+
+`extractor-drift` isn't tied to one component. It fires when the manifest was
+built with a different docgen extractor than you expect (`react-docgen-typescript`
+by default). The shallow `react-docgen` parser silently drops complex prop types,
+so descriptions come back empty across the board. Because it's a property of the
+whole manifest, the panel gives it its own **Manifest** section, above the
+per-component findings:
+
+<img
+  src={driftShot}
+  alt="The Oversight panel's Manifest section flagging extractor-drift, above the component's findings"
+  style={{ width: '100%', borderRadius: 8, border: '1px solid #e5e7eb', margin: '1rem 0' }}
+/>
+
+This demo ships on `react-docgen-typescript`, so drift can't fire live — which is
+the point: the docs are intact. The still above is a build with the shallow
+extractor; in your project the warning appears the moment the manifest drifts.
+
 ## Not shown here
 
-Three rules fire only on extraction **failures** (`docgen-missing`,
-`story-extraction-error`, and `extractor-drift`), which can't be staged with
-well-formed components. They're covered by the addon's unit tests instead.
+`docgen-missing` and `story-extraction-error` fire only on extraction
+**failures**, which can't be staged with well-formed components. They're covered
+by the addon's unit tests instead.

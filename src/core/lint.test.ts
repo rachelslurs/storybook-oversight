@@ -282,6 +282,8 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     expect(dangling[0].componentId).toBe('a');
     expect(dangling[0].message).toContain('group-ghost--docs');
     expect(dangling[0].message).not.toContain('group-b--docs');
+    // Structured targets drive the inline strikethrough — only the dead id.
+    expect(dangling[0].targets).toEqual(['group-ghost--docs']);
   });
 
   it('honors per-rule overrides: off drops, severity remaps', () => {
