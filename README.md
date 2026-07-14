@@ -114,10 +114,10 @@ prerequisite as the panel.
 
 ## Authoring MCP-legible docs
 
-Everything Oversight lints is standard Storybook practice: no addon-specific
-tags. Put a JSDoc block above the component (and on each prop), and where two
-components are confusable, end the description with a redirect the MCP passes
-through verbatim:
+Authoring legible docs is standard Storybook practice: you write no
+addon-specific tags. Put a JSDoc block above the component (and on each prop),
+and where two components are confusable, end the description with a redirect the
+MCP passes through verbatim:
 
 ```ts
 /**
