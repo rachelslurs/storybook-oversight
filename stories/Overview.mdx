@@ -15,13 +15,13 @@ import blockShot from './assets/block.png';
   />
   <h1 style={{ margin: '1rem 0 0.25rem' }}>storybook-addon-oversight</h1>
   <p style={{ fontSize: 16, color: '#64748b', margin: '0.75rem auto 0', maxWidth: 440, lineHeight: 1.5 }}>
-    See what your agent can and can't see — it diagnoses silent failures in your
+    See what your agent can and can't see: it diagnoses silent failures in your
     Storybook MCP manifest.
   </p>
 </div>
 
 This Storybook **dogfoods the addon**. `@storybook/addon-mcp` serves the
-components manifest, and **Oversight** lints it — flagging the documentation an
+components manifest, and **Oversight** lints it, flagging the documentation an
 AI agent can and can't read, per component, while you work.
 
 Everything below is a real, live diagnosis: `@storybook/addon-mcp` generates the
@@ -46,7 +46,7 @@ open its story, then click the **Oversight** tab:
 
 ### 2 · The Docs block
 
-The same report, rendered inline at the **bottom of every Docs page** — scroll to
+The same report, rendered inline at the **bottom of every Docs page**. Scroll to
 the end of any component's Docs to find it:
 
 <img
@@ -61,24 +61,24 @@ Each component is deliberately built to trip **one rule**, so you can see the
 panel and block react. Open each one and watch the Oversight tab (Story view) or
 scroll to the block (Docs view):
 
-- **[Button](?path=/docs/actions-button--docs)** — fully documented, and its
+- **[Button](?path=/docs/actions-button--docs)**: fully documented, and its
   description ends with a valid `?path=` redirect to Card → **clean**, and the
   link renders clickable in the panel.
-- **[Card](?path=/docs/data-display-card--docs)** — an undocumented **required**
+- **[Card](?path=/docs/data-display-card--docs)**: an undocumented **required**
   prop → `required-prop-undocumented` (error) plus `prop-descriptions-missing`
   (warning). _(pictured above)_
-- **[Badge](?path=/docs/data-display-badge--docs)** — no component description →
+- **[Badge](?path=/docs/data-display-badge--docs)**: no component description →
   `component-description-missing` (warning).
-- **[Tile](?path=/docs/data-display-tile--docs)** — a `?path=` link pointing at a
+- **[Tile](?path=/docs/data-display-tile--docs)**: a `?path=` link pointing at a
   component that isn't in the manifest → `docs-link-dangling` (error).
-- **[Banner](?path=/docs/feedback-banner--docs)** — a `@deprecated` tag →
+- **[Banner](?path=/docs/feedback-banner--docs)**: a `@deprecated` tag →
   `deprecated-tag` (info).
-- **[Panel](?path=/docs/layout-panel--docs)** — `@oversightIgnore` exempts its
+- **[Panel](?path=/docs/layout-panel--docs)**: `@oversightIgnore` exempts its
   prop-coverage rule, but the list also names a rule that doesn't exist →
   `unknown-ignore-rule` (warning).
 
 ## Not shown here
 
-Three rules fire only on extraction **failures** — `docgen-missing`,
-`story-extraction-error`, and `extractor-drift` — which can't be staged with
+Three rules fire only on extraction **failures** (`docgen-missing`,
+`story-extraction-error`, and `extractor-drift`), which can't be staged with
 well-formed components. They're covered by the addon's unit tests instead.
