@@ -1,6 +1,7 @@
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { StorybookConfig } from '@storybook/react-vite';
+import tailwindcss from '@tailwindcss/vite';
 
 // Resolve an addon/framework to an absolute path so Storybook works with pnpm's
 // non-hoisted node_modules layout.
@@ -28,6 +29,12 @@ const config: StorybookConfig = {
       // Keep each component's own API; drop props inherited from node_modules.
       propFilter: (prop) => (prop.parent ? !/node_modules/.test(prop.parent.fileName) : true),
     },
+  },
+  // Tailwind v4 for the demo components (scoped to this Storybook's Vite build;
+  // the published addon uses storybook/theming and is unaffected).
+  async viteFinal(config) {
+    config.plugins = [...(config.plugins ?? []), tailwindcss()];
+    return config;
   },
 };
 

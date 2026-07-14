@@ -16,5 +16,5 @@ export interface PanelProps {
  * @oversightIgnore prop-descriptions-missing frobnicate
  */
 export function Panel({ children }: PanelProps) {
-  return <div style={{ padding: 16, background: '#f9fafb', borderRadius: 6 }}>{children}</div>;
+  return <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">{children}</div>;
 }

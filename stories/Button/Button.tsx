@@ -17,20 +17,20 @@ export interface ButtonProps {
  * [Card](?path=/docs/data-display-card--docs).
  */
 export function Button({ variant, size = 'md', children, onClick }: ButtonProps) {
-  const pad = size === 'sm' ? '4px 10px' : size === 'lg' ? '12px 22px' : '8px 16px';
+  const sizes = {
+    sm: 'px-2.5 py-1 text-sm',
+    md: 'px-4 py-2 text-sm',
+    lg: 'px-5 py-2.5 text-base',
+  };
+  const variants = {
+    primary: 'border-transparent bg-indigo-600 text-white hover:bg-indigo-700',
+    secondary: 'border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-50',
+  };
   return (
     <button
       type="button"
       onClick={onClick}
-      style={{
-        padding: pad,
-        borderRadius: 6,
-        border: '1px solid #4f46e5',
-        background: variant === 'primary' ? '#4f46e5' : 'transparent',
-        color: variant === 'primary' ? '#fff' : '#4f46e5',
-        cursor: 'pointer',
-        font: 'inherit',
-      }}
+      className={`inline-flex cursor-pointer items-center justify-center rounded-md border font-medium shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${sizes[size]} ${variants[variant]}`}
     >
       {children}
     </button>

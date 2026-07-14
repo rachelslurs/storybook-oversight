@@ -17,17 +17,9 @@ export interface TileProps {
  */
 export function Tile({ label, children }: TileProps) {
   return (
-    <div
-      style={{
-        width: 140,
-        height: 100,
-        borderRadius: 8,
-        border: '1px solid #e5e7eb',
-        padding: 12,
-      }}
-    >
-      <strong>{label}</strong>
-      <div>{children}</div>
+    <div className="flex h-28 w-40 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</span>
+      <span className="mt-1 text-2xl font-semibold text-slate-900">{children}</span>
     </div>
   );
 }

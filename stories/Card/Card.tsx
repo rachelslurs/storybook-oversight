@@ -16,16 +16,10 @@ export interface CardProps {
 export function Card({ title, elevated, children }: CardProps) {
   return (
     <section
-      style={{
-        borderRadius: 8,
-        border: '1px solid #e5e7eb',
-        boxShadow: elevated ? '0 4px 12px rgba(0,0,0,0.1)' : 'none',
-        padding: 16,
-        maxWidth: 320,
-      }}
+      className={`max-w-sm rounded-xl border border-slate-200 bg-white p-5 ${elevated ? 'shadow-lg' : 'shadow-sm'}`}
     >
-      <h3 style={{ margin: '0 0 8px' }}>{title}</h3>
-      {children}
+      <h3 className="mb-2 text-base font-semibold text-slate-900">{title}</h3>
+      <div className="text-sm leading-relaxed text-slate-600">{children}</div>
     </section>
   );
 }
