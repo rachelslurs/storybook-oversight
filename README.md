@@ -9,6 +9,10 @@
   Diagnoses silent failures in your Storybook MCP manifest.
 </p>
 
+<p align="center">
+  <a href="https://rachelslurs.github.io/storybook-addon-oversight/"><strong>▶ Live demo</strong></a>
+</p>
+
 A Storybook addon that lints your components manifest for the **documentation
 the MCP actually consumes** — per component, while you work. It surfaces docgen
 extraction health and component/prop/story documentation coverage, with a count
@@ -184,7 +188,12 @@ from a different channel on each surface:
 
 ## Try it
 
-This repo ships a demo Storybook that dogfoods the addon — a handful of
+A live build is hosted at
+**[rachelslurs.github.io/storybook-addon-oversight](https://rachelslurs.github.io/storybook-addon-oversight/)** —
+open a component's story to see the Oversight panel, or its Docs page for the
+inline block.
+
+This repo also ships that demo Storybook so you can run it locally — a handful of
 components each engineered to trip one rule:
 
 ```bash
