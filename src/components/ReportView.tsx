@@ -31,6 +31,7 @@ const Section = styled.section(({ theme }) => ({
   padding: '12px 16px',
   borderBottom: `1px solid ${theme.appBorderColor}`,
   fontSize: theme.typography.size.s2,
+  background: theme.background.content,
 }));
 
 const Heading = styled.div(({ theme }) => ({
@@ -38,9 +39,11 @@ const Heading = styled.div(({ theme }) => ({
   marginBottom: 6,
 }));
 
-const Positive = styled.span(({ theme }) => ({ color: theme.color.positive }));
-const Warning = styled.span(({ theme }) => ({ color: theme.color.warning }));
-const Negative = styled.span(({ theme }) => ({ color: theme.color.negative }));
+// Warning/error sentences use the theme's text-tone accent colors, which meet
+// WCAG AA on the white panel background. Short annotations use Storybook's Badge
+// (a tinted chip) instead, so their color reads without failing contrast.
+const Warning = styled.span(({ theme }) => ({ color: theme.color.warningText }));
+const Negative = styled.span(({ theme }) => ({ color: theme.color.negativeText }));
 
 const Prose = styled.div(({ theme }) => ({
   color: theme.color.defaultText,
@@ -60,9 +63,9 @@ const Prose = styled.div(({ theme }) => ({
 // link (so it can't navigate to the missing target). The `docs-link-dangling`
 // finding names it; this marks it where you read it.
 const DanglingLink = styled.span(({ theme }) => ({
-  color: theme.color.negative,
+  color: theme.color.negativeText,
   whiteSpace: 'nowrap',
-  '& s': { textDecorationColor: theme.color.negative },
+  '& s': { textDecorationColor: theme.color.negativeText },
 }));
 
 const PropList = styled.ul({
@@ -133,7 +136,12 @@ function FindingsSection({ diagnostics }: { diagnostics: Diagnostic[] }) {
     <Section>
       <Heading>Findings</Heading>
       {diagnostics.length === 0 ? (
-        <Positive>✓ No findings — this component&apos;s docs reach the agent intact.</Positive>
+        <span>
+          <Badge compact status="positive">
+            No findings
+          </Badge>{' '}
+          this component&apos;s docs reach the agent intact.
+        </span>
       ) : (
         <FindingsList diagnostics={diagnostics} />
       )}
@@ -244,10 +252,15 @@ function DescriptionSection({
       {description === null ? (
         <Warning>
           Missing. The MCP and Docs tab describe {name} as nothing
-          {sourceFile ? ` — add JSDoc in ${sourceFile}` : ''}.
+          {sourceFile ? `. Add JSDoc in ${sourceFile}` : ''}.
         </Warning>
       ) : variant === 'compact' ? (
-        <Positive>✓ Documented — the MCP and Docs page show the JSDoc for this component.</Positive>
+        <span>
+          <Badge compact status="positive">
+            Documented
+          </Badge>{' '}
+          the MCP and Docs page show the JSDoc for this component.
+        </span>
       ) : (
         <Markdown text={description} LinkComponent={LinkComponent} danglingTargets={danglingTargets} />
       )}
@@ -358,9 +371,13 @@ export function ReportView({
                   <li key={name}>
                     <code>{name}</code>{' '}
                     {component.props[name].required ? (
-                      <Negative>(required, undocumented)</Negative>
+                      <Badge compact status="negative">
+                        required, undocumented
+                      </Badge>
                     ) : (
-                      <Warning>(undocumented)</Warning>
+                      <Badge compact status="warning">
+                        undocumented
+                      </Badge>
                     )}
                   </li>
                 ))}
