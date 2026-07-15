@@ -26,6 +26,9 @@ while you work, so the gap surfaces on the component in front of you.
 ## Requirements
 
 - **Storybook ^10.3** (React projects).
+- **React 18 or 19** in the consumer project. The addon's manager UI renders
+  through Storybook's own React, so your app's React version is independent
+  (needs `0.1.1+`; earlier versions crash the manager on React 19 projects).
 - The **components-manifest** feature enabled and served in dev.
   [`@storybook/addon-mcp`](https://www.npmjs.com/package/@storybook/addon-mcp)
   turns it on and serves `/manifests/components.json`, the manifest Oversight
@@ -138,6 +141,40 @@ you:
   decides that an undocumented _required_ prop is the one an agent is most likely
   to guess at, so it's an `error`, while a missing optional description is a
   `warning`.
+
+## Troubleshooting `docgen-missing`
+
+`docgen-missing` means `react-docgen-typescript` returned no docs for the
+component's file, so its props and JSDoc never reach the manifest — an agent sees
+the component with no documented props. In order of likelihood:
+
+1. **`reactDocgen` isn't `react-docgen-typescript`.** See [Install](#install).
+2. **Your root `tsconfig.json` is solution-style.** The default `npm create vite`
+   (react-ts) scaffold ships a root that only delegates to project references and
+   owns no files:
+
+   ```jsonc
+   // tsconfig.json
+   { "files": [], "references": [{ "path": "./tsconfig.app.json" } /* , … */] }
+   ```
+
+   Storybook's manifest docgen (`@storybook/react`) resolves the nearest tsconfig
+   at your project root and builds its TypeScript program from it. A solution-style
+   root contributes no files of its own, so the program is empty and extraction
+   returns nothing — even for a fully-typed, fully-documented component. Give that
+   root config your sources:
+
+   ```jsonc
+   // tsconfig.json
+   { "extends": "./tsconfig.app.json", "include": ["src"] }
+   ```
+
+3. **`reactDocgenTypescriptOptions.tsconfigPath` won't fix this.** There are two
+   docgen paths and they don't share a tsconfig: Storybook's Docs UI honors
+   `typescript.reactDocgenTypescriptOptions.tsconfigPath`, but the manifest docgen
+   that Oversight reads uses `findTsconfigPath(cwd)` and ignores it. So that
+   override can make your Docs prop tables render while this finding still fires —
+   fix the tsconfig your project _root_ resolves to (point 2).
 
 ## Authoring MCP-legible docs
 

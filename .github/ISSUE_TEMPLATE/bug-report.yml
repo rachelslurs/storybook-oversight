@@ -1,0 +1,58 @@
+name: Bug report
+description: Something in Oversight isn't working as expected
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing! Please include enough detail to reproduce. If this is
+        a `docgen-missing` finding, check the README's
+        [Troubleshooting `docgen-missing`](https://github.com/rachelslurs/storybook-addon-oversight#troubleshooting-docgen-missing)
+        section first — the usual cause is a solution-style root `tsconfig.json`.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you observe, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: storybook-addon-oversight, storybook, @storybook/addon-mcp, react
+      placeholder: "oversight 0.1.1, storybook 10.5.0, addon-mcp 0.7.0, react 19.2.7"
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant config
+      description: Your `.storybook/main.ts` `typescript` block, and your root `tsconfig.json` if the issue is docgen-related.
+      render: jsonc
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console / manager errors
+      description: Any browser-console errors or Storybook server output.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before filing
+      options:
+        - label: I searched existing issues for a duplicate.
+          required: true
+        - label: The components-manifest is enabled and served (`@storybook/addon-mcp`), so the panel isn't in the "unavailable" state.
+          required: false

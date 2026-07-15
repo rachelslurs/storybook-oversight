@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest an improvement, a new diagnostic, or a change to an existing one
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What's missing or painful today? What can't you diagnose or express?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should Oversight do? For a new/changed diagnostic, when should it fire and at what severity?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Links, screenshots, or a manifest snippet that shows the case.

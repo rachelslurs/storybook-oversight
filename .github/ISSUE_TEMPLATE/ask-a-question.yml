@@ -1,0 +1,17 @@
+name: Ask a question
+description: Request information or a recipe for using Oversight
+title: "[QUESTION] "
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What are you trying to do, and where are you stuck?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Relevant config, versions, or a link — anything that helps answer.
