@@ -21,6 +21,8 @@ while you work, so the gap surfaces on the component in front of you.
 
 ![The Oversight panel cycling through Card, Tile, and Badge, flagging findings per component](https://raw.githubusercontent.com/rachelslurs/storybook-addon-oversight/main/stories/assets/oversight-panel.gif)
 
+<p>Blog post: <a href="https://rachel.fyi/posts/your-agent-is-reading-a-different-design-system"><em>Your Agent Is Reading a Different Design System</em></a></p>
+
 ## Requirements
 
 - **Storybook ^10.3** (React projects).
