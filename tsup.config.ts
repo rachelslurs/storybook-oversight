@@ -20,6 +20,20 @@ export default defineConfig([
     platform: 'browser',
     // Storybook re-bundles manager entries; esnext is fine here.
     target: 'esnext',
+    // Build the manager with the CLASSIC JSX runtime. Storybook's manager
+    // globalizes `react` but not `react/jsx-runtime`, so the automatic runtime
+    // would bundle a `react/jsx-runtime` from the consumer's React (potentially
+    // a different major than the manager's React 18) and crash. Classic
+    // transform routes JSX through the globalized `react` via the injected shim.
+    //
+    // The jsx mode is forced via tsconfig (esbuild reads `jsx` from it); the
+    // `jsx: 'transform'` esbuild option can't override tsconfig because it
+    // equals esbuild's own default. The shim supplies `React` for the emitted
+    // `React.createElement` calls.
+    tsconfig: 'tsconfig.manager.json',
+    esbuildOptions(options) {
+      options.inject = [...(options.inject ?? []), 'src/react-shim.ts'];
+    },
   },
   {
     // The opt-in Docs block consumers import from `storybook-addon-oversight/blocks`.

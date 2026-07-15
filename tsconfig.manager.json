@@ -1,0 +1,15 @@
+{
+  // The manager bundle is built with the CLASSIC JSX runtime (jsx: "react")
+  // so its JSX compiles to `React.createElement` and routes through the single
+  // `react` that Storybook's manager globalizes (__REACT__). The automatic
+  // runtime would emit `react/jsx-runtime`, which Storybook does NOT globalize
+  // — it gets bundled from the consumer's React and crashes when that differs
+  // from the manager's React (e.g. React 19 consumer vs Storybook 10's React 18).
+  // esbuild reads `jsx` from this tsconfig; setting jsx: "transform" via
+  // esbuildOptions is a no-op because it matches esbuild's own default and
+  // tsconfig wins. See tsup.config.ts (manager entry) + src/react-shim.ts.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react"
+  }
+}
