@@ -4,14 +4,20 @@ on:
   push:
     branches: [main]
 
+concurrency: release-${{ github.ref }}
+
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci')"
     steps:
-      # GH_TOKEN must be a PAT for @rachelslurs (contents + pull requests).
-      # The default GITHUB_TOKEN cannot push past the main ruleset on a
-      # personal repo; Auto needs to commit the version bump as you.
+      # GH_TOKEN is a PAT for @rachelslurs. The default GITHUB_TOKEN cannot push
+      # past the main ruleset on a personal repo, and Changesets opens the
+      # "Version Packages" PR as you.
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -30,9 +36,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Create Release
+      # With changesets present, opens/updates a "Version Packages" PR that runs
+      # `version`. Once that PR merges (versions bumped, changesets consumed),
+      # runs `publish` to build and publish the changed packages to npm.
+      - name: Create Release PR or publish
+        uses: changesets/action@v1
+        with:
+          version: pnpm run version
+          publish: pnpm run release
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          pnpm run release

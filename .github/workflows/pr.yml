@@ -2,19 +2,19 @@ name: PR
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
-  statuses: write
-  pull-requests: read
 
 jobs:
-  label-check:
+  changeset:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -28,9 +28,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # Fails until the PR carries a SemVer label (major/minor/patch/skip-release).
-      # Reads the label set from .autorc, so labels are defined in one place.
-      - name: Require a SemVer label
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm exec auto pr-check --url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+      # Fails until the PR adds a changeset describing the version bump per
+      # package. For a change that needs no release (docs, CI, chores), run
+      # `pnpm changeset add --empty`. Replaces the old SemVer-label check.
+      - name: Require a changeset
+        run: pnpm exec changeset status --since=origin/${{ github.base_ref }}
