@@ -310,6 +310,10 @@ pnpm -r test
 
 See [CONTRIBUTING.md](../../CONTRIBUTING.md) for the PR and release workflow.
 
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for the release history.
+
 ## License
 
 MIT

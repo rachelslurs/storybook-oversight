@@ -60,6 +60,8 @@ Run `oversight storybook-static/manifests/components.json` after
 
 Changes land through pull requests; see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
+Per-package release history: [`storybook-addon-oversight`](./packages/storybook-addon-oversight/CHANGELOG.md) and [`oversight-lint`](./packages/cli/CHANGELOG.md).
+
 ## License
 
 MIT

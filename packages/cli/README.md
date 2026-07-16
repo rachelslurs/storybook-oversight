@@ -112,6 +112,10 @@ The panel reads its `rules` and `expectedExtractor` from `.storybook/manager.ts`
 which the CLI cannot execute, so the CLI takes its configuration from flags or this
 file.
 
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for the release history.
+
 ## License
 
 MIT
