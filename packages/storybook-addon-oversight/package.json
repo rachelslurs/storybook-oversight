@@ -1,6 +1,6 @@
 {
   "name": "storybook-addon-oversight",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "See what your agent can and can't see. Diagnoses silent failures in your Storybook MCP manifest.",
   "keywords": [
     "storybook-addon",
