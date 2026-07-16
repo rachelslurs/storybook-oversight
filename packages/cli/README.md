@@ -47,10 +47,10 @@ Actions, that is two steps:
 - run: npx oversight --format github --max-warnings 0
 ```
 
-`--format github` emits `::error`/`::warning`/`::notice` annotations; GitHub lists
-them on the run and the pull request's Checks tab, and inline on the Files-changed
-tab when the anchored line is in the diff. Under Actions it also appends a findings
-table to the job summary.
+`--format github` emits `::error`/`::warning`/`::notice` annotations; GitHub shows
+them on the run and the pull request's Checks tab, not beside your changed code
+(findings have no line numbers, so each anchors to the top of the stories file).
+Under Actions it also appends a findings table to the job summary.
 
 ## Output
 
@@ -93,9 +93,47 @@ lint, and a passing lint does not read as a broken setup.
 | `-h`, `--help`                  | Show help.                                                                  |
 | `--version`                     | Print the version.                                                          |
 
-The rules, their default severities, and what each one fires on are documented in
-the addon's [Diagnostics table](../storybook-addon-oversight/README.md#diagnostics).
-`@oversightIgnore` on a component's JSDoc exempts it here too.
+`@oversightIgnore` on a component's JSDoc exempts it here too; write the directive
+where the addon documents it, under
+[Exempting a component](../storybook-addon-oversight/README.md#exempting-a-component).
+
+## Diagnostics
+
+`oversight-lint` and
+[`storybook-addon-oversight`](../storybook-addon-oversight/README.md) run the same
+rules from `oversight-core`, at these default severities:
+
+| Rule                            | Default severity | Fires when                                                                                     |
+| ------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------- |
+| `docgen-missing`                | error            | an entry has no docgen payload (extraction failed)                                             |
+| `story-extraction-error`        | warning          | a story's snippet/docgen extraction failed (`stories[].error`)                                 |
+| `extractor-drift`               | warning          | `meta.docgen` ≠ the expected extractor                                                         |
+| `component-description-missing` | warning          | no component description                                                                       |
+| `prop-descriptions-missing`     | warning          | props without JSDoc descriptions                                                               |
+| `required-prop-undocumented`    | error            | required props without JSDoc descriptions                                                      |
+| `docs-link-dangling`            | error            | a prose `?path=/docs\|story/…` link targets an id whose component prefix isn't in the manifest |
+| `unknown-ignore-rule`           | warning          | `@oversightIgnore` lists a token that is not a rule name                                       |
+| `deprecated-tag`                | info             | a `@deprecated` tag is present                                                                 |
+
+## Why these are lint rules
+
+The raw manifest is already viewable: `@storybook/addon-mcp` serves a debugger at
+`components.html`. Three of the rules need judgment that reading it can't give
+you:
+
+- **`extractor-drift` is a comparison.** The manifest looks fine on its own; it's
+  only wrong _relative to_ the extractor you expected, so a raw view has nothing
+  to flag against. Oversight holds the expectation (`expectedExtractor`) and
+  checks the manifest against it. It's a property of the whole manifest, so it's
+  reported on its own rather than against any one component.
+- **`docs-link-dangling` needs every other entry.** One component's entry can't
+  tell you its `?path=` redirect points at nothing; that takes cross-referencing
+  every id in the manifest. A per-component view can't see it; Oversight can.
+- **`required-prop-undocumented` vs `prop-descriptions-missing` is a severity
+  call.** Every blank prop description renders the same in a raw view. Oversight
+  decides that an undocumented _required_ prop is the one an agent is most likely
+  to guess at, so it's an `error`, while a missing optional description is a
+  `warning`.
 
 ## Configuration file
 
