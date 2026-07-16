@@ -66,6 +66,35 @@ const config = {
 };
 ```
 
+### Optional: enable the Docs-page block
+
+Register the global container in `.storybook/preview.ts` to render Oversight at
+the bottom of every component Docs page:
+
+```ts
+import { OversightDocsContainer } from 'storybook-addon-oversight/blocks';
+
+const preview = {
+  parameters: { docs: { container: OversightDocsContainer } },
+};
+export default preview;
+```
+
+Unattached MDX pages, such as an overview with no `of`, keep the plain Docs
+container without an Oversight block. Remove the container from `preview.ts` to
+disable the block globally.
+
+To enable it on individual component MDX pages instead, place the block on each
+page:
+
+```mdx
+import { Oversight } from 'storybook-addon-oversight/blocks';
+
+<Oversight />
+```
+
+The Docs block and manager panel share the components-manifest prerequisite.
+
 ## What Oversight checks
 
 The manifest Oversight lints is the _upstream_ artifact: Storybook's MCP
@@ -86,33 +115,9 @@ The same diagnostics appear in two places, independently:
 - **Manager panel**: an "Oversight" tab in the addons drawer, shown on every
   component's **story** view (Storybook hides addon panels on Docs pages).
   Registering the addon in `.storybook/main.ts` enables it.
-- **Docs-page block**: the coverage rendered inline on Docs pages. Two ways to
-  enable it, both from `storybook-addon-oversight/blocks`:
-
-  **Global (every Docs page), one line in `.storybook/preview.ts`:**
-
-  ```ts
-  import { OversightDocsContainer } from 'storybook-addon-oversight/blocks';
-
-  const preview = {
-    parameters: { docs: { container: OversightDocsContainer } },
-  };
-  export default preview;
-  ```
-
-  Delete that line to remove it from every page. Unattached MDX pages (an
-  overview with no `of`) get the plain container, without a block.
-
-  **Per page**, place the block in an individual component's MDX instead:
-
-  ```mdx
-  import { Oversight } from 'storybook-addon-oversight/blocks';
-
-  <Oversight />
-  ```
-
-Either way, the Docs block needs the components-manifest feature enabled, the same
-prerequisite as the panel.
+- **Docs-page block**: the same coverage rendered inline on Docs pages. It is an
+  optional step in the [installation](#optional-enable-the-docs-page-block) and
+  can be enabled globally or on individual component MDX pages.
 
 ## In CI
 
