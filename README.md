@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/rachelslurs/storybook-addon-oversight/main/assets/oversight-icon-128.png" alt="Oversight" width="96" height="96" />
+  <img src="https://raw.githubusercontent.com/rachelslurs/storybook-oversight/main/assets/oversight-icon-128.png" alt="Oversight" width="96" height="96" />
 </p>
 
 <h1 align="center">Oversight</h1>
@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://rachelslurs.github.io/storybook-addon-oversight/"><strong>▶ Live demo</strong></a>
+  <a href="https://rachelslurs.github.io/storybook-oversight/"><strong>▶ Live demo</strong></a>
 </p>
 
 Your coding agent reads your components from the manifest Storybook's MCP server

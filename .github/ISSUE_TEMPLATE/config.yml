@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
-  - name: "Seeing docgen-missing? Read this first"
-    url: https://github.com/rachelslurs/storybook-addon-oversight#troubleshooting-docgen-missing
+  - name: 'Seeing docgen-missing? Read this first'
+    url: https://github.com/rachelslurs/storybook-oversight#troubleshooting-docgen-missing
     about: The usual cause is a solution-style root tsconfig.json — the fix is documented here.

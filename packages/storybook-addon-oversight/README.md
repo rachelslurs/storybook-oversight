@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/rachelslurs/storybook-addon-oversight/main/assets/oversight-icon-128.png" alt="Oversight" width="96" height="96" />
+  <img src="https://raw.githubusercontent.com/rachelslurs/storybook-oversight/main/assets/oversight-icon-128.png" alt="Oversight" width="96" height="96" />
 </p>
 
 <h1 align="center">storybook-addon-oversight</h1>
@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://rachelslurs.github.io/storybook-addon-oversight/"><strong>▶ Live demo</strong></a>
+  <a href="https://rachelslurs.github.io/storybook-oversight/"><strong>▶ Live demo</strong></a>
 </p>
 
 Your coding agent reads your components from the manifest Storybook's MCP server
@@ -19,7 +19,7 @@ wrong docgen extractor ran, or the JSDoc is missing), the agent sees a component
 with no docs, and nothing tells you. Oversight lints the manifest per component
 while you work, so the gap surfaces on the component in front of you.
 
-![The Oversight panel cycling through Card, Tile, and Badge, flagging findings per component](https://raw.githubusercontent.com/rachelslurs/storybook-addon-oversight/main/stories/assets/oversight-panel.gif)
+![The Oversight panel cycling through Card, Tile, and Badge, flagging findings per component](https://raw.githubusercontent.com/rachelslurs/storybook-oversight/main/stories/assets/oversight-panel.gif)
 
 <p>Blog post: <a href="https://rachel.fyi/posts/your-agent-is-reading-a-different-design-system"><em>Your Agent Is Reading a Different Design System</em></a></p>
 
@@ -38,7 +38,7 @@ while you work, so the gap surfaces on the component in front of you.
   panel reports it as unavailable and points you to `storybook build`; a built
   ref-based manifest currently shows a "could not be parsed" state rather than
   coverage. Support for the ref-based format is tracked in
-  [#13](https://github.com/rachelslurs/storybook-addon-oversight/issues/13).
+  [#13](https://github.com/rachelslurs/storybook-oversight/issues/13).
 
 ## Install
 
@@ -278,7 +278,7 @@ on each surface:
 ## Try it
 
 A live build is hosted at
-**[rachelslurs.github.io/storybook-addon-oversight](https://rachelslurs.github.io/storybook-addon-oversight/)**:
+**[rachelslurs.github.io/storybook-oversight](https://rachelslurs.github.io/storybook-oversight/)**:
 open a component's story to see the Oversight panel, or its Docs page for the
 inline block.
 

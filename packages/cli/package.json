@@ -14,12 +14,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rachelslurs/storybook-addon-oversight.git",
+    "url": "git+https://github.com/rachelslurs/storybook-oversight.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://github.com/rachelslurs/storybook-addon-oversight/tree/main/packages/cli#readme",
+  "homepage": "https://github.com/rachelslurs/storybook-oversight/tree/main/packages/cli#readme",
   "bugs": {
-    "url": "https://github.com/rachelslurs/storybook-addon-oversight/issues"
+    "url": "https://github.com/rachelslurs/storybook-oversight/issues"
   },
   "license": "MIT",
   "author": "Rachel Cantor <rachelslurs@users.noreply.github.com> (https://github.com/rachelslurs)",

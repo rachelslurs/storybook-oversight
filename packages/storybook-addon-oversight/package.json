@@ -15,12 +15,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rachelslurs/storybook-addon-oversight.git",
+    "url": "git+https://github.com/rachelslurs/storybook-oversight.git",
     "directory": "packages/storybook-addon-oversight"
   },
-  "homepage": "https://github.com/rachelslurs/storybook-addon-oversight#readme",
+  "homepage": "https://github.com/rachelslurs/storybook-oversight/tree/main/packages/storybook-addon-oversight#readme",
   "bugs": {
-    "url": "https://github.com/rachelslurs/storybook-addon-oversight/issues"
+    "url": "https://github.com/rachelslurs/storybook-oversight/issues"
   },
   "license": "MIT",
   "author": "Rachel Cantor <rachelslurs@users.noreply.github.com> (https://github.com/rachelslurs)",
@@ -63,6 +63,6 @@
     "supportedFrameworks": [
       "react"
     ],
-    "icon": "https://raw.githubusercontent.com/rachelslurs/storybook-addon-oversight/main/assets/oversight-icon-512.png"
+    "icon": "https://raw.githubusercontent.com/rachelslurs/storybook-oversight/main/assets/oversight-icon-512.png"
   }
 }
