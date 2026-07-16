@@ -33,6 +33,12 @@ while you work, so the gap surfaces on the component in front of you.
   [`@storybook/addon-mcp`](https://www.npmjs.com/package/@storybook/addon-mcp)
   turns it on and serves `/manifests/components.json`, the manifest Oversight
   lints. Without it, the panel degrades to an "unavailable" state.
+- Storybook's experimental `experimentalDocgenServer` flag is **not yet
+  supported**. With it enabled the dev manifest is disabled by design, so the
+  panel reports it as unavailable and points you to `storybook build`; a built
+  ref-based manifest currently shows a "could not be parsed" state rather than
+  coverage. Support for the ref-based format is tracked in
+  [#13](https://github.com/rachelslurs/storybook-addon-oversight/issues/13).
 
 ## Install
 
