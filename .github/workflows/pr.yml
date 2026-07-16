@@ -31,5 +31,14 @@ jobs:
       # Fails until the PR adds a changeset describing the version bump per
       # package. For a change that needs no release (docs, CI, chores), run
       # `pnpm changeset add --empty`. Replaces the old SemVer-label check.
+      #
+      # The Version Packages PR (branch `changeset-release/*`) consumes the
+      # changesets, so `changeset status` would fail on it. It needs no changeset
+      # of its own, so short-circuit to success there and keep the check green.
       - name: Require a changeset
-        run: pnpm exec changeset status --since=origin/${{ github.base_ref }}
+        run: |
+          if [[ "${{ github.head_ref }}" == changeset-release/* ]]; then
+            echo "Version Packages PR (${{ github.head_ref }}): no changeset required."
+            exit 0
+          fi
+          pnpm exec changeset status --since=origin/${{ github.base_ref }}
