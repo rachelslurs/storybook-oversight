@@ -47,9 +47,10 @@ Actions, that is two steps:
 - run: npx oversight --format github --max-warnings 0
 ```
 
-`--format github` emits `::error`/`::warning`/`::notice` annotations so findings show
-inline on the pull request's Files-changed tab; under Actions it also appends a
-findings table to the job summary.
+`--format github` emits `::error`/`::warning`/`::notice` annotations; GitHub lists
+them on the run and the pull request's Checks tab, and inline on the Files-changed
+tab when the anchored line is in the diff. Under Actions it also appends a findings
+table to the job summary.
 
 ## Output
 

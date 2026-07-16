@@ -140,11 +140,13 @@ function encodeProperty(value: string): string {
 }
 
 /**
- * GitHub Actions workflow-command annotations, one per finding, so findings show
- * inline on the pull request's Files-changed tab. Anchored to the stories file
- * (the manifest carries no line numbers, so annotations land at the top of it).
- * Manifest-level findings get a file-less, job-level annotation. Emission is
- * capped per type to match what GitHub renders, with a trailing note if truncated.
+ * GitHub Actions workflow-command annotations, one per finding. GitHub lists them
+ * on the run and the pull request's Checks tab; they also show inline on the
+ * Files-changed tab when the anchored line is part of the diff. Anchored to the
+ * stories file with no line (the manifest carries no line numbers, so GitHub
+ * defaults to line 1). Manifest-level findings get a file-less, job-level
+ * annotation. Emission is capped per type to match what GitHub renders, with a
+ * trailing note if truncated.
  */
 export function formatGithub(summary: LintSummary): string {
   const emitted: Record<string, number> = { error: 0, warning: 0, notice: 0 };
@@ -170,7 +172,7 @@ export function formatGithub(summary: LintSummary): string {
     if (dropped[command] > 0) {
       lines.push(
         `${dropped[command]} more ${command} annotation${dropped[command] === 1 ? '' : 's'} omitted ` +
-          `(GitHub renders at most ${MAX_ANNOTATIONS_PER_TYPE} per type per step); see the job summary.`,
+          `(GitHub renders at most ${MAX_ANNOTATIONS_PER_TYPE} per type per step); re-run with --format text or --json to see all findings.`,
       );
     }
   }
