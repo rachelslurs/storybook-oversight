@@ -111,10 +111,24 @@ describe('run — exit codes', () => {
     expect(result.stderr).toMatch(/Could not parse/);
   });
 
-  it('exits 2 on the unsupported ref-based (v:1) manifest', () => {
+  it('exits 2 on the unsupported ref-based (v:1) manifest, naming the format', () => {
     const result = run(options({ manifestPath: fixture(REF_V1) }));
     expect(result.code).toBe(2);
+    expect(result.stderr).toMatch(/v:1/);
     expect(result.stderr).toMatch(/not supported yet/);
+  });
+
+  it('exits 2 on a malformed v:0 manifest without blaming the ref-based format', () => {
+    // A v:0 entry whose `stories` is an object (not an array) trips the normalizer.
+    const malformed = {
+      v: 0,
+      meta: { docgen: 'react-docgen-typescript' },
+      components: { x: { id: 'x', name: 'X', stories: { a: {} } } },
+    };
+    const result = run(options({ manifestPath: fixture(malformed) }));
+    expect(result.code).toBe(2);
+    expect(result.stderr).toMatch(/malformed/);
+    expect(result.stderr).not.toMatch(/v:1/);
   });
 });
 

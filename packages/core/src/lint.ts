@@ -27,9 +27,12 @@ const RULE_SET = {
   'unknown-ignore-rule': true,
   'deprecated-tag': true,
 } satisfies Record<DiagnosticRule, true>;
-const ALL_RULES = Object.keys(RULE_SET) as DiagnosticRule[];
+/** Every diagnostic rule name. Exported so other surfaces (the CLI) can validate
+ *  rule names against the single source of truth instead of hardcoding them. */
+export const ALL_RULES = Object.keys(RULE_SET) as DiagnosticRule[];
 
-const VALID_SETTINGS: ReadonlySet<string> = new Set<RuleSetting>(['off', 'error', 'warning', 'info']);
+/** The accepted `rules` override values, shared with the CLI's `--rule` parser. */
+export const VALID_SETTINGS: ReadonlySet<string> = new Set<RuleSetting>(['off', 'error', 'warning', 'info']);
 
 function splitTokens(value: string): string[] {
   // Split on whitespace as well as commas/newlines — `@oversightIgnore a b`

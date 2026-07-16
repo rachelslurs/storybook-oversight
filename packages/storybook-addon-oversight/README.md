@@ -163,7 +163,7 @@ you:
 ## Troubleshooting `docgen-missing`
 
 `docgen-missing` means `react-docgen-typescript` returned no docs for the
-component's file, so its props and JSDoc never reach the manifest — an agent sees
+component's file, so its props and JSDoc never reach the manifest. An agent sees
 the component with no documented props. In order of likelihood:
 
 1. **`reactDocgen` isn't `react-docgen-typescript`.** See [Install](#install).
@@ -179,7 +179,7 @@ the component with no documented props. In order of likelihood:
    Storybook's manifest docgen (`@storybook/react`) resolves the nearest tsconfig
    at your project root and builds its TypeScript program from it. A solution-style
    root contributes no files of its own, so the program is empty and extraction
-   returns nothing — even for a fully-typed, fully-documented component. Give that
+   returns nothing, even for a fully-typed, fully-documented component. Give that
    root config your sources:
 
    ```jsonc
@@ -191,8 +191,8 @@ the component with no documented props. In order of likelihood:
    docgen paths and they don't share a tsconfig: Storybook's Docs UI honors
    `typescript.reactDocgenTypescriptOptions.tsconfigPath`, but the manifest docgen
    that Oversight reads uses `findTsconfigPath(cwd)` and ignores it. So that
-   override can make your Docs prop tables render while this finding still fires —
-   fix the tsconfig your project _root_ resolves to (point 2).
+   override can make your Docs prop tables render while this finding still fires.
+   Fix the tsconfig your project _root_ resolves to (point 2).
 
 ## Authoring MCP-legible docs
 

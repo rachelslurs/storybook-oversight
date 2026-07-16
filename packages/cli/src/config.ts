@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { ALL_RULES, VALID_SETTINGS } from 'oversight-core';
 import type { DiagnosticRule, LintOptions, RuleSetting } from 'oversight-core';
 
 /** Where a plain `storybook build` writes the manifest. */
@@ -38,7 +39,15 @@ type FileConfig = {
   maxWarnings?: number;
 };
 
-const VALID_SEVERITIES = new Set<RuleSetting>(['off', 'error', 'warning', 'info']);
+/** NO_COLOR / FORCE_COLOR follow the cross-tool convention: NO_COLOR (any value)
+ *  disables color; FORCE_COLOR=0 (or "false") disables it, any other value forces
+ *  it on; otherwise fall back to whether stdout is a TTY. */
+function resolveColor(ctx: Context): boolean {
+  if (ctx.env.NO_COLOR) return false;
+  const force = ctx.env.FORCE_COLOR;
+  if (force !== undefined) return force !== '0' && force !== 'false';
+  return ctx.isTTY;
+}
 
 export const HELP = `oversight — lint a Storybook MCP components manifest
 
@@ -73,7 +82,10 @@ function parseRuleFlags(flags: string[]): Partial<Record<DiagnosticRule, RuleSet
     if (eq === -1) throw new Error(`--rule expects <name>=<severity>, got "${entry}"`);
     const name = entry.slice(0, eq).trim();
     const value = entry.slice(eq + 1).trim();
-    if (!VALID_SEVERITIES.has(value as RuleSetting)) {
+    if (!(ALL_RULES as readonly string[]).includes(name)) {
+      throw new Error(`--rule ${name}: unknown rule. Valid rules: ${ALL_RULES.join(', ')}`);
+    }
+    if (!VALID_SETTINGS.has(value)) {
       throw new Error(`--rule ${name}: severity must be off|error|warning|info, got "${value}"`);
     }
     rules[name as DiagnosticRule] = value as RuleSetting;
@@ -93,11 +105,16 @@ function loadFileConfig(cwd: string, explicitPath: string | undefined): FileConf
     if (explicitPath) throw new Error(`config file not found: ${explicitPath}`);
     return {};
   }
+  let parsed: unknown;
   try {
-    return JSON.parse(readFileSync(path, 'utf8')) as FileConfig;
+    parsed = JSON.parse(readFileSync(path, 'utf8'));
   } catch (err) {
     throw new Error(`could not parse config file ${path}: ${(err as Error).message}`);
   }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`config file ${path} must contain a JSON object`);
+  }
+  return parsed as FileConfig;
 }
 
 export function buildConfig(argv: string[], ctx: Context): ConfigResult {
@@ -152,8 +169,7 @@ export function buildConfig(argv: string[], ctx: Context): ConfigResult {
     rules: { ...file.rules, ...ruleFlags },
   };
 
-  // NO_COLOR / FORCE_COLOR are the cross-tool convention; TTY is the default.
-  const color = Boolean(ctx.env.FORCE_COLOR) || (ctx.isTTY && !ctx.env.NO_COLOR);
+  const color = resolveColor(ctx);
 
   return {
     kind: 'run',

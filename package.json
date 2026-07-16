@@ -8,6 +8,7 @@
     "build": "pnpm -r build",
     "build:addon": "pnpm --filter storybook-addon-oversight run build",
     "test": "pnpm -r test",
+    "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint --cache .",
     "lint:fix": "eslint --cache . --fix",
     "format": "prettier --write .",

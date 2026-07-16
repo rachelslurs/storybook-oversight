@@ -53,4 +53,6 @@ function main(): number {
   return result.code;
 }
 
-process.exit(main());
+// Set the exit code and let Node exit once stdout has drained. `process.exit()`
+// would truncate output written to a pipe or file, where writes are async.
+process.exitCode = main();

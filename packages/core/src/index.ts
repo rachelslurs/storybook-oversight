@@ -1,5 +1,5 @@
 export { detectRepoRoot, normalizeManifest } from './normalize';
-export { lint } from './lint';
+export { lint, ALL_RULES, VALID_SETTINGS } from './lint';
 export type { LintOptions } from './lint';
 export { describeManifestUnavailable } from './manifestStatus';
 export { parsePathTargetId, pathLinkPattern } from './pathLinks';

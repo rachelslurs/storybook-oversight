@@ -28,12 +28,16 @@ export function run(options: RunOptions): RunResult {
   try {
     analysis = analyzeManifest(manifest, options.lint);
   } catch (err) {
+    // Only the ref-based v:1 manifest gets the docgen-server hint; any other
+    // shape that trips the normalizer is reported as a plain malformed manifest.
+    const hint =
+      (manifest as { v?: number }).v === 1
+        ? 'This is the experimentalDocgenServer ref-based (v:1) manifest, which is not supported yet.'
+        : 'The manifest could not be analyzed; it may be malformed or in an unsupported format.';
     return {
       code: 2,
       stdout: '',
-      stderr:
-        `Could not analyze ${options.manifestPath}: ${(err as Error).message}\n` +
-        `This is likely the experimentalDocgenServer ref-based (v:1) manifest, which is not supported yet.`,
+      stderr: `Could not analyze ${options.manifestPath}: ${(err as Error).message}\n${hint}`,
     };
   }
 

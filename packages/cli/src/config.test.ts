@@ -54,6 +54,11 @@ describe('buildConfig', () => {
     expect(buildConfig(['--rule', 'deprecated-tag'], ctx())).toMatchObject({ kind: 'error' });
   });
 
+  it('rejects an unknown --rule name instead of silently dropping it', () => {
+    // Typo of prop-descriptions-missing: must error, not no-op.
+    expect(buildConfig(['--rule', 'prop-descriptions=off'], ctx())).toMatchObject({ kind: 'error' });
+  });
+
   it('carries --expected-extractor into lint options', () => {
     expect(runConfig(['--expected-extractor', 'react-docgen']).lint.expectedExtractor).toBe('react-docgen');
   });
@@ -68,9 +73,13 @@ describe('buildConfig', () => {
     expect(buildConfig(['--nope'], ctx()).kind).toBe('error');
   });
 
-  it('enables color from FORCE_COLOR or a TTY, and NO_COLOR wins over the TTY', () => {
+  it('resolves color from NO_COLOR / FORCE_COLOR, falling back to the TTY', () => {
     expect(runConfig([], ctx({ isTTY: true })).color).toBe(true);
+    expect(runConfig([], ctx({ isTTY: false })).color).toBe(false);
     expect(runConfig([], ctx({ isTTY: false, env: { FORCE_COLOR: '1' } })).color).toBe(true);
+    // FORCE_COLOR=0 (and "false") disable color; Boolean("0") would wrongly be true.
+    expect(runConfig([], ctx({ isTTY: true, env: { FORCE_COLOR: '0' } })).color).toBe(false);
+    expect(runConfig([], ctx({ isTTY: true, env: { FORCE_COLOR: 'false' } })).color).toBe(false);
     expect(runConfig([], ctx({ isTTY: true, env: { NO_COLOR: '1' } })).color).toBe(false);
   });
 
@@ -100,6 +109,14 @@ describe('buildConfig', () => {
 
     it('errors when an explicit --config path is missing', () => {
       expect(buildConfig(['--config', join(dir, 'absent.json')], ctx({ cwd: dir })).kind).toBe('error');
+    });
+
+    it('rejects a config file that is valid JSON but not an object', () => {
+      const path = join(dir, 'oversight.config.json');
+      writeFileSync(path, 'null');
+      expect(buildConfig([], ctx({ cwd: dir })).kind).toBe('error');
+      writeFileSync(path, '[]');
+      expect(buildConfig([], ctx({ cwd: dir })).kind).toBe('error');
     });
   });
 });
