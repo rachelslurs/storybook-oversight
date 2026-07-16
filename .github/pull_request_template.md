@@ -4,18 +4,15 @@
 
 ## Release impact
 
-Releases are versioned from PR labels. **Add exactly one:**
+Releases are versioned with Changesets. Run `pnpm changeset` and select the
+affected packages and bump levels.
 
-- `patch` — backwards-compatible bug fix
-- `minor` — backwards-compatible new feature
-- `major` — breaking change
-- `skip-release` — no version change (docs, CI, chore)
-
-Add **`release`** as well when this PR should publish the accumulated changes to
-npm. (No `release` label → it merges and accumulates, but nothing publishes.)
+For a change that needs no release, such as docs, CI, or a chore, run
+`pnpm changeset add --empty`.
 
 ## Checklist
 
 - [ ] `pnpm test` passes
 - [ ] `pnpm lint` passes
 - [ ] Docs / README updated if behavior changed
+- [ ] Changeset added
