@@ -231,4 +231,27 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
     expect(detectRepoRoot({ components: {} })).toBeNull();
     expect(result.components[0].sourceFile).toBe('/repo/my-storybook/src/A.tsx');
   });
+
+  it('throws on the ref-based index shape (experimentalDocgenServer, not yet supported)', () => {
+    // Storybook's experimentalDocgenServer emits a lightweight index whose entries
+    // point at per-component files via $ref, and `stories` is a { $ref } object
+    // rather than an array. normalize iterates `stories`, so it throws on this
+    // shape. The manager panel and docs block catch this and show an error state
+    // (#11); teaching normalize to read the ref format is tracked in #13, which
+    // will replace this expectation.
+    const refIndex = {
+      v: 1,
+      meta: { docgen: 'react-component-meta' },
+      components: {
+        'example-button': {
+          id: 'example-button',
+          name: 'Button',
+          description: 'Primary UI component for user interaction',
+          docgen: { $ref: '../services/core/docgen/example-button.json#/components/example-button' },
+          stories: { $ref: '../services/core/story-docs/example-button.json#/components/example-button' },
+        },
+      },
+    } as unknown as RawManifest;
+    expect(() => normalizeManifest(refIndex)).toThrow();
+  });
 });
