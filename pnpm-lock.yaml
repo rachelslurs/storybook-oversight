@@ -83,6 +83,9 @@ importers:
       storybook:
         specifier: ^10.5.0
         version: 10.5.0(@types/react@18.3.26)(prettier@3.6.2)(react@18.3.1)
+      storybook-addon-oversight:
+        specifier: workspace:*
+        version: link:packages/storybook-addon-oversight
       tailwindcss:
         specifier: ^4.3.2
         version: 4.3.2
@@ -107,6 +110,27 @@ importers:
       zx:
         specifier: ^8.7.1
         version: 8.8.5
+
+  packages/cli:
+    devDependencies:
+      oversight-core:
+        specifier: workspace:*
+        version: link:../core
+
+  packages/core: {}
+
+  packages/storybook-addon-oversight:
+    dependencies:
+      '@storybook/addon-docs':
+        specifier: ^10.3.0
+        version: 10.5.0(@types/react-dom@18.3.7(@types/react@18.3.26))(@types/react@18.3.26)(esbuild@0.25.11)(rollup@4.52.5)(storybook@10.5.0(@types/react@18.3.26)(prettier@3.6.2)(react@18.3.1))(vite@7.1.12(@types/node@20.19.23)(jiti@2.7.0)(lightningcss@1.32.0))
+      storybook:
+        specifier: ^10.3.0
+        version: 10.5.0(@types/react@18.3.26)(prettier@3.6.2)(react@18.3.1)
+    devDependencies:
+      oversight-core:
+        specifier: workspace:*
+        version: link:../core
 
 packages:
 
@@ -2126,6 +2150,7 @@ packages:
 
   glob@10.4.5:
     resolution: {integrity: sha512-7Bv8RF0k6xjo7d4A/PxYLbUCfb6c+Vpd2/mB2yRDlew7Jb5hEXiCD9ibfO7wpk8i4sevK6DFny9h7EYbM3/sHg==}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@13.0.6:
@@ -3661,18 +3686,6 @@ packages:
 
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
-
-  ws@8.18.3:
-    resolution: {integrity: sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
 
   ws@8.21.1:
     resolution: {integrity: sha512-+0NTnW77fFN/DjQi6k/Sq/Yvk4Sgajw7urW8V+asjXnRgDs9gyGkdb7EzgfhA4goXsRIZKE28fzIXBHEzhuiWw==}
@@ -6977,7 +6990,7 @@ snapshots:
       recast: 0.23.11
       semver: 7.7.3
       use-sync-external-store: 1.6.0(react@18.3.1)
-      ws: 8.18.3
+      ws: 8.21.1
     optionalDependencies:
       '@types/react': 18.3.26
       prettier: 3.6.2
@@ -7534,8 +7547,6 @@ snapshots:
       strip-ansi: 7.1.2
 
   wrappy@1.0.2: {}
-
-  ws@8.18.3: {}
 
   ws@8.21.1: {}
 

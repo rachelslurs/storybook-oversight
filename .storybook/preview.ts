@@ -1,9 +1,9 @@
 import type { Preview } from '@storybook/react-vite';
 // Tailwind v4 utilities for the demo components (see .storybook/tailwind.css).
 import './tailwind.css';
-// Relative import of the built block. A published consumer instead writes:
-//   import { OversightDocsContainer } from 'storybook-addon-oversight/blocks';
-import { OversightDocsContainer } from '../dist/blocks.js';
+// The Docs block, imported the way a published consumer does (resolved through
+// the workspace-linked addon's `./blocks` export). Run `pnpm build:addon` first.
+import { OversightDocsContainer } from 'storybook-addon-oversight/blocks';
 
 const preview: Preview = {
   parameters: {

@@ -5,7 +5,7 @@ import { normalizeManifest } from './normalize';
 import type { RawManifest } from './types';
 
 function loadFixture(): RawManifest {
-  const url = new URL('../../test/fixtures/components.json', import.meta.url);
+  const url = new URL('../test/fixtures/components.json', import.meta.url);
   return JSON.parse(readFileSync(url, 'utf8')) as RawManifest;
 }
 
