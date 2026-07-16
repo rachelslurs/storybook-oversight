@@ -1,58 +1,19 @@
 {
-  "name": "storybook-addon-oversight",
-  "version": "0.1.3",
-  "description": "See what your agent can and can't see. Diagnoses silent failures in your Storybook MCP manifest.",
-  "keywords": [
-    "storybook-addon",
-    "storybook-addons",
-    "docs",
-    "test",
-    "mcp",
-    "ai",
-    "agents",
-    "docgen",
-    "manifest"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rachelslurs/storybook-addon-oversight.git"
-  },
-  "homepage": "https://github.com/rachelslurs/storybook-addon-oversight#readme",
-  "bugs": {
-    "url": "https://github.com/rachelslurs/storybook-addon-oversight/issues"
-  },
-  "license": "MIT",
-  "author": "Rachel Cantor <rachelslurs@users.noreply.github.com> (https://github.com/rachelslurs)",
+  "name": "oversight-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo for Oversight: the Storybook addon and the oversight-lint CI linter, over a shared diagnostic core. Also hosts the demo Storybook.",
   "type": "module",
-  "exports": {
-    "./blocks": {
-      "types": "./dist/blocks.d.ts",
-      "default": "./dist/blocks.js"
-    },
-    "./manager": "./dist/manager.js",
-    "./preset": "./dist/preset.js",
-    "./package.json": "./package.json"
-  },
-  "files": [
-    "dist/**/*",
-    "README.md",
-    "*.js",
-    "*.d.ts"
-  ],
   "scripts": {
-    "prebuild": "node -e \"require('node:fs').rmSync('./dist', { recursive: true, force: true })\"",
-    "build": "tsc && tsup",
-    "build:watch": "tsup --watch",
-    "build-storybook": "storybook build",
-    "storybook": "storybook dev -p 6006",
-    "start": "run-p build:watch \"storybook --quiet\"",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "build": "pnpm -r build",
+    "build:addon": "pnpm --filter storybook-addon-oversight run build",
+    "test": "pnpm -r test",
     "lint": "eslint --cache .",
-    "lint:fix": "pnpm lint --fix",
+    "lint:fix": "eslint --cache . --fix",
     "format": "prettier --write .",
-    "prerelease": "zx scripts/prepublish-checks.js",
-    "release": "pnpm build && auto shipit"
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "pnpm run build:addon && storybook build",
+    "start": "run-p \"build:addon --watch\" \"storybook --quiet\""
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
@@ -80,6 +41,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "storybook": "^10.5.0",
+    "storybook-addon-oversight": "workspace:*",
     "tailwindcss": "^4.3.2",
     "ts-dedent": "^2.2.0",
     "tsup": "^8.5.0",
@@ -88,20 +50,6 @@
     "vite": "^7.0.5",
     "vitest": "^3.2.4",
     "zx": "^8.7.1"
-  },
-  "peerDependencies": {
-    "@storybook/addon-docs": "^10.3.0",
-    "storybook": "^10.3.0"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "storybook": {
-    "displayName": "Oversight",
-    "supportedFrameworks": [
-      "react"
-    ],
-    "icon": "https://raw.githubusercontent.com/rachelslurs/storybook-addon-oversight/main/assets/oversight-icon-512.png"
   },
   "packageManager": "pnpm@10.22.0+sha512.bf049efe995b28f527fd2b41ae0474ce29186f7edcb3bf545087bd61fbbebb2bf75362d1307fda09c2d288e1e499787ac12d4fcb617a974718a6051f2eee741c"
 }

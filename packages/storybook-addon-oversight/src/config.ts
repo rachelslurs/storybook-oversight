@@ -1,4 +1,4 @@
-import type { LintOptions } from './core';
+import type { LintOptions } from 'oversight-core';
 
 /**
  * The consumer-facing config object, shared by both surfaces: the manager

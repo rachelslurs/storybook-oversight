@@ -15,12 +15,12 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    // tsup's dts pass injects a default `baseUrl`, which TS 6 flags as
+    // deprecated; silence it (the main `tsc` typecheck is unaffected).
     "ignoreDeprecations": "6.0"
   },
-  // The demo. `stories` is included so the manifest's react-docgen-typescript
-  // pass (which builds its program from the tsconfig `storybook build` resolves
-  // at the repo root) can extract JSDoc from the demo components. `.storybook`
-  // is omitted: preview.ts imports the built addon, which does not exist when a
-  // typecheck runs.
-  "include": ["stories"]
+  // Only the addon's own source. The demo's `stories` (needed by the manifest's
+  // react-docgen-typescript pass) live at the repo root and are covered by the
+  // root tsconfig, not this one.
+  "include": ["src", "tsup.config.ts", "vitest.config.ts", "vite.config.ts"]
 }

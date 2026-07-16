@@ -1,0 +1,49 @@
+{
+  "name": "oversight-lint",
+  "version": "0.1.0",
+  "description": "Lint your Storybook MCP components manifest in CI. Fails the build when your agent would read missing or broken component docs.",
+  "keywords": [
+    "storybook",
+    "mcp",
+    "ai",
+    "agents",
+    "docgen",
+    "manifest",
+    "lint",
+    "ci"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rachelslurs/storybook-addon-oversight.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/rachelslurs/storybook-addon-oversight/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/rachelslurs/storybook-addon-oversight/issues"
+  },
+  "license": "MIT",
+  "author": "Rachel Cantor <rachelslurs@users.noreply.github.com> (https://github.com/rachelslurs)",
+  "type": "module",
+  "bin": {
+    "oversight": "./dist/cli.js"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "build": "tsc && tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint --cache ."
+  },
+  "devDependencies": {
+    "oversight-core": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { addons, useStorybookState } from 'storybook/manager-api';
-import { analyzeManifest, describeManifestUnavailable, resolveComponent } from './core';
-import type { ComponentReport, ManifestAnalysis, RawManifest } from './core';
+import { analyzeManifest, describeManifestUnavailable, resolveComponent } from 'oversight-core';
+import type { ComponentReport, ManifestAnalysis, RawManifest } from 'oversight-core';
 import { DEFAULT_DEBUGGER_LINK } from './config';
 import type { OversightConfig } from './config';
 import type { ReportViewStatus } from './components/ReportView';

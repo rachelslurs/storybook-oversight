@@ -17,8 +17,10 @@ const config: StorybookConfig = {
     getAbsolutePath('@storybook/addon-docs'),
     // Serves /manifests/components.json in dev — the manifest Oversight lints.
     getAbsolutePath('@storybook/addon-mcp'),
-    // Loads the built addon from ./dist (see .storybook/local-preset.ts).
-    fileURLToPath(import.meta.resolve('./local-preset.ts')),
+    // The workspace addon, resolved by package name (the real consumer path).
+    // pnpm links packages/storybook-addon-oversight into node_modules; Storybook
+    // loads its built manager + preset from there. Run `pnpm build:addon` first.
+    getAbsolutePath('storybook-addon-oversight'),
   ],
   framework: getAbsolutePath('@storybook/react-vite'),
   // Oversight's default expectedExtractor is react-docgen-typescript; match it so

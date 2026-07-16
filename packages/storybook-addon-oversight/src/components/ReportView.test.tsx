@@ -4,8 +4,8 @@ import type { ReactElement } from 'react';
 import { cleanup, render } from '@testing-library/react';
 import { ThemeProvider, ensure, themes } from 'storybook/theming';
 import { ReportView } from './ReportView';
-import { buildReport } from '../core';
-import type { RawManifest } from '../core';
+import { buildReport } from 'oversight-core';
+import type { RawManifest } from 'oversight-core';
 
 // ReportView's `styled` components read `theme.*`, so every render needs a
 // ThemeProvider (the same trick blocks.tsx uses for the docs block).

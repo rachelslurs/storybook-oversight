@@ -4,7 +4,7 @@
  * `[label](?path=…)` links. Pure string logic (no React), so it runs under the
  * node test environment. Not a general markdown implementation.
  */
-import { parsePathTargetId } from '../core';
+import { parsePathTargetId } from 'oversight-core';
 
 export type InlineSegment =
   | { type: 'text'; text: string }

@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import type { ComponentType } from 'react';
 import { Badge } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
-import type { ComponentReport, Diagnostic, DiagnosticSeverity } from '../core';
+import type { ComponentReport, Diagnostic, DiagnosticSeverity } from 'oversight-core';
 import { parseInline, splitParagraphs, storybookPathId } from './markdown';
 
 /** A context-appropriate link to a `?path=/docs|story/<id>` target. The manager
