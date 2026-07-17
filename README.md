@@ -19,8 +19,9 @@ wrong docgen extractor ran, or the JSDoc is missing), the agent sees a component
 with no docs, and nothing tells you. Oversight lints that manifest per component
 so the gap surfaces, either while you work or in CI.
 
-The rules live once, in a shared core, and run from two front ends. Each package's
-own README has its full install, usage, and options:
+The rules live once, in a shared core, and run two ways: one interactive in
+Storybook, one headless in CI. Each package's own README has its full install,
+usage, and options:
 
 | Package                                                                         | Use it for                                                                                                                    |
 | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
@@ -33,15 +34,15 @@ own README has its full install, usage, and options:
 
 ```
 packages/
-  core/                        oversight-core, the diagnostic engine (pure, private, bundled into both front ends)
+  core/                        oversight-core, the diagnostic engine (pure, private, bundled into the addon and the CLI)
   storybook-addon-oversight/   the Storybook addon (panel + Docs block)
   cli/                         oversight-lint, the CI linter
 .storybook/  stories/          the demo Storybook that dogfoods the addon
 ```
 
 `oversight-core` holds every rule as pure functions with zero Storybook or React
-imports. The addon and the CLI each bundle it, so the two surfaces can never
-disagree about what a finding is. It is never published on its own.
+imports. The addon and the CLI each bundle it, so the two can never disagree
+about what a finding is. It is never published on its own.
 
 ## Development
 

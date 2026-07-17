@@ -18,8 +18,8 @@ pnpm storybook       # run the demo at http://localhost:6006
 ```
 
 Every rule lives as a pure function in `oversight-core` (zero Storybook imports).
-The panel, the Docs block, and the CLI are thin renderers over it, so a rule
-change ships to all three at once.
+The panel and the Docs block are thin renderers over it, and the CLI runs the
+same rules, so a rule change ships to all three at once.
 
 ## Pull requests
 
