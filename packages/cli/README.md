@@ -10,8 +10,7 @@ when that happens, so a regression stops at CI instead of reaching the agent.
 
 It runs the same rules as
 [`storybook-addon-oversight`](../storybook-addon-oversight/README.md), which
-surfaces them live in Storybook while you work. This is the CI half of the same
-check.
+surfaces them live in Storybook while you work.
 
 ## Install
 
@@ -50,7 +49,8 @@ Actions, that is two steps:
 `--format github` emits `::error`/`::warning`/`::notice` annotations; GitHub shows
 them on the run and the pull request's Checks tab, not beside your changed code
 (findings have no line numbers, so each anchors to the top of the stories file).
-Under Actions it also appends a findings table to the job summary.
+Under Actions it also appends a findings table to the job summary, and GitHub
+caps the annotations at ~10 per type per step.
 
 ## Output
 
@@ -59,13 +59,11 @@ Card
   warning  prop-descriptions-missing   Card has 2 undocumented props. (props: title, elevated)
   error    required-prop-undocumented  Card has required prop without documentation. (props: title)
 
-✖ 5 problems (2 errors, 2 warnings, 1 info)
+✖ 2 problems (1 error, 1 warning, 0 info)
 ```
 
 Findings are grouped by component. `--format json` (alias `--json`) emits the same
 findings keyed by component id, with a summary count, for programmatic use.
-`--format github` emits GitHub Actions annotations, anchored to the stories file
-(findings carry no line numbers), capped at GitHub's ~10 per type per step.
 
 ## Exit codes
 

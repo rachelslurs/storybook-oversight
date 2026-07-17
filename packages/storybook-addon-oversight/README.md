@@ -272,9 +272,6 @@ pnpm storybook  # open the demo at http://localhost:6006
 # or `pnpm start` to rebuild the addon on change while Storybook runs
 ```
 
-Open any component's story to see the Oversight panel, or its Docs page to see
-the inline coverage block.
-
 ## Development
 
 This package lives in the [Oversight monorepo](../../README.md). The diagnostic
