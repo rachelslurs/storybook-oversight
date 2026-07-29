@@ -106,8 +106,12 @@ describe('run — exit codes', () => {
   it('states the manifest version floor when no manifest exists (#36)', () => {
     const result = run(options({ manifestPath: join(dir, 'missing/components.json') }));
     expect(result.code).toBe(2);
-    expect(result.stderr).toMatch(/10\.3/);
-    expect(result.stderr).toMatch(/10\.1/);
+    // One distinctive fragment per message line, so dropping any line fails.
+    expect(result.stderr).toMatch(/features\.componentsManifest/);
+    expect(result.stderr).toMatch(/features\.experimentalComponentsManifest/);
+    expect(result.stderr).toMatch(/unsupported/);
+    expect(result.stderr).toMatch(/Below Storybook 10\.1/);
+    expect(result.stderr).toMatch(/explicit path/);
   });
 
   it('exits 2 when the manifest is not valid JSON', () => {
