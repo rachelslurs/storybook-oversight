@@ -24,12 +24,15 @@ The command is `oversight`.
 ## Prerequisite: a built manifest
 
 `oversight-lint` reads a static manifest; it does not run Storybook. On
-**Storybook ^10.3**, produce one with `storybook build` and
+**Storybook ^10.3**, `storybook build` writes
+`storybook-static/manifests/components.json` when the
+`features.componentsManifest` flag is enabled in `.storybook/main.ts`.
+Installing
 [`@storybook/addon-mcp`](https://www.npmjs.com/package/@storybook/addon-mcp)
-enabled, which writes `storybook-static/manifests/components.json`.
+enables the flag for you.
 
 Older Storybooks are unsupported. On 10.1 and 10.2 the manifest is built only
-behind the `experimentalComponentsManifest` flag, and those flag-built manifests
+behind `features.experimentalComponentsManifest`, and those flag-built manifests
 happen to lint; that spelling was renamed at 10.3.0 with no alias. Below 10.1
 there is no components manifest to lint.
 
@@ -142,9 +145,9 @@ you:
   every id in the manifest. A per-component view can't see it; Oversight can. The
   rule validates one convention: selection guidance written into component
   descriptions as `?path=/docs|story/…` redirect links. In a repo that does not
-  write those links it has nothing to check, and it stays silent. A permanently
-  clean `docs-link-dangling` line means the convention is not in use rather than
-  that every link was verified.
+  write those links it has nothing to check, and it stays silent. In such a
+  repo the rule's silence reports the convention's absence and says nothing
+  about link validity.
 - **`required-prop-undocumented` vs `prop-descriptions-missing` is a severity
   call.** Every blank prop description renders the same in a raw view. Oversight
   decides that an undocumented _required_ prop is the one an agent is most likely
