@@ -103,6 +103,13 @@ describe('run — exit codes', () => {
     expect(result.stderr).toMatch(/No components manifest/);
   });
 
+  it('states the manifest version floor when no manifest exists (#36)', () => {
+    const result = run(options({ manifestPath: join(dir, 'missing/components.json') }));
+    expect(result.code).toBe(2);
+    expect(result.stderr).toMatch(/10\.3/);
+    expect(result.stderr).toMatch(/10\.1/);
+  });
+
   it('exits 2 when the manifest is not valid JSON', () => {
     const path = join(dir, 'components.json');
     writeFileSync(path, '{ not json');
