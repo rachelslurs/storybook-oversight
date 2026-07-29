@@ -18,7 +18,10 @@ export function readManifest(path: string): RawManifest {
     if (e.code === 'ENOENT') {
       throw new ManifestError(
         `No components manifest at ${path}.\n` +
-          `Run \`storybook build\` with @storybook/addon-mcp enabled to emit it, or pass an explicit path.\n` +
+          `Storybook 10.3 and later build one as \`componentsManifest\`. Run \`storybook build\` with @storybook/addon-mcp enabled to emit it.\n` +
+          `Storybook 10.1 and 10.2 build one only behind the \`experimentalComponentsManifest\` flag. That spelling was renamed at 10.3.0 with no alias.\n` +
+          `Below Storybook 10.1 no configuration produces a components manifest.\n` +
+          `If the manifest is built and this path is wrong, pass an explicit path.\n` +
           `(experimentalDocgenServer emits a ref-based manifest that is not supported yet.)`,
       );
     }
