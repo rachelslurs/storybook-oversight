@@ -67,17 +67,49 @@ caps the annotations at ~10 per type per step.
 ## Output
 
 ```
+storybook-static/manifests/components.json (docgen: react-docgen-typescript)
+
 Card
   warning  prop-descriptions-missing   Card has 2 undocumented props. (props: title, elevated)
   error    required-prop-undocumented  Card has required prop without documentation. (props: title)
 
-✖ 2 problems (1 error, 1 warning, 0 info)
+✖ 2 problems (1 error, 1 warning, 0 info), 1 of 42 entries affected
 ```
 
-Findings are grouped by component. `--format json` (alias `--json`) emits the same
-findings keyed by component id, with a summary count, for programmatic use.
-`docgen-missing` and `story-extraction-error` findings there carry the full
-extraction error on an `error` field; every message shows its first line only.
+The header names the manifest that was linted and the extractor it records in
+`meta.docgen`, because the same path can hold a different artifact per build: a
+config like `reactDocgen: isCI ? 'react-docgen-typescript' : 'react-docgen'`
+writes one manifest in CI and another locally.
+
+Counts are per manifest entry. One entry exists per stories file, so a component
+with several stories files produces several entries, and every count is inflated
+relative to components. The CLI does not deduplicate by component name: names
+collide across packages, and the manifest offers no stronger component identity
+than the entry id.
+
+Findings are grouped by component. `--format json` (alias `--json`) emits the
+same findings keyed by component id, with the summary counts and the manifest's
+path and `docgen` under `summary.manifest`, for programmatic use.
+`docgen-missing` and `story-extraction-error` findings carry the full extraction
+error on an `error` field and the error's `name` on `errorName`; their messages
+lead with the name and append the message's first line when it adds information.
+
+### Mass failures collapse in text output
+
+A repo-wide extraction failure fires `docgen-missing` or
+`story-extraction-error` once per entry, so text output would render hundreds of
+near-identical findings. When findings of one rule sharing an error signature
+(the error's `name`, or its first line when unnamed) reach both 10 findings and
+half the manifest's entries, the rule's findings leave the per-component groups
+and render as one line per signature, stating the count, the share, and the
+diagnosis:
+
+```
+  error  docgen-missing  535 of 546 entries: react-docgen-typescript found no component docs
+```
+
+The tally still counts every finding, and `--format json` keeps the per-entry
+list.
 
 ## Exit codes
 
@@ -91,18 +123,18 @@ Exit `2` is distinct from `1` so a broken setup does not read as a passing lint.
 
 ## Options
 
-| Option                          | Description                                                                 |
-| ------------------------------- | --------------------------------------------------------------------------- |
-| `[manifest]`                    | Path to `components.json` (default: the static build output).               |
+| Option                          | Description                                                                                           |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `[manifest]`                    | Path to `components.json` (default: the static build output).                                         |
 | `--expected-extractor <name>`   | Extractor the manifest should have used. Enables `extractor-drift`; also settable in the config file. |
-| `--rule <name>=<severity>`      | Override a rule: `off`, `error`, `warning`, `info`. Repeatable.             |
-| `--max-warnings <n>`            | Fail if warnings exceed `n` (default: no limit).                            |
-| `--config <path>`               | Config file (default: `./oversight.config.json`).                           |
-| `--format <text\|json\|github>` | Output format: `text` (default), `json`, or `github` (Actions annotations). |
-| `--json`                        | Alias for `--format json`.                                                  |
-| `--quiet`                       | Print only errors (does not change the exit code).                          |
-| `-h`, `--help`                  | Show help.                                                                  |
-| `--version`                     | Print the version.                                                          |
+| `--rule <name>=<severity>`      | Override a rule: `off`, `error`, `warning`, `info`. Repeatable.                                       |
+| `--max-warnings <n>`            | Fail if warnings exceed `n` (default: no limit).                                                      |
+| `--config <path>`               | Config file (default: `./oversight.config.json`).                                                     |
+| `--format <text\|json\|github>` | Output format: `text` (default), `json`, or `github` (Actions annotations).                           |
+| `--json`                        | Alias for `--format json`.                                                                            |
+| `--quiet`                       | Print only errors (does not change the exit code).                                                    |
+| `-h`, `--help`                  | Show help.                                                                                            |
+| `--version`                     | Print the version.                                                                                    |
 
 `@oversightIgnore` on a component's JSDoc exempts it here too; write the directive
 where the addon documents it, under
@@ -114,17 +146,17 @@ where the addon documents it, under
 [`storybook-addon-oversight`](../storybook-addon-oversight/README.md) run the same
 rules from `oversight-core`, at these default severities:
 
-| Rule                            | Default severity | Fires when                                                                                     |
-| ------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------- |
-| `docgen-missing`                | error            | an entry has no docgen payload (extraction failed)                                             |
-| `story-extraction-error`        | warning          | a story's snippet/docgen extraction failed (`stories[].error`)                                 |
+| Rule                            | Default severity | Fires when                                                                                         |
+| ------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------- |
+| `docgen-missing`                | error            | an entry has no docgen payload (extraction failed)                                                 |
+| `story-extraction-error`        | warning          | a story's snippet/docgen extraction failed (`stories[].error`)                                     |
 | `extractor-drift`               | warning          | `meta.docgen` ≠ the expected extractor, or unrecorded; runs only when an expectation is configured |
-| `component-description-missing` | warning          | no component description                                                                       |
-| `prop-descriptions-missing`     | warning          | props without JSDoc descriptions                                                               |
-| `required-prop-undocumented`    | error            | required props without JSDoc descriptions                                                      |
-| `docs-link-dangling`            | error            | a prose `?path=/docs\|story/…` link targets an id whose component prefix isn't in the manifest |
-| `unknown-ignore-rule`           | warning          | `@oversightIgnore` lists a token that is not a rule name                                       |
-| `deprecated-tag`                | info             | a `@deprecated` tag is present                                                                 |
+| `component-description-missing` | warning          | no component description                                                                           |
+| `prop-descriptions-missing`     | warning          | props without JSDoc descriptions                                                                   |
+| `required-prop-undocumented`    | error            | required props without JSDoc descriptions                                                          |
+| `docs-link-dangling`            | error            | a prose `?path=/docs\|story/…` link targets an id whose component prefix isn't in the manifest     |
+| `unknown-ignore-rule`           | warning          | `@oversightIgnore` lists a token that is not a rule name                                           |
+| `deprecated-tag`                | info             | a `@deprecated` tag is present                                                                     |
 
 ## Why these are lint rules
 

@@ -66,6 +66,8 @@ export type ExtractionFailure = {
   name: string;
   storiesFile: string; // entry.path — lets the panel match the current story
   error: string | null;
+  /** The manifest error's `name` field, when the entry carried one. */
+  errorName: string | null;
 };
 
 /** A single story whose snippet/docgen extraction failed (`stories[].error`). */
@@ -74,6 +76,8 @@ export type StoryFailure = {
   storyId: string;
   storyName: string;
   error: string | null;
+  /** The manifest error's `name` field, when the story carried one. */
+  errorName: string | null;
 };
 
 export type NormalizeResult = {
@@ -117,4 +121,7 @@ export type Diagnostic = {
    *  for `docgen-missing` / `story-extraction-error`, the complete note for
    *  `deprecated-tag`. Machine-readable output keeps the whole text here. */
   error?: string;
+  /** For `docgen-missing` / `story-extraction-error`: the manifest error's
+   *  `name`, when the entry carried one. Renderers group mass failures by it. */
+  errorName?: string;
 };

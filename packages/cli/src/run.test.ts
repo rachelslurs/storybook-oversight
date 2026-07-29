@@ -210,12 +210,18 @@ describe('run — rule overrides and output', () => {
   });
 
   it('emits JSON keyed by component id with a summary', () => {
-    const result = run(options({ manifestPath: fixture(WITH_ERROR), format: 'json' }));
+    const path = fixture(WITH_ERROR);
+    const result = run(options({ manifestPath: path, format: 'json' }));
     const parsed = JSON.parse(result.stdout) as {
       summary: { errors: number; warnings: number; infos: number };
       components: Record<string, { rule: string; severity: string }[]>;
     };
-    expect(parsed.summary).toEqual({ errors: 1, warnings: 1, infos: 0 });
+    expect(parsed.summary).toEqual({
+      errors: 1,
+      warnings: 1,
+      infos: 0,
+      manifest: { path, docgen: 'react-docgen-typescript' },
+    });
     expect(parsed.components['ui-input'].map((d) => d.rule)).toContain('required-prop-undocumented');
   });
 
@@ -244,5 +250,59 @@ describe('run — rule overrides and output', () => {
     const result = run(options({ manifestPath: fixture(WITH_ERROR) }));
     expect(result.stepSummary).toMatch(/Oversight manifest lint/);
     expect(result.stepSummary).toMatch(/required-prop-undocumented/);
+  });
+});
+
+describe('run: manifest provenance in the output (#35)', () => {
+  it('names the linted manifest and its recorded extractor in text output', () => {
+    const path = fixture(CLEAN);
+    const result = run(options({ manifestPath: path }));
+    expect(result.stdout).toContain(path);
+    expect(result.stdout).toContain('react-docgen-typescript');
+  });
+
+  it('carries the manifest path in json output', () => {
+    const path = fixture(CLEAN);
+    const parsed = JSON.parse(run(options({ manifestPath: path, format: 'json' })).stdout) as { summary: unknown };
+    expect(JSON.stringify(parsed.summary)).toContain(path);
+  });
+
+  it('labels the tally as entries', () => {
+    const result = run(options({ manifestPath: fixture(WARNINGS_ONLY) }));
+    expect(result.stdout.toLowerCase()).toMatch(/entr(y|ies)/);
+  });
+
+  it('labels the step summary counts as entries', () => {
+    const result = run(options({ manifestPath: fixture(WARNINGS_ONLY) }));
+    expect(result.stepSummary?.toLowerCase()).toMatch(/entr(y|ies)/);
+  });
+});
+
+describe('run: mass-failure collapse in text output (#34)', () => {
+  it('collapses a manifest-wide docgen failure to one line naming share and signature', () => {
+    const entries = Object.fromEntries(
+      Array.from({ length: 20 }, (_, i) => [
+        `ui-c${i}`,
+        {
+          name: `C${i}`,
+          path: `./c${i}.stories.js`,
+          error: {
+            name: 'react-docgen-typescript found no component docs',
+            message:
+              'File: /repo/src/index.js\nreact-docgen-typescript did not return any component docs for this file.',
+          },
+        },
+      ]),
+    );
+    const path = fixture({ v: 0, meta: { docgen: 'react-docgen-typescript' }, components: entries });
+    const result = run(options({ manifestPath: path }));
+    expect(result.stdout).toMatch(/20 of 20/);
+    expect(result.stdout).toMatch(/found no component docs/);
+    // No per-entry component groups, and the reader is pointed at the full list.
+    expect(result.stdout).not.toContain('C7');
+    expect(result.stdout).toContain('--json');
+
+    const json = run(options({ manifestPath: path, format: 'json' }));
+    expect(Object.keys(JSON.parse(json.stdout).components)).toHaveLength(20);
   });
 });
