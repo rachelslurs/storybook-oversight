@@ -220,7 +220,7 @@ describe('run — rule overrides and output', () => {
       errors: 1,
       warnings: 1,
       infos: 0,
-      manifest: { path, docgen: 'react-docgen-typescript' },
+      manifest: { path, docgen: 'react-docgen-typescript', entries: 1 },
     });
     expect(parsed.components['ui-input'].map((d) => d.rule)).toContain('required-prop-undocumented');
   });
@@ -298,8 +298,10 @@ describe('run: mass-failure collapse in text output (#34)', () => {
     const result = run(options({ manifestPath: path }));
     expect(result.stdout).toMatch(/20 of 20/);
     expect(result.stdout).toMatch(/found no component docs/);
-    // No per-entry component groups, and the reader is pointed at the full list.
-    expect(result.stdout).not.toContain('C7');
+    // No per-entry component groups, and the reader is pointed at the full
+    // list. The marker includes the message prefix because the header prints
+    // the mkdtemp fixture path, whose random characters could contain "C7".
+    expect(result.stdout).not.toContain('Docgen extraction failed for C7');
     expect(result.stdout).toContain('--json');
 
     const json = run(options({ manifestPath: path, format: 'json' }));

@@ -76,10 +76,11 @@ Card
 ✖ 2 problems (1 error, 1 warning, 0 info), 1 of 42 entries affected
 ```
 
-The header names the manifest that was linted and the extractor it records in
-`meta.docgen`, because the same path can hold a different artifact per build: a
-config like `reactDocgen: isCI ? 'react-docgen-typescript' : 'react-docgen'`
-writes one manifest in CI and another locally.
+The header names the manifest that was linted and its recorded extractor:
+`meta.docgen` when the manifest sets it, else the payload key every extracted
+entry shares. It matters because the same path can hold a different artifact
+per build: a config like `reactDocgen: isCI ? 'react-docgen-typescript' :
+'react-docgen'` writes one manifest in CI and another locally.
 
 Counts are per manifest entry. One entry exists per stories file, so a component
 with several stories files produces several entries, and every count is inflated
@@ -89,27 +90,30 @@ than the entry id.
 
 Findings are grouped by component. `--format json` (alias `--json`) emits the
 same findings keyed by component id, with the summary counts and the manifest's
-path and `docgen` under `summary.manifest`, for programmatic use.
-`docgen-missing` and `story-extraction-error` findings carry the full extraction
-error on an `error` field and the error's `name` on `errorName`; their messages
-lead with the name and append the message's first line when it adds information.
+`path`, `docgen`, and `entries` count under `summary.manifest`, for programmatic
+use. `docgen-missing` and `story-extraction-error` findings carry the full
+extraction error on an `error` field and, when the manifest error carries one,
+its `name` on `errorName`; their messages lead with the name and append the
+message's first line when it adds information.
 
 ### Mass failures collapse in text output
 
-A repo-wide extraction failure fires `docgen-missing` or
-`story-extraction-error` once per entry, so text output would render hundreds of
-near-identical findings. When findings of one rule sharing an error signature
-(the error's `name`, or its first line when unnamed) reach both 10 findings and
-half the manifest's entries, the rule's findings leave the per-component groups
-and render as one line per signature, stating the count, the share, and the
-diagnosis:
+A repo-wide extraction failure fires `docgen-missing` once per entry and
+`story-extraction-error` once per failing story, several per entry, so text
+output would render hundreds of near-identical findings. When one rule's
+findings touch at least 10 distinct entries and at least half the manifest's
+entries, they leave the per-component groups and render as one line per error
+signature (the same one-line summary the messages use), stating the count, the
+share, and the diagnosis:
 
 ```
-  error  docgen-missing  535 of 546 entries: react-docgen-typescript found no component docs
+  error  docgen-missing  122 of 123 entries: No component found: We could not detect the component from your story file. Specify meta.component.
 ```
 
-The tally still counts every finding, and `--format json` keeps the per-entry
-list.
+Signatures on fewer than 10 entries pool into one leftovers line ("8 other
+errors"). The Actions step summary collapses the same way, since GitHub
+truncates oversized step summaries. The tally still counts every finding, and
+`--format json` keeps the per-entry list.
 
 ## Exit codes
 

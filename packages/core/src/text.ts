@@ -14,6 +14,14 @@ export function firstNonEmptyLine(text: string | null | undefined): string | nul
   return null;
 }
 
+/** Whole-token containment. "SyntaxError" inside "SyntaxErrorHandler" is a
+ *  different token, so plain substring matching would treat an unrelated
+ *  identifier as a duplicate and drop text that still adds information. */
+function includesWord(haystack: string, needle: string): boolean {
+  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(^|\\W)${escaped}(\\W|$)`).test(haystack);
+}
+
 /**
  * One-line summary of a manifest error, from its `name` and message text.
  * Manifests put the diagnosis in either field: react-docgen-typescript
@@ -22,13 +30,13 @@ export function firstNonEmptyLine(text: string | null | undefined): string | nul
  * failures carry it in the message while `name` is the bare class. Leading
  * with the name and appending the message's first line keeps the diagnosis
  * visible in both shapes; the append is skipped when either side already
- * contains the other.
+ * contains the other as a whole token.
  */
 export function summarizeError(name: string | null | undefined, message: string | null | undefined): string | null {
   const line = firstNonEmptyLine(message);
   const cleanName = firstNonEmptyLine(name);
   if (cleanName === null) return line;
-  if (line === null || cleanName.includes(line)) return cleanName;
-  if (line.includes(cleanName)) return line;
+  if (line === null || includesWord(cleanName, line)) return cleanName;
+  if (includesWord(line, cleanName)) return line;
   return `${cleanName}: ${line}`;
 }
