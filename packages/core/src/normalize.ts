@@ -83,12 +83,27 @@ export function detectRepoRoot(raw: RawManifest): string | null {
   return null;
 }
 
+/**
+ * The manifest's recorded extractor: `meta.docgen` when non-empty, else the
+ * payload key every extracted entry agrees on, else null. Flag-built 10.2
+ * manifests ship `meta: null` while each entry still carries an
+ * extractor-named payload key, so a missing `meta` alone does not mean
+ * "unrecorded". Substituting a default here made `extractor-drift` read the
+ * absence as a match (#32).
+ */
+function recordedExtractor(raw: RawManifest): string | null {
+  const recorded = raw.meta?.docgen;
+  if (typeof recorded === 'string' && recorded.trim() !== '') return recorded;
+  const flavors = new Set<string>();
+  for (const entry of Object.values(raw.components ?? {})) {
+    if (entry.reactDocgenTypescript) flavors.add('react-docgen-typescript');
+    else if (entry.reactDocgen) flavors.add('react-docgen');
+  }
+  return flavors.size === 1 ? [...flavors][0] : null;
+}
+
 export function normalizeManifest(raw: RawManifest): NormalizeResult {
-  // A manifest that records no extractor stays unknown; substituting a default
-  // here made `extractor-drift` read the absence as a match (#32).
-  const rawExtractor = raw.meta?.docgen ?? null;
-  const extractor: NormalizedComponent['extractor'] =
-    rawExtractor === null ? null : rawExtractor === 'react-docgen' ? 'react-docgen' : 'react-docgen-typescript';
+  const rawExtractor = recordedExtractor(raw);
   const repoRoot = detectRepoRoot(raw);
 
   const components: NormalizedComponent[] = [];
@@ -140,7 +155,6 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
     components.push({
       id,
       name,
-      extractor,
       description: text(entry.description) ?? text(payload.description),
       sourceFile,
       storiesFile,

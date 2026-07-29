@@ -100,7 +100,6 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
     const result = normalizeManifest(raw);
     const [widget] = result.components;
     expect(result.extractor).toBe('react-docgen');
-    expect(widget.extractor).toBe('react-docgen');
     expect(widget.sourceFile).toBe('storybook/src/Widget/Widget.tsx');
     expect(widget.props.size).toEqual({ description: null, required: true });
     expect(result.tags['data-display-widget'].deprecated).toBe('use Gadget instead\nsince 2.0');
@@ -110,15 +109,29 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
     expect(normalizeManifest({ components: {} }).extractor).toBeNull();
   });
 
-  it('reads the flag-built shape where meta is null (guards #32)', () => {
+  it('infers the extractor from unanimous payload keys when meta is null (guards #32)', () => {
     const result = normalizeManifest({
       meta: null,
       components: {
         'ui-x': { name: 'X', path: './x.stories.tsx', reactDocgenTypescript: { props: {} } },
+        'ui-y': { name: 'Y', path: './y.stories.tsx', reactDocgenTypescript: { props: {} } },
+      },
+    });
+    expect(result.extractor).toBe('react-docgen-typescript');
+  });
+
+  it('treats an empty meta.docgen as unrecorded', () => {
+    expect(normalizeManifest({ meta: { docgen: '' }, components: {} }).extractor).toBeNull();
+  });
+
+  it('leaves the extractor null when payload keys disagree', () => {
+    const result = normalizeManifest({
+      components: {
+        'ui-a': { name: 'A', path: './a.stories.tsx', reactDocgenTypescript: { props: {} } },
+        'ui-b': { name: 'B', path: './b.stories.tsx', reactDocgen: { props: {} } },
       },
     });
     expect(result.extractor).toBeNull();
-    expect(result.components[0].extractor).toBeNull();
   });
 
   it('prefers entry.description over payload.description', () => {

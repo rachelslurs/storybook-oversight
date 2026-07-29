@@ -43,8 +43,12 @@ Actions, that is two steps:
 
 ```yaml
 - run: pnpm build-storybook # writes storybook-static/manifests/components.json
-- run: npx oversight --format github --max-warnings 0
+- run: npx oversight --format github --max-warnings 0 --expected-extractor react-docgen-typescript
 ```
+
+`--expected-extractor` states the extractor your `.storybook/main.ts` pins;
+`extractor-drift` runs only when an expectation is configured, via the flag or
+the config file.
 
 `--format github` emits `::error`/`::warning`/`::notice` annotations; GitHub shows
 them on the run and the pull request's Checks tab, not beside your changed code
@@ -82,7 +86,7 @@ Exit `2` is distinct from `1` so a broken setup does not read as a passing lint.
 | Option                          | Description                                                                 |
 | ------------------------------- | --------------------------------------------------------------------------- |
 | `[manifest]`                    | Path to `components.json` (default: the static build output).               |
-| `--expected-extractor <name>`   | Extractor the manifest should have used. Unset, `extractor-drift` is skipped. |
+| `--expected-extractor <name>`   | Extractor the manifest should have used. Enables `extractor-drift`; also settable in the config file. |
 | `--rule <name>=<severity>`      | Override a rule: `off`, `error`, `warning`, `info`. Repeatable.             |
 | `--max-warnings <n>`            | Fail if warnings exceed `n` (default: no limit).                            |
 | `--config <path>`               | Config file (default: `./oversight.config.json`).                           |
@@ -106,7 +110,7 @@ rules from `oversight-core`, at these default severities:
 | ------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------- |
 | `docgen-missing`                | error            | an entry has no docgen payload (extraction failed)                                             |
 | `story-extraction-error`        | warning          | a story's snippet/docgen extraction failed (`stories[].error`)                                 |
-| `extractor-drift`               | warning          | `meta.docgen` ≠ the expected extractor, or unrecorded; needs `--expected-extractor` to run     |
+| `extractor-drift`               | warning          | `meta.docgen` ≠ the expected extractor, or unrecorded; runs only when an expectation is configured |
 | `component-description-missing` | warning          | no component description                                                                       |
 | `prop-descriptions-missing`     | warning          | props without JSDoc descriptions                                                               |
 | `required-prop-undocumented`    | error            | required props without JSDoc descriptions                                                      |
@@ -124,9 +128,10 @@ you:
   only wrong _relative to_ the extractor you expected, so a raw view has nothing
   to flag against. Oversight holds the expectation (`expectedExtractor`) and
   checks the manifest against it. Without a configured expectation the rule does
-  not run, and a manifest that does not record its extractor fails the check
-  rather than passing as a match. It's a property of the whole manifest, so it's
-  reported on its own rather than against any one component.
+  not run. A manifest records its extractor in `meta.docgen` or in the payload
+  key its entries share; when neither says anything, the check fails rather than
+  passing as a match. It's a property of the whole manifest, so it's reported on
+  its own rather than against any one component.
 - **`docs-link-dangling` needs every other entry.** One component's entry can't
   tell you its `?path=` redirect points at nothing; that takes cross-referencing
   every id in the manifest. A per-component view can't see it; Oversight can.

@@ -103,8 +103,10 @@ checks need judgment that reading it can't give you:
 ## The manifest-level rule
 
 `extractor-drift` isn't tied to one component. It fires when the manifest was
-built with a different docgen extractor than you expect (`react-docgen-typescript`
-by default). The shallow `react-docgen` parser silently drops complex prop types,
+built with a different docgen extractor than the one you state as
+`expectedExtractor` (addon config, or `--expected-extractor` in the CLI); with
+no expectation stated, the rule does not run. The shallow `react-docgen` parser
+silently drops complex prop types,
 so descriptions come back empty across the board. Because it's a property of the
 whole manifest, the panel gives it its own **Manifest** section, above the
 per-component findings:
@@ -116,8 +118,8 @@ per-component findings:
 />
 
 This demo ships on `react-docgen-typescript`, so drift can't fire live. The still
-above is a build with the shallow extractor; in your project the warning appears
-the moment the manifest drifts.
+above is a build with the shallow extractor; in a project that states its
+expectation, the warning appears the moment the manifest drifts.
 
 ## Not shown here
 

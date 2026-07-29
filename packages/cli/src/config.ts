@@ -65,7 +65,8 @@ Arguments:
 
 Options:
   --expected-extractor <name>  Extractor the manifest should have used.
-                               Unset, the extractor-drift rule does not run.
+                               extractor-drift runs only when this is set
+                               here or in the config file.
   --rule <name>=<severity>     Override a rule: off|error|warning|info.
                                Repeatable.
   --max-warnings <n>           Fail if warnings exceed n (default: no limit).
@@ -172,9 +173,31 @@ export function buildConfig(argv: string[], ctx: Context): ConfigResult {
   }
 
   const expectedExtractor = (values['expected-extractor'] as string | undefined) ?? file.expectedExtractor;
+  // An empty expectation would silently disable extractor-drift while the
+  // operator believes they stated one (an unset shell variable expands to "").
+  if (expectedExtractor !== undefined && (typeof expectedExtractor !== 'string' || expectedExtractor.trim() === '')) {
+    return {
+      kind: 'error',
+      message: `--expected-extractor expects an extractor name, got ${JSON.stringify(expectedExtractor)}`,
+    };
+  }
+
+  const rules = { ...file.rules, ...ruleFlags };
+  // A severity override for a rule that cannot run is a config mistake, and
+  // silence here reads as a clean manifest.
+  const driftOverride = rules['extractor-drift'];
+  if (expectedExtractor === undefined && driftOverride !== undefined && driftOverride !== 'off') {
+    return {
+      kind: 'error',
+      message:
+        `--rule extractor-drift=${driftOverride} has no effect: the rule runs only when ` +
+        `--expected-extractor (or expectedExtractor in the config file) is set`,
+    };
+  }
+
   const lint: LintOptions = {
-    ...(expectedExtractor ? { expectedExtractor } : {}),
-    rules: { ...file.rules, ...ruleFlags },
+    ...(expectedExtractor !== undefined ? { expectedExtractor } : {}),
+    rules,
   };
 
   const color = resolveColor(ctx);

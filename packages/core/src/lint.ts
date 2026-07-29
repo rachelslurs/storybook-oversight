@@ -65,7 +65,10 @@ function isIgnored(ignoreValue: string | undefined, rule: DiagnosticRule): boole
 const PATH_LINK_PATTERN = pathLinkPattern();
 
 export function lint(result: NormalizeResult, options: LintOptions = {}): Diagnostic[] {
-  const { expectedExtractor } = options;
+  // The addon's config channels are untyped casts, so null or "" can arrive
+  // here; both read as "no expectation", never as a value to compare against.
+  const stated = options.expectedExtractor;
+  const expectedExtractor = typeof stated === 'string' && stated.trim() !== '' ? stated : undefined;
   const diagnostics: Diagnostic[] = [];
 
   // Drift requires a stated expectation. A default here warned projects that
@@ -85,7 +88,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
         rule: 'extractor-drift',
         severity: 'warning',
         componentId: null,
-        message: `Manifest was extracted with "${result.extractor}" but this project expects "${expectedExtractor}" — prop docs may be incomplete.`,
+        message: `Manifest was extracted with "${result.extractor}" but this project expects "${expectedExtractor}"; prop docs may be incomplete.`,
       });
     }
   }
