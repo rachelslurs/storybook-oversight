@@ -3,7 +3,10 @@ import { firstNonEmptyLine } from './text';
 import type { Diagnostic, DiagnosticRule, DiagnosticSeverity, NormalizeResult, RuleSetting } from './types';
 
 export type LintOptions = {
-  /** The extractor the project pins in `.storybook/main.ts`. */
+  /**
+   * The extractor the project pins in `.storybook/main.ts`. Unset, the
+   * `extractor-drift` rule does not run: there is nothing to compare against.
+   */
   expectedExtractor?: string;
   /**
    * Per-rule overrides: remap a rule's severity or turn it `"off"`.
@@ -62,16 +65,29 @@ function isIgnored(ignoreValue: string | undefined, rule: DiagnosticRule): boole
 const PATH_LINK_PATTERN = pathLinkPattern();
 
 export function lint(result: NormalizeResult, options: LintOptions = {}): Diagnostic[] {
-  const expectedExtractor = options.expectedExtractor ?? 'react-docgen-typescript';
+  const { expectedExtractor } = options;
   const diagnostics: Diagnostic[] = [];
 
-  if (result.extractor !== expectedExtractor) {
-    diagnostics.push({
-      rule: 'extractor-drift',
-      severity: 'warning',
-      componentId: null,
-      message: `Manifest was extracted with "${result.extractor}" but this project expects "${expectedExtractor}" — prop docs may be incomplete.`,
-    });
+  // Drift requires a stated expectation. A default here warned projects that
+  // never chose an extractor, and the manifest-side default read a missing
+  // `meta.docgen` as a match (#32). An unrecorded extractor fails the check:
+  // staying silent would rebuild that fabricated match.
+  if (expectedExtractor !== undefined) {
+    if (result.extractor === null) {
+      diagnostics.push({
+        rule: 'extractor-drift',
+        severity: 'warning',
+        componentId: null,
+        message: `Manifest does not record which extractor ran; this project expects "${expectedExtractor}".`,
+      });
+    } else if (result.extractor !== expectedExtractor) {
+      diagnostics.push({
+        rule: 'extractor-drift',
+        severity: 'warning',
+        componentId: null,
+        message: `Manifest was extracted with "${result.extractor}" but this project expects "${expectedExtractor}" — prop docs may be incomplete.`,
+      });
+    }
   }
 
   for (const failure of result.failures) {

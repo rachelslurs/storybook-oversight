@@ -11,7 +11,7 @@ function loadFixture(): RawManifest {
 
 describe('lint (fixture baseline)', () => {
   const result = normalizeManifest(loadFixture());
-  const diagnostics = lint(result);
+  const diagnostics = lint(result, { expectedExtractor: 'react-docgen-typescript' });
 
   it('does not flag extractor drift for the pinned extractor', () => {
     expect(diagnostics.filter((d) => d.rule === 'extractor-drift')).toHaveLength(0);
@@ -85,9 +85,36 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
       meta: { docgen: 'react-docgen' },
       components: {},
     });
-    const drift = lint(result).find((d) => d.rule === 'extractor-drift');
+    const drift = lint(result, { expectedExtractor: 'react-docgen-typescript' }).find(
+      (d) => d.rule === 'extractor-drift',
+    );
     expect(drift?.componentId).toBeNull();
     expect(drift?.severity).toBe('warning');
+  });
+
+  it('does not run extractor drift without a stated expectation (guards #32)', () => {
+    const result = normalizeManifest({
+      meta: { docgen: 'react-docgen' },
+      components: {},
+    });
+    expect(lint(result)).toHaveLength(0);
+  });
+
+  it('flags an unrecorded extractor when an expectation is stated (guards #32)', () => {
+    const result = normalizeManifest({ components: {} });
+    const drift = lint(result, { expectedExtractor: 'react-docgen-typescript' }).find(
+      (d) => d.rule === 'extractor-drift',
+    );
+    expect(drift?.componentId).toBeNull();
+    expect(drift?.severity).toBe('warning');
+    expect(drift?.message).toContain('does not record which extractor ran');
+  });
+
+  it('stays silent on a meta-less manifest when no expectation is stated (guards #32)', () => {
+    // The flag-built 10.2 manifests ship `meta: null`; both spellings of
+    // "unrecorded" must stay silent without an expectation.
+    expect(lint(normalizeManifest({ meta: null, components: {} }))).toHaveLength(0);
+    expect(lint(normalizeManifest({ components: {} }))).toHaveLength(0);
   });
 
   it('skips prop rules on components with no props', () => {

@@ -84,9 +84,11 @@ export function detectRepoRoot(raw: RawManifest): string | null {
 }
 
 export function normalizeManifest(raw: RawManifest): NormalizeResult {
-  const rawExtractor = raw.meta?.docgen ?? 'react-docgen-typescript';
+  // A manifest that records no extractor stays unknown; substituting a default
+  // here made `extractor-drift` read the absence as a match (#32).
+  const rawExtractor = raw.meta?.docgen ?? null;
   const extractor: NormalizedComponent['extractor'] =
-    rawExtractor === 'react-docgen' ? 'react-docgen' : 'react-docgen-typescript';
+    rawExtractor === null ? null : rawExtractor === 'react-docgen' ? 'react-docgen' : 'react-docgen-typescript';
   const repoRoot = detectRepoRoot(raw);
 
   const components: NormalizedComponent[] = [];

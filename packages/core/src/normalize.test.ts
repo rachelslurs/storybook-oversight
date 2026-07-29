@@ -106,6 +106,21 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
     expect(result.tags['data-display-widget'].deprecated).toBe('use Gadget instead\nsince 2.0');
   });
 
+  it('carries an unrecorded extractor through as null (guards #32)', () => {
+    expect(normalizeManifest({ components: {} }).extractor).toBeNull();
+  });
+
+  it('reads the flag-built shape where meta is null (guards #32)', () => {
+    const result = normalizeManifest({
+      meta: null,
+      components: {
+        'ui-x': { name: 'X', path: './x.stories.tsx', reactDocgenTypescript: { props: {} } },
+      },
+    });
+    expect(result.extractor).toBeNull();
+    expect(result.components[0].extractor).toBeNull();
+  });
+
   it('prefers entry.description over payload.description', () => {
     const result = normalizeManifest({
       components: {

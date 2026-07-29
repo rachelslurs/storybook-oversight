@@ -82,7 +82,7 @@ Exit `2` is distinct from `1` so a broken setup does not read as a passing lint.
 | Option                          | Description                                                                 |
 | ------------------------------- | --------------------------------------------------------------------------- |
 | `[manifest]`                    | Path to `components.json` (default: the static build output).               |
-| `--expected-extractor <name>`   | Extractor the manifest should have used (`react-docgen-typescript`).        |
+| `--expected-extractor <name>`   | Extractor the manifest should have used. Unset, `extractor-drift` is skipped. |
 | `--rule <name>=<severity>`      | Override a rule: `off`, `error`, `warning`, `info`. Repeatable.             |
 | `--max-warnings <n>`            | Fail if warnings exceed `n` (default: no limit).                            |
 | `--config <path>`               | Config file (default: `./oversight.config.json`).                           |
@@ -106,7 +106,7 @@ rules from `oversight-core`, at these default severities:
 | ------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------- |
 | `docgen-missing`                | error            | an entry has no docgen payload (extraction failed)                                             |
 | `story-extraction-error`        | warning          | a story's snippet/docgen extraction failed (`stories[].error`)                                 |
-| `extractor-drift`               | warning          | `meta.docgen` ≠ the expected extractor                                                         |
+| `extractor-drift`               | warning          | `meta.docgen` ≠ the expected extractor, or unrecorded; needs `--expected-extractor` to run     |
 | `component-description-missing` | warning          | no component description                                                                       |
 | `prop-descriptions-missing`     | warning          | props without JSDoc descriptions                                                               |
 | `required-prop-undocumented`    | error            | required props without JSDoc descriptions                                                      |
@@ -123,7 +123,9 @@ you:
 - **`extractor-drift` is a comparison.** The manifest looks fine on its own; it's
   only wrong _relative to_ the extractor you expected, so a raw view has nothing
   to flag against. Oversight holds the expectation (`expectedExtractor`) and
-  checks the manifest against it. It's a property of the whole manifest, so it's
+  checks the manifest against it. Without a configured expectation the rule does
+  not run, and a manifest that does not record its extractor fails the check
+  rather than passing as a match. It's a property of the whole manifest, so it's
   reported on its own rather than against any one component.
 - **`docs-link-dangling` needs every other entry.** One component's entry can't
   tell you its `?path=` redirect points at nothing; that takes cross-referencing

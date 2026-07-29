@@ -56,8 +56,7 @@ const config = {
 export default config;
 ```
 
-Oversight's default `expectedExtractor` is `react-docgen-typescript`. Pin the
-same extractor so JSDoc on components and props is actually extracted:
+Pin the extractor so JSDoc on components and props is actually extracted:
 
 ```ts
 // .storybook/main.ts
@@ -65,6 +64,11 @@ const config = {
   typescript: { reactDocgen: 'react-docgen-typescript' },
 };
 ```
+
+Set the same value as `expectedExtractor` (see
+[Configuration](#configuration)) so `extractor-drift` can flag a manifest built
+with a different extractor. The rule runs only when an expectation is
+configured.
 
 ### Optional: enable the Docs-page block
 
