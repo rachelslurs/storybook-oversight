@@ -115,6 +115,22 @@ describe('ReportView report rendering', () => {
     expect(container.textContent).toContain('docgen-missing');
   });
 
+  it('clamps a multi-line extraction error to one line in the finding and the section (guards #16)', () => {
+    const manifest = {
+      components: {
+        'ex-broken': {
+          name: 'Broken',
+          path: './Broken.stories.tsx',
+          error: { message: 'No component file found\nat parse (/src/Broken.tsx:1:1)' },
+        },
+      },
+    } as unknown as RawManifest;
+    const report = buildReport(manifest, 'ex-broken');
+    const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+    expect(container.textContent).toContain('No component file found');
+    expect(container.textContent).not.toContain('at parse');
+  });
+
   it('compact variant shows a Documented verdict instead of the description prose', () => {
     const manifest = {
       meta: { docgen: 'react-docgen-typescript' },

@@ -133,6 +133,31 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     expect(storyErrors[0].message).toContain('kaput');
   });
 
+  it('clamps multi-line extraction errors to their first line (guards #16)', () => {
+    const result = normalizeManifest({
+      components: {
+        a: {
+          name: 'A',
+          path: './a.stories.tsx',
+          error: { message: 'No component file found\nat resolve (/src/a.tsx:1:1)' },
+        },
+        b: {
+          name: 'B',
+          path: './b.stories.tsx',
+          reactDocgenTypescript: { description: 'd', props: {} },
+          stories: [{ id: 'b--broken', name: 'Broken', error: 'kaput\nat parse (/src/b.tsx:2:2)' }],
+        },
+      },
+    });
+    const diagnostics = lint(result);
+    const docgen = diagnostics.find((d) => d.rule === 'docgen-missing');
+    expect(docgen?.message).toContain('No component file found');
+    expect(docgen?.message).not.toContain('at resolve');
+    const story = diagnostics.find((d) => d.rule === 'story-extraction-error');
+    expect(story?.message).toContain('kaput');
+    expect(story?.message).not.toContain('at parse');
+  });
+
   it('exempts a component from all rules via bare @oversightIgnore', () => {
     const result = normalizeManifest({
       components: {
