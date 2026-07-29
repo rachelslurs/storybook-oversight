@@ -89,6 +89,7 @@ export function formatJson(summary: LintSummary): string {
       message: d.message,
       ...(d.props ? { props: d.props } : {}),
       ...(d.targets ? { targets: d.targets } : {}),
+      ...(d.error ? { error: d.error } : {}),
     });
   }
   return JSON.stringify(

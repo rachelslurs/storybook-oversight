@@ -93,6 +93,27 @@ describe('formatJson', () => {
     const required = parsed.components['ui-card'].find((d) => d.rule === 'required-prop-undocumented');
     expect(required?.props).toEqual(['title']);
   });
+
+  it('keeps the full extraction error on diagnostics that carry one', () => {
+    const failing: LintSummary = {
+      diagnostics: [
+        {
+          rule: 'docgen-missing',
+          severity: 'error',
+          componentId: 'ui-broken',
+          message: 'Docgen extraction failed for Broken: No component file found',
+          error: 'No component file found\nat resolve (/src/Broken.tsx:1:1)',
+        },
+      ],
+      errors: 1,
+      warnings: 0,
+      infos: 0,
+      names: new Map([['ui-broken', 'Broken']]),
+      files: new Map(),
+    };
+    const out = JSON.parse(formatJson(failing)) as { components: Record<string, { error?: string }[]> };
+    expect(out.components['ui-broken'][0].error).toBe('No component file found\nat resolve (/src/Broken.tsx:1:1)');
+  });
 });
 
 describe('formatStepSummary', () => {

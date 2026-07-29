@@ -3,6 +3,7 @@ import type { ComponentType } from 'react';
 import { Badge } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 import type { ComponentReport, Diagnostic, DiagnosticSeverity } from 'oversight-core';
+import { firstNonEmptyLine } from 'oversight-core';
 import { parseInline, splitParagraphs, storybookPathId } from './markdown';
 
 /** A context-appropriate link to a `?path=/docs|story/<id>` target. The manager
@@ -235,16 +236,18 @@ function StoryFailuresSection({ storyFailures }: { storyFailures: ComponentRepor
     <Section>
       <Heading>Stories</Heading>
       <PropList>
-        {storyFailures.map((failure) => (
-          <li key={failure.storyId || failure.storyName}>
-            <code>{failure.storyName}</code>{' '}
-            <Negative>
-              {/* Manifest errors can embed whole source files — first line only. */}
-              failed extraction
-              {failure.error ? `: ${failure.error.split('\n')[0]}` : '.'}
-            </Negative>
-          </li>
-        ))}
+        {storyFailures.map((failure) => {
+          const errorLine = firstNonEmptyLine(failure.error);
+          return (
+            <li key={failure.storyId || failure.storyName}>
+              <code>{failure.storyName}</code>{' '}
+              <Negative>
+                failed extraction
+                {errorLine ? `: ${errorLine}` : '.'}
+              </Negative>
+            </li>
+          );
+        })}
       </PropList>
     </Section>
   );
@@ -352,6 +355,7 @@ export function ReportView({
   const storyErrorsShown = diagnostics.some((d) => d.rule === 'story-extraction-error') && storyFailures.length > 0;
 
   if (failure) {
+    const failureLine = firstNonEmptyLine(failure.error);
     return (
       <>
         <ManifestSection diagnostics={manifestDiagnostics} />
@@ -359,9 +363,8 @@ export function ReportView({
         <Section>
           <Heading>Extraction</Heading>
           <Negative>
-            {/* Manifest errors can embed whole source files — first line only. */}
             Docgen extraction failed
-            {failure.error ? `: ${failure.error.split('\n')[0]}` : '.'}
+            {failureLine ? `: ${failureLine}` : '.'}
           </Negative>
         </Section>
         {storyErrorsShown && <StoryFailuresSection storyFailures={storyFailures} />}

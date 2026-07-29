@@ -1,3 +1,5 @@
+import { firstNonEmptyLine } from './text';
+
 /**
  * A user-facing reason the components manifest didn't load, derived from the
  * failed fetch's response body.
@@ -17,7 +19,7 @@ export function describeManifestUnavailable(body: string | undefined): string | 
   // No body, an HTML error page, or an oversized payload isn't a human-readable
   // reason; let the caller use its generic hint.
   if (!text || text.startsWith('<') || text.length > 300) return undefined;
-  const reason = text.split('\n', 1)[0].trim();
+  const reason = firstNonEmptyLine(text);
   if (!reason) return undefined;
   // The docgen-server manifest is only written on `storybook build`; point there
   // so the message is actionable, not just diagnostic. (Plain-text output: the
