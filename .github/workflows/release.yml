@@ -40,6 +40,7 @@ jobs:
       # `version`. Once that PR merges (versions bumped, changesets consumed),
       # runs `publish` to build and publish the changed packages to npm.
       - name: Create Release PR or publish
+        id: changesets
         uses: changesets/action@v1
         with:
           version: pnpm run version
@@ -47,3 +48,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Kick the oversight-lint-action canary when this publish includes the CLI.
+      # That repo pins the exact version from client_payload and retries npm until
+      # the tarball is visible, so no fixed sleep here.
+      - name: Notify oversight-lint-action
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PUBLISHED: ${{ steps.changesets.outputs.publishedPackages }}
+        run: |
+          set -euo pipefail
+          echo "$PUBLISHED" | jq -e 'map(.name) | index("oversight-lint")' >/dev/null || {
+            echo "oversight-lint was not in this publish; skipping dispatch."
+            exit 0
+          }
+          version=$(echo "$PUBLISHED" | jq -r '.[] | select(.name=="oversight-lint") | .version')
+          echo "Dispatching oversight-lint-published for oversight-lint@$version"
+          gh api repos/rachelslurs/oversight-lint-action/dispatches \
+            -f event_type=oversight-lint-published \
+            -f "client_payload[version]=$version"
