@@ -1,3 +1,4 @@
+import { firstNonEmptyLine } from './text';
 import type {
   ExtractionFailure,
   NormalizeResult,
@@ -112,7 +113,10 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
   const tags: NormalizeResult['tags'] = {};
 
   for (const [id, entry] of Object.entries(raw.components ?? {})) {
-    const name = entry.name ?? id;
+    // The name is interpolated into every finding message, and a newline in it
+    // would split the CLI step-summary table row; an empty name falls back to
+    // the manifest key like a missing one.
+    const name = firstNonEmptyLine(entry.name) ?? id;
     const storiesFile = entry.path ?? '';
     const payload = payloadOf(entry);
 

@@ -105,6 +105,24 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
     expect(result.tags['data-display-widget'].deprecated).toBe('use Gadget instead\nsince 2.0');
   });
 
+  it('clamps a component name to its first non-empty line (#30)', () => {
+    const result = normalizeManifest({
+      components: {
+        'ui-x': { name: 'Old\nLegacy', path: './x.stories.tsx', reactDocgenTypescript: { props: {} } },
+      },
+    });
+    expect(result.components[0].name).toBe('Old');
+  });
+
+  it('falls back to the manifest key for an empty name (#30)', () => {
+    const result = normalizeManifest({
+      components: {
+        'ui-x': { name: '', path: './x.stories.tsx', reactDocgenTypescript: { props: {} } },
+      },
+    });
+    expect(result.components[0].name).toBe('ui-x');
+  });
+
   it('carries an unrecorded extractor through as null (guards #32)', () => {
     expect(normalizeManifest({ components: {} }).extractor).toBeNull();
   });
