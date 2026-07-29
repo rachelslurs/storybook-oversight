@@ -1,5 +1,11 @@
 # v0.1.3 (Thu Jul 16 2026)
 
+## 0.1.5
+
+### Patch Changes
+
+- 37817cc: Clamp the manifest error embedded in `docgen-missing` and `story-extraction-error` finding messages to its first non-empty line so a multi-line error (a stack trace, an embedded source file) no longer leaks into the panel or the CLI through the finding text. The full error moves to a new `error` field on those diagnostics, included in `--format json` output.
+
 ## 0.1.4
 
 ### Patch Changes
