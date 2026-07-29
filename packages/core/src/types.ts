@@ -113,8 +113,8 @@ export type Diagnostic = {
   /** For `docs-link-dangling`: the `?path=` target ids that resolve to nothing,
    *  so the renderer can strike the offending links through inline. */
   targets?: string[];
-  /** For `docgen-missing` / `story-extraction-error`: the full extraction
-   *  error. The message clamps it to one line; machine-readable output keeps
-   *  the whole text here. */
+  /** The full multi-line text behind a clamped message: the extraction error
+   *  for `docgen-missing` / `story-extraction-error`, the complete note for
+   *  `deprecated-tag`. Machine-readable output keeps the whole text here. */
   error?: string;
 };
