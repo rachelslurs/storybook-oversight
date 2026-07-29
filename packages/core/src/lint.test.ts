@@ -231,6 +231,53 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     expect(story?.error).toBe('kaput\nat parse (/src/b.tsx:2:2)');
   });
 
+  it('surfaces the diagnosis when error.message leads with a file path (#34)', () => {
+    const result = normalizeManifest({
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ui-broken': {
+          name: 'Broken',
+          path: './broken.stories.js',
+          error: {
+            name: 'react-docgen-typescript found no component docs',
+            message:
+              'File: /repo/src/index.js\nreact-docgen-typescript did not return any component docs for this file.',
+          },
+        },
+      },
+    });
+    const finding = lint(result).find((d) => d.rule === 'docgen-missing');
+    expect(finding?.message).toMatch(/component docs/);
+    // The full original text stays on the error field (guards #16), and the
+    // name rides along for renderers to group mass failures by.
+    expect(finding?.error).toBe(
+      'File: /repo/src/index.js\nreact-docgen-typescript did not return any component docs for this file.',
+    );
+    expect(finding?.errorName).toBe('react-docgen-typescript found no component docs');
+  });
+
+  it('keeps the informative message line when the name is a bare error class (#34)', () => {
+    const result = normalizeManifest({
+      components: {
+        a: {
+          name: 'A',
+          path: './a.stories.tsx',
+          reactDocgen: { description: 'd', props: {} },
+          stories: [
+            {
+              id: 'a--basic',
+              name: 'Basic',
+              error: { name: 'SyntaxError', message: 'Expected story to be a function\n> 14 | export { X }' },
+            },
+          ],
+        },
+      },
+    });
+    const story = lint(result).find((d) => d.rule === 'story-extraction-error');
+    expect(story?.message).toContain('SyntaxError: Expected story to be a function');
+    expect(story?.errorName).toBe('SyntaxError');
+  });
+
   it('takes the first non-empty line of the error and trims a CRLF ending', () => {
     const result = normalizeManifest({
       components: {

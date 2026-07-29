@@ -58,6 +58,9 @@ export function run(options: RunOptions): RunResult {
     errors: diagnostics.filter((d) => d.severity === 'error').length,
     warnings: diagnostics.filter((d) => d.severity === 'warning').length,
     infos: diagnostics.filter((d) => d.severity === 'info').length,
+    manifestPath: options.manifestPath,
+    extractor: analysis.result.extractor,
+    entryCount: analysis.result.components.length + analysis.result.failures.length,
     names,
     files,
   };
@@ -68,7 +71,7 @@ export function run(options: RunOptions): RunResult {
       : options.format === 'github'
         ? formatGithub(summary)
         : formatStylish(summary, options);
-  const stepSummary = formatStepSummary(summary, options.manifestPath);
+  const stepSummary = formatStepSummary(summary);
 
   // Errors always fail; warnings fail only past the threshold; info never fails.
   const code = summary.errors > 0 || summary.warnings > options.maxWarnings ? 1 : 0;

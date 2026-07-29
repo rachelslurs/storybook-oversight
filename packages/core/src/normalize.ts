@@ -32,6 +32,16 @@ function stringifyError(error: unknown): string | null {
   return String(error);
 }
 
+/** The error's `name` field, kept apart from the message text: for some
+ *  extractors it is the diagnosis while the message opens with a file path. */
+function errorNameOf(error: unknown): string | null {
+  if (error !== null && typeof error === 'object') {
+    const { name } = error as { name?: unknown };
+    if (typeof name === 'string' && name) return name;
+  }
+  return null;
+}
+
 /** Tag values are newline-joined strings or arrays depending on the extractor. */
 function stringifyTag(value: unknown): string {
   // A value-less JSDoc tag (bare `@oversightIgnore` / `@deprecated`) arrives as
@@ -126,6 +136,7 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
           storyId: story.id ?? '',
           storyName: story.name ?? story.id ?? '',
           error: stringifyError(story.error),
+          errorName: errorNameOf(story.error),
         });
       }
     }
@@ -133,7 +144,7 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
 
     if (!payload) {
       if (Object.keys(entryTags).length > 0) tags[id] = entryTags;
-      failures.push({ id, name, storiesFile, error: stringifyError(entry.error) });
+      failures.push({ id, name, storiesFile, error: stringifyError(entry.error), errorName: errorNameOf(entry.error) });
       continue;
     }
 

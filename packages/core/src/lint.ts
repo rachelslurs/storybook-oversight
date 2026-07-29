@@ -1,5 +1,5 @@
 import { pathLinkPattern } from './pathLinks';
-import { firstNonEmptyLine } from './text';
+import { summarizeError } from './text';
 import type { Diagnostic, DiagnosticRule, DiagnosticSeverity, NormalizeResult, RuleSetting } from './types';
 
 export type LintOptions = {
@@ -98,8 +98,9 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
       rule: 'docgen-missing',
       severity: 'error',
       componentId: failure.id,
-      message: `Docgen extraction failed for ${failure.name}: ${firstNonEmptyLine(failure.error) ?? 'unknown error'}`,
+      message: `Docgen extraction failed for ${failure.name}: ${summarizeError(failure.errorName, failure.error) ?? 'unknown error'}`,
       ...(failure.error ? { error: failure.error } : {}),
+      ...(failure.errorName ? { errorName: failure.errorName } : {}),
     });
   }
 
@@ -108,8 +109,9 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
       rule: 'story-extraction-error',
       severity: 'warning',
       componentId: storyFailure.componentId,
-      message: `Story "${storyFailure.storyName}" failed extraction: ${firstNonEmptyLine(storyFailure.error) ?? 'unknown error'}`,
+      message: `Story "${storyFailure.storyName}" failed extraction: ${summarizeError(storyFailure.errorName, storyFailure.error) ?? 'unknown error'}`,
       ...(storyFailure.error ? { error: storyFailure.error } : {}),
+      ...(storyFailure.errorName ? { errorName: storyFailure.errorName } : {}),
     });
   }
 
