@@ -38,6 +38,33 @@ describe('buildConfig', () => {
     expect(result).toMatchObject({ kind: 'error' });
   });
 
+  it('omits expectedExtractor when neither flag nor file sets it (guards #32)', () => {
+    expect('expectedExtractor' in runConfig([]).lint).toBe(false);
+  });
+
+  it('rejects an empty --expected-extractor instead of silently disabling the rule', () => {
+    // An unset shell variable expands to "" in CI invocations.
+    const result = buildConfig(['--expected-extractor', ''], ctx());
+    expect(result).toMatchObject({ kind: 'error' });
+    expect((result as { message: string }).message).toMatch(/extractor name/);
+  });
+
+  it('rejects an extractor-drift severity override with no expectation to compare against', () => {
+    const result = buildConfig(['--rule', 'extractor-drift=error'], ctx());
+    expect(result).toMatchObject({ kind: 'error' });
+    expect((result as { message: string }).message).toMatch(/expected-extractor/);
+  });
+
+  it('accepts an extractor-drift override once an expectation is set', () => {
+    const options = runConfig(['--rule', 'extractor-drift=error', '--expected-extractor', 'react-docgen']);
+    expect(options.lint.rules?.['extractor-drift']).toBe('error');
+    expect(options.lint.expectedExtractor).toBe('react-docgen');
+  });
+
+  it('accepts --rule extractor-drift=off without an expectation', () => {
+    expect(buildConfig(['--rule', 'extractor-drift=off'], ctx())).toMatchObject({ kind: 'run' });
+  });
+
   it('parses repeatable --rule name=severity into lint rules', () => {
     const options = runConfig(['--rule', 'deprecated-tag=off', '--rule', 'prop-descriptions-missing=error']);
     expect(options.lint.rules).toEqual({

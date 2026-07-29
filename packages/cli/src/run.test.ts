@@ -132,6 +132,34 @@ describe('run — exit codes', () => {
   });
 });
 
+describe('run — extractor expectation wiring', () => {
+  // Guards #32 at the CLI layer: reintroducing a default expectation anywhere
+  // in the wiring would make the first assertion fail.
+  it('runs extractor-drift only when the options carry an expectation', () => {
+    const drifted: RawManifest = {
+      v: 0,
+      meta: { docgen: 'react-docgen' },
+      components: {
+        'ui-plain': {
+          id: 'ui-plain',
+          name: 'Plain',
+          path: 'src/Plain.stories.tsx',
+          description: 'A plain component.',
+          reactDocgen: { description: 'A plain component.', props: {} },
+        },
+      },
+    };
+    const path = fixture(drifted);
+
+    const silent = run(options({ manifestPath: path }));
+    expect(silent.code).toBe(0);
+    expect(silent.stdout).not.toContain('extractor-drift');
+
+    const flagged = run(options({ manifestPath: path, lint: { expectedExtractor: 'react-docgen-typescript' } }));
+    expect(flagged.stdout).toContain('extractor-drift');
+  });
+});
+
 describe('run — rule overrides and output', () => {
   it('escalates a warning to an error via a rule override, flipping the exit code', () => {
     const path = fixture(WARNINGS_ONLY);

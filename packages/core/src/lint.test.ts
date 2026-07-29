@@ -117,6 +117,50 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     expect(lint(normalizeManifest({ components: {} }))).toHaveLength(0);
   });
 
+  it('treats a null or empty expectation as no expectation', () => {
+    const result = normalizeManifest({ meta: { docgen: 'react-docgen' }, components: {} });
+    expect(lint(result, { expectedExtractor: null as unknown as string })).toHaveLength(0);
+    expect(lint(result, { expectedExtractor: '' })).toHaveLength(0);
+    expect(lint(result, { expectedExtractor: '   ' })).toHaveLength(0);
+  });
+
+  it('does not flag a meta-less manifest whose entries record the extractor', () => {
+    const result = normalizeManifest({
+      meta: null,
+      components: {
+        'ui-a': { name: 'A', path: './a.stories.tsx', reactDocgenTypescript: { description: 'A.', props: {} } },
+        'ui-b': { name: 'B', path: './b.stories.tsx', reactDocgenTypescript: { description: 'B.', props: {} } },
+      },
+    });
+    expect(lint(result, { expectedExtractor: 'react-docgen-typescript' })).toHaveLength(0);
+  });
+
+  it('flags drift against the extractor inferred from payload keys', () => {
+    const result = normalizeManifest({
+      meta: null,
+      components: {
+        'ui-a': { name: 'A', path: './a.stories.tsx', reactDocgen: { description: 'A.', props: {} } },
+      },
+    });
+    const drift = lint(result, { expectedExtractor: 'react-docgen-typescript' }).find(
+      (d) => d.rule === 'extractor-drift',
+    );
+    expect(drift?.message).toContain('extracted with "react-docgen"');
+  });
+
+  it('reports an unrecorded extractor when payload keys disagree', () => {
+    const result = normalizeManifest({
+      components: {
+        'ui-a': { name: 'A', path: './a.stories.tsx', reactDocgenTypescript: { description: 'A.', props: {} } },
+        'ui-b': { name: 'B', path: './b.stories.tsx', reactDocgen: { description: 'B.', props: {} } },
+      },
+    });
+    const drift = lint(result, { expectedExtractor: 'react-docgen-typescript' }).find(
+      (d) => d.rule === 'extractor-drift',
+    );
+    expect(drift?.message).toContain('does not record');
+  });
+
   it('skips prop rules on components with no props', () => {
     const result = normalizeManifest({
       components: {

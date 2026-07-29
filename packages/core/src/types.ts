@@ -6,7 +6,6 @@
 export type NormalizedComponent = {
   id: string; // manifest key, e.g. "forms-checkbox"
   name: string;
-  extractor: 'react-docgen' | 'react-docgen-typescript' | null; // coerced meta.docgen; null when unrecorded
   description: string | null; // entry.description ?? payload.description
   sourceFile: string | null; // repo-relative; from payload.filePath ?? payload.definedInFile
   storiesFile: string; // entry.path (always the .stories file)
@@ -78,8 +77,8 @@ export type StoryFailure = {
 };
 
 export type NormalizeResult = {
-  /** Raw `meta.docgen` value (kept verbatim so extractor drift is detectable);
-   *  null when the manifest does not record one. */
+  /** The manifest's recorded extractor: `meta.docgen` verbatim when non-empty,
+   *  else the payload key every extracted entry shares, else null. */
   extractor: string | null;
   components: NormalizedComponent[];
   failures: ExtractionFailure[];

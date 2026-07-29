@@ -104,7 +104,8 @@ The manifest Oversight lints is the _upstream_ artifact: Storybook's MCP
 (component-level JSDoc tags among them). So Oversight checks two things: that the
 doc content the MCP will serve is present and good (component/prop descriptions),
 and that the pipeline building the manifest is healthy enough to deliver it
-(extraction succeeded, the expected docgen extractor ran). It adds no
+(extraction succeeded and, when you configure `expectedExtractor`, the expected
+docgen extractor ran). It adds no
 documentation vocabulary of its own: selection guidance ("use X instead") lives
 as a plain redirect sentence in the component description, typical Storybook
 practice and passed through verbatim by `get-documentation`. Its one tag,

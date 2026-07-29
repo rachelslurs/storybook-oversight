@@ -23,8 +23,9 @@ const config: StorybookConfig = {
     getAbsolutePath('storybook-addon-oversight'),
   ],
   framework: getAbsolutePath('@storybook/react-vite'),
-  // Oversight's default expectedExtractor is react-docgen-typescript; match it so
-  // JSDoc on components and props is extracted into the manifest.
+  // Pin the extractor so JSDoc on components and props is extracted into the
+  // manifest. Stating the same value as expectedExtractor (manager.ts or the
+  // CLI flag) enables Oversight's extractor-drift rule.
   typescript: {
     reactDocgen: 'react-docgen-typescript',
     reactDocgenTypescriptOptions: {
