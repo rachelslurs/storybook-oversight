@@ -73,6 +73,27 @@ const WITH_ERROR: RawManifest = {
   },
 };
 
+// A fully documented component carrying a multi-line @deprecated note: the only
+// finding is the deprecated-tag info, so the step-summary table has one row.
+const DEPRECATED_MULTILINE: RawManifest = {
+  v: 0,
+  meta: { docgen: 'react-docgen-typescript' },
+  components: {
+    'ui-old': {
+      id: 'ui-old',
+      name: 'Old',
+      path: 'src/Old.stories.tsx',
+      description: 'An old component.',
+      jsDocTags: { deprecated: ['use Gadget instead', 'since 2.0'] },
+      reactDocgenTypescript: {
+        description: 'An old component.',
+        props: { label: { description: 'The visible text.', required: true } },
+      },
+      stories: [],
+    },
+  },
+};
+
 // The experimentalDocgenServer ref-based shape: `stories` is an object, which the
 // normalizer's `for..of` cannot iterate, so analysis throws.
 const REF_V1 = {
@@ -101,6 +122,17 @@ describe('run — exit codes', () => {
     const result = run(options({ manifestPath: join(dir, 'absent.json') }));
     expect(result.code).toBe(2);
     expect(result.stderr).toMatch(/No components manifest/);
+  });
+
+  it('states the manifest version floor when no manifest exists (#36)', () => {
+    const result = run(options({ manifestPath: join(dir, 'missing/components.json') }));
+    expect(result.code).toBe(2);
+    // One distinctive fragment per message line, so dropping any line fails.
+    expect(result.stderr).toMatch(/features\.componentsManifest/);
+    expect(result.stderr).toMatch(/features\.experimentalComponentsManifest/);
+    expect(result.stderr).toMatch(/unsupported/);
+    expect(result.stderr).toMatch(/Below Storybook 10\.1/);
+    expect(result.stderr).toMatch(/explicit path/);
   });
 
   it('exits 2 when the manifest is not valid JSON', () => {
@@ -199,6 +231,19 @@ describe('run — rule overrides and output', () => {
     expect(result.stdout).toContain('title=oversight/required-prop-undocumented');
     // The readable table still reaches the job summary.
     expect(result.stepSummary).toMatch(/Oversight manifest lint/);
+  });
+
+  it('keeps a multi-line @deprecated note to one step-summary table row (#30)', () => {
+    const result = run(options({ manifestPath: fixture(DEPRECATED_MULTILINE) }));
+    const stepSummary = result.stepSummary ?? '';
+    const lines = stepSummary.split('\n');
+    const table = lines.slice(lines.findIndex((line) => line.startsWith('| Component |')));
+    // Header, separator, one finding, every line a closed row. A newline in the
+    // message used to spill the rest of the note onto a fourth, unclosed line.
+    expect(table).toHaveLength(3);
+    for (const row of table) expect(row).toMatch(/^\|.*\|$/);
+    expect(table[2]).toContain('use Gadget instead');
+    expect(stepSummary).not.toContain('since 2.0');
   });
 
   it('always provides a step summary regardless of stdout format', () => {

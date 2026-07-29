@@ -80,6 +80,83 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     expect(deprecated?.message).toContain('use B instead');
   });
 
+  it('renders a whitespace @deprecated body as a bare tag (#30)', () => {
+    const result = normalizeManifest({
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ui-old': {
+          name: 'Old',
+          path: './old.stories.tsx',
+          jsDocTags: { deprecated: ' ' },
+          reactDocgenTypescript: { description: 'Old.', props: {} },
+        },
+      },
+    });
+    const finding = lint(result).find((d) => d.rule === 'deprecated-tag');
+    expect(finding).toBeDefined();
+    expect(finding?.message).toBe('Old is marked @deprecated.');
+  });
+
+  it('clamps a multi-line @deprecated body to its first line (#30)', () => {
+    const result = normalizeManifest({
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ui-old': {
+          name: 'Old',
+          path: './old.stories.tsx',
+          // The array form is how a multi-line @deprecated arrives; stringifyTag
+          // joins it with newlines.
+          jsDocTags: { deprecated: ['use Gadget instead', 'since 2.0'] },
+          reactDocgenTypescript: { description: 'Old.', props: {} },
+        },
+      },
+    });
+    const finding = lint(result).find((d) => d.rule === 'deprecated-tag');
+    expect(finding).toBeDefined();
+    expect(finding?.message).toBe('Old is marked @deprecated: use Gadget instead.');
+    expect(finding?.message).not.toContain('\n');
+    expect(finding?.message).not.toContain('since 2.0');
+    // The full value stays available to consumers: on the tags map for the
+    // core API, and on the finding's error field for machine-readable output.
+    expect(result.tags['ui-old'].deprecated).toBe('use Gadget instead\nsince 2.0');
+    expect(finding?.error).toBe('use Gadget instead\nsince 2.0');
+  });
+
+  it('does not double the period when the @deprecated note ends in one (#30)', () => {
+    const result = normalizeManifest({
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ui-old': {
+          name: 'Old',
+          path: './old.stories.tsx',
+          jsDocTags: { deprecated: 'Use Gadget instead.' },
+          reactDocgenTypescript: { description: 'Old.', props: {} },
+        },
+      },
+    });
+    const finding = lint(result).find((d) => d.rule === 'deprecated-tag');
+    expect(finding?.message).toBe('Old is marked @deprecated: Use Gadget instead.');
+    // A single-line note loses nothing, so no error field rides along.
+    expect(finding?.error).toBeUndefined();
+  });
+
+  it('clamps a component name containing a newline in finding messages (#30)', () => {
+    const result = normalizeManifest({
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ui-old': {
+          name: 'Old\nLegacy',
+          path: './old.stories.tsx',
+          jsDocTags: { deprecated: 'use Gadget instead' },
+          reactDocgenTypescript: { description: 'Old.', props: {} },
+        },
+      },
+    });
+    const finding = lint(result).find((d) => d.rule === 'deprecated-tag');
+    expect(finding?.message).toBe('Old is marked @deprecated: use Gadget instead.');
+    expect(finding?.message).not.toContain('\n');
+  });
+
   it('flags extractor drift at manifest level', () => {
     const result = normalizeManifest({
       meta: { docgen: 'react-docgen' },
