@@ -1,4 +1,5 @@
 import { pathLinkPattern } from './pathLinks';
+import { firstNonEmptyLine } from './text';
 import type { Diagnostic, DiagnosticRule, DiagnosticSeverity, NormalizeResult, RuleSetting } from './types';
 
 export type LintOptions = {
@@ -60,14 +61,6 @@ function isIgnored(ignoreValue: string | undefined, rule: DiagnosticRule): boole
 // the panel's link parser via core/pathLinks so the two can't drift.
 const PATH_LINK_PATTERN = pathLinkPattern();
 
-// Manifest errors can embed stack traces or whole source files, and findings
-// render their message verbatim in the panel and the CLI. Clamp embedded
-// errors to the first line, the same clamp the panel's Extraction and
-// Stories sections apply.
-function firstLine(text: string): string {
-  return text.split('\n', 1)[0];
-}
-
 export function lint(result: NormalizeResult, options: LintOptions = {}): Diagnostic[] {
   const expectedExtractor = options.expectedExtractor ?? 'react-docgen-typescript';
   const diagnostics: Diagnostic[] = [];
@@ -86,7 +79,8 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
       rule: 'docgen-missing',
       severity: 'error',
       componentId: failure.id,
-      message: `Docgen extraction failed for ${failure.name}: ${firstLine(failure.error ?? 'unknown error')}`,
+      message: `Docgen extraction failed for ${failure.name}: ${firstNonEmptyLine(failure.error) ?? 'unknown error'}`,
+      ...(failure.error ? { error: failure.error } : {}),
     });
   }
 
@@ -95,7 +89,8 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
       rule: 'story-extraction-error',
       severity: 'warning',
       componentId: storyFailure.componentId,
-      message: `Story "${storyFailure.storyName}" failed extraction: ${firstLine(storyFailure.error ?? 'unknown error')}`,
+      message: `Story "${storyFailure.storyName}" failed extraction: ${firstNonEmptyLine(storyFailure.error) ?? 'unknown error'}`,
+      ...(storyFailure.error ? { error: storyFailure.error } : {}),
     });
   }
 

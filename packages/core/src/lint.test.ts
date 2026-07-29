@@ -153,9 +153,25 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     const docgen = diagnostics.find((d) => d.rule === 'docgen-missing');
     expect(docgen?.message).toContain('No component file found');
     expect(docgen?.message).not.toContain('at resolve');
+    expect(docgen?.error).toBe('No component file found\nat resolve (/src/a.tsx:1:1)');
     const story = diagnostics.find((d) => d.rule === 'story-extraction-error');
     expect(story?.message).toContain('kaput');
     expect(story?.message).not.toContain('at parse');
+    expect(story?.error).toBe('kaput\nat parse (/src/b.tsx:2:2)');
+  });
+
+  it('takes the first non-empty line of the error and trims a CRLF ending', () => {
+    const result = normalizeManifest({
+      components: {
+        a: {
+          name: 'A',
+          path: './a.stories.tsx',
+          error: { message: '\nSyntaxError: kaput\r\nat parse (/src/a.tsx:1:1)' },
+        },
+      },
+    });
+    const docgen = lint(result).find((d) => d.rule === 'docgen-missing');
+    expect(docgen?.message).toBe('Docgen extraction failed for A: SyntaxError: kaput');
   });
 
   it('exempts a component from all rules via bare @oversightIgnore', () => {

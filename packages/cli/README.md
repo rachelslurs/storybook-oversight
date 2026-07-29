@@ -64,6 +64,8 @@ Card
 
 Findings are grouped by component. `--format json` (alias `--json`) emits the same
 findings keyed by component id, with a summary count, for programmatic use.
+`docgen-missing` and `story-extraction-error` findings there carry the full
+extraction error on an `error` field; every message shows its first line only.
 
 ## Exit codes
 
