@@ -64,8 +64,8 @@ Arguments:
                                Default: ${DEFAULT_MANIFEST_PATH}
 
 Options:
-  --expected-extractor <name>  Extractor the manifest should have used
-                               (default: react-docgen-typescript).
+  --expected-extractor <name>  Extractor the manifest should have used.
+                               Unset, the extractor-drift rule does not run.
   --rule <name>=<severity>     Override a rule: off|error|warning|info.
                                Repeatable.
   --max-warnings <n>           Fail if warnings exceed n (default: no limit).

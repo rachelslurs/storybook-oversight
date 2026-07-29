@@ -61,7 +61,7 @@ describe('buildReport (fixture)', () => {
 
   it('routes manifest-level extractor-drift to manifestDiagnostics, not per-component', () => {
     const drift: RawManifest = {
-      meta: { docgen: 'react-docgen' }, // ≠ the default expected react-docgen-typescript
+      meta: { docgen: 'react-docgen' }, // ≠ the expectation stated below
       components: {
         'ui-thing': {
           name: 'Thing',
@@ -74,7 +74,7 @@ describe('buildReport (fixture)', () => {
         },
       },
     };
-    const report = buildReport(drift, 'ui-thing');
+    const report = buildReport(drift, 'ui-thing', { expectedExtractor: 'react-docgen-typescript' });
     // The component itself is clean — drift must not leak into its findings/count.
     expect(report.diagnostics).toHaveLength(0);
     expect(report.manifestDiagnostics.map((d) => d.rule)).toEqual(['extractor-drift']);
@@ -97,7 +97,9 @@ describe('buildReport (fixture)', () => {
         },
       },
     };
-    expect(buildReport(clean, 'ui-thing').manifestDiagnostics).toHaveLength(0);
+    expect(
+      buildReport(clean, 'ui-thing', { expectedExtractor: 'react-docgen-typescript' }).manifestDiagnostics,
+    ).toHaveLength(0);
   });
 
   it('passes lint options through to the resolved diagnostics', () => {
