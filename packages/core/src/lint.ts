@@ -1,5 +1,5 @@
 import { pathLinkPattern } from './pathLinks';
-import { summarizeError } from './text';
+import { firstNonEmptyLine, summarizeError } from './text';
 import type { Diagnostic, DiagnosticRule, DiagnosticSeverity, NormalizeResult, RuleSetting } from './types';
 
 export type LintOptions = {

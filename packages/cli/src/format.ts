@@ -1,4 +1,4 @@
-import { firstNonEmptyLine, summarizeError } from 'oversight-core';
+import { summarizeError } from 'oversight-core';
 import type { Diagnostic, DiagnosticRule, DiagnosticSeverity } from 'oversight-core';
 import type { LintSummary } from './types';
 
@@ -19,7 +19,8 @@ const SEVERITY_COLOR: Record<DiagnosticSeverity, string> = {
 };
 
 function paint(text: string, code: string, on: boolean): string {
-  return on ? `${code}${text}${ANSI.reset}` : text;
+  // Painting an empty string would emit the escape codes with nothing inside.
+  return on && text ? `${code}${text}${ANSI.reset}` : text;
 }
 
 function plural(n: number, word: string): string {
@@ -58,99 +59,127 @@ function groupByComponent(diagnostics: Diagnostic[]): Map<string | null, Diagnos
  *  the only ones that carry an error signature to collapse on. */
 const COLLAPSIBLE_RULES: ReadonlySet<DiagnosticRule> = new Set(['docgen-missing', 'story-extraction-error']);
 
-/** Below this many findings, per-entry lines stay readable and carry more
- *  detail than a summary line would. */
-const COLLAPSE_MIN_FINDINGS = 10;
+/** Entry floor for the rule-level trigger and for a signature's own row.
+ *  Below 10 entries, per-entry lines stay readable and carry more detail
+ *  than a summary row would. */
+const COLLAPSE_MIN_ENTRIES = 10;
 
-type CollapsedGroup = {
+/** One row of collapsed output, shared by the stylish and step-summary
+ *  renderers so both stay at the same size on the same input. */
+type CollapsedRow = {
   severity: DiagnosticSeverity;
   rule: DiagnosticRule;
-  /** Findings in the group. */
+  /** Findings in the row. */
   count: number;
   /** Distinct entries those findings sit on. */
   entries: number;
-  /** The one-line error summary when every finding shares it, else the
-   *  signature the group was keyed on. */
-  display: string;
+  /** The row's error signature, or the pooled-leftovers label. */
+  message: string;
 };
 
-/** The signature mass failures group on: the manifest error's `name`, or the
- *  clamped error text when the error carried none. The message's first line
- *  cannot serve as the key: for docgen failures it is often a per-entry file
- *  path, which would split one failure mode into hundreds of groups. */
+/** The clamped one-line error summary doubles as the grouping signature: it is
+ *  the only single-line, diagnosis-led text (raw `errorName` can be multi-line
+ *  or whitespace, and the raw message's first line can be a bare file path). */
 function signatureOf(d: Diagnostic): string {
-  return d.errorName ?? firstNonEmptyLine(d.error) ?? 'unknown error';
+  return summarizeError(d.errorName, d.error) ?? 'unknown error';
+}
+
+function rowOf(group: Diagnostic[], message: string): CollapsedRow {
+  return {
+    severity: group[0].severity,
+    rule: group[0].rule,
+    count: group.length,
+    entries: affectedEntries(group),
+    message,
+  };
+}
+
+/** "N of M entries", with the finding count prefixed when stories multiply it. */
+function reachOf(row: CollapsedRow, entryCount: number): string {
+  const share = `${row.entries} of ${entryCount} ${entriesWord(entryCount)}`;
+  return row.count === row.entries ? share : `${row.count} findings across ${share}`;
 }
 
 /**
  * A repo-wide extraction failure renders as hundreds of near-identical
  * per-entry findings, and the fact the reader needs (most of the manifest
- * failed the same way) appears nowhere. When one rule's findings sharing an
- * error signature reach both 10 findings and half the manifest's entries, that
- * rule's findings leave the per-component groups and render as one line per
- * signature. Rendering only: the tally and every other format keep each
- * finding.
+ * failed the same way) appears nowhere. A rule collapses when its findings
+ * touch at least 10 distinct entries and at least half the manifest's
+ * entries; the thresholds count entries, so a pile of failing stories on one
+ * entry never collapses. A collapsed rule renders one row per signature, with
+ * signatures under the entry floor pooled into one leftovers row, so
+ * per-entry variation in the signature text cannot re-flood the output.
+ * Rendering only: the tally still counts every finding, and `--format json`
+ * keeps each one.
  */
 function collapseMassFailures(
   diagnostics: Diagnostic[],
   entryCount: number,
-): { groups: CollapsedGroup[]; hidden: Set<Diagnostic> } {
-  const byRule = new Map<DiagnosticRule, Map<string, Diagnostic[]>>();
+): { rows: CollapsedRow[]; visible: Diagnostic[] } {
+  const byRule = new Map<DiagnosticRule, Diagnostic[]>();
   for (const d of diagnostics) {
     if (!COLLAPSIBLE_RULES.has(d.rule)) continue;
-    const signatures = byRule.get(d.rule) ?? new Map<string, Diagnostic[]>();
-    byRule.set(d.rule, signatures);
-    const group = signatures.get(signatureOf(d)) ?? [];
-    signatures.set(signatureOf(d), group);
-    group.push(d);
+    const findings = byRule.get(d.rule) ?? [];
+    byRule.set(d.rule, findings);
+    findings.push(d);
   }
 
-  const groups: CollapsedGroup[] = [];
+  const rows: CollapsedRow[] = [];
   const hidden = new Set<Diagnostic>();
-  for (const signatures of byRule.values()) {
-    const dominated = [...signatures.values()].some(
-      (group) => group.length >= COLLAPSE_MIN_FINDINGS && entryCount > 0 && affectedEntries(group) * 2 >= entryCount,
-    );
-    if (!dominated) continue;
-    // Rarer signatures of the same rule collapse along with the dominant one:
-    // once the mass failure is summarized, per-entry groups for the leftovers
-    // would scatter the remainder of the failure across the listing.
-    const sorted = [...signatures.entries()].sort((a, b) => b[1].length - a[1].length);
-    for (const [signature, group] of sorted) {
-      const summaries = new Set(group.map((d) => summarizeError(d.errorName, d.error) ?? signature));
-      groups.push({
-        severity: group[0].severity,
-        rule: group[0].rule,
-        count: group.length,
-        entries: affectedEntries(group),
-        display: summaries.size === 1 ? [...summaries][0] : signature,
-      });
-      for (const d of group) hidden.add(d);
+  for (const findings of byRule.values()) {
+    const touched = affectedEntries(findings);
+    if (touched < COLLAPSE_MIN_ENTRIES || touched * 2 < entryCount) continue;
+
+    const bySignature = new Map<string, Diagnostic[]>();
+    for (const d of findings) {
+      const signature = signatureOf(d);
+      const group = bySignature.get(signature) ?? [];
+      bySignature.set(signature, group);
+      group.push(d);
     }
+
+    const leftovers: Diagnostic[] = [];
+    let leftoverSignatures = 0;
+    let ownRows = 0;
+    const sorted = [...bySignature.entries()].sort((a, b) => b[1].length - a[1].length);
+    for (const [signature, group] of sorted) {
+      if (affectedEntries(group) >= COLLAPSE_MIN_ENTRIES) {
+        rows.push(rowOf(group, signature));
+        ownRows += 1;
+      } else {
+        leftovers.push(...group);
+        leftoverSignatures += 1;
+      }
+    }
+    if (leftoverSignatures === 1) {
+      // A lone leftover signature reads better as itself than as a pool of one.
+      rows.push(rowOf(leftovers, signatureOf(leftovers[0])));
+    } else if (leftoverSignatures > 1) {
+      rows.push(rowOf(leftovers, `${leftoverSignatures} ${ownRows > 0 ? 'other' : 'distinct'} errors`));
+    }
+    for (const d of findings) hidden.add(d);
   }
-  return { groups, hidden };
+  return { rows, visible: diagnostics.filter((d) => !hidden.has(d)) };
 }
 
 /** ESLint `stylish`-style output, grouped by component instead of by file. */
 export function formatStylish(summary: LintSummary, options: { color: boolean; quiet: boolean }): string {
   const on = options.color;
   const shown = options.quiet ? summary.diagnostics.filter((d) => d.severity === 'error') : summary.diagnostics;
-  const { groups: collapsedGroups, hidden } = collapseMassFailures(shown, summary.entryCount);
-  const groups = groupByComponent(shown.filter((d) => !hidden.has(d)));
+  const { rows, visible } = collapseMassFailures(shown, summary.entryCount);
+  const groups = groupByComponent(visible);
   const lines: string[] = [];
 
   const docgen = summary.extractor === null ? '' : ` (docgen: ${summary.extractor})`;
   lines.push(paint(summary.manifestPath, ANSI.bold, on) + paint(docgen, ANSI.dim, on));
   lines.push('');
 
-  if (collapsedGroups.length > 0) {
-    const width = Math.max(...collapsedGroups.map((g) => g.severity.length));
-    for (const g of collapsedGroups) {
-      const severity = paint(g.severity.padEnd(width), SEVERITY_COLOR[g.severity], on);
-      const rule = paint(g.rule, ANSI.dim, on);
-      const share = `${g.entries} of ${summary.entryCount} ${entriesWord(summary.entryCount)}`;
-      const reach = g.count === g.entries ? share : `${g.count} findings across ${share}`;
-      lines.push(`  ${severity}  ${rule}  ${reach}: ${g.display}`);
+  if (rows.length > 0) {
+    const width = Math.max(...rows.map((r) => r.severity.length));
+    for (const r of rows) {
+      const severity = paint(r.severity.padEnd(width), SEVERITY_COLOR[r.severity], on);
+      const rule = paint(r.rule, ANSI.dim, on);
+      lines.push(`  ${severity}  ${rule}  ${reachOf(r, summary.entryCount)}: ${r.message}`);
     }
     lines.push(paint('  Findings above are collapsed; re-run with --json for the per-entry list.', ANSI.dim, on));
     lines.push('');
@@ -181,11 +210,19 @@ export function formatStylish(summary: LintSummary, options: { color: boolean; q
     lines.push(paint(`✓ No problems found in ${entryCount} ${entriesWord(entryCount)}.`, ANSI.green, on));
   } else {
     const detail = `${plural(errors, 'error')}, ${plural(warnings, 'warning')}, ${infos} info`;
-    const share = `${affectedEntries(summary.diagnostics)} of ${entryCount} ${entriesWord(entryCount)} affected`;
     const tone = errors > 0 ? ANSI.red : ANSI.yellow;
-    lines.push(paint(`✖ ${plural(total, 'problem')} (${detail}), ${share}`, tone, on));
+    lines.push(paint(`✖ ${plural(total, 'problem')} (${detail})${entryShare(summary)}`, tone, on));
   }
   return lines.join('\n');
+}
+
+/** ", N of M entries affected", or "" when every finding is manifest-level:
+ *  a share of zero entries beside a nonzero problem count reads as a
+ *  contradiction. */
+function entryShare(summary: LintSummary): string {
+  const affected = affectedEntries(summary.diagnostics);
+  if (affected === 0) return '';
+  return `, ${affected} of ${summary.entryCount} ${entriesWord(summary.entryCount)} affected`;
 }
 
 /** Machine-readable output: top level keyed by component id. */
@@ -209,7 +246,7 @@ export function formatJson(summary: LintSummary): string {
         errors: summary.errors,
         warnings: summary.warnings,
         infos: summary.infos,
-        manifest: { path: summary.manifestPath, docgen: summary.extractor },
+        manifest: { path: summary.manifestPath, docgen: summary.extractor, entries: summary.entryCount },
       },
       components,
     },
@@ -218,23 +255,32 @@ export function formatJson(summary: LintSummary): string {
   );
 }
 
-/** GitHub Actions job-summary markdown. Component-keyed, so no line anchors. */
+/** GitHub Actions job-summary markdown. Component-keyed, so no line anchors.
+ *  Mass failures collapse into the same rows as the stylish output: GitHub
+ *  truncates oversized step summaries, so a manifest-wide failure must not
+ *  write one table row per entry. */
 export function formatStepSummary(summary: LintSummary): string {
   const { errors, warnings, infos, diagnostics, entryCount } = summary;
   const docgen = summary.extractor === null ? '' : ` (docgen: ${summary.extractor})`;
-  const share = `${affectedEntries(diagnostics)} of ${entryCount} ${entriesWord(entryCount)} affected`;
   const lines = [
     '### Oversight manifest lint',
     '',
-    `\`${summary.manifestPath}\`${docgen}: ${plural(errors, 'error')}, ${plural(warnings, 'warning')}, ${infos} info, ${share}.`,
+    `\`${summary.manifestPath}\`${docgen}: ${plural(errors, 'error')}, ${plural(warnings, 'warning')}, ${infos} info${entryShare(summary)}.`,
     '',
   ];
   if (diagnostics.length === 0) {
     lines.push('No problems found.');
     return lines.join('\n');
   }
+  const { rows, visible } = collapseMassFailures(diagnostics, entryCount);
+  if (rows.length > 0) {
+    lines.push('Mass failures are collapsed; re-run with `--json` for the per-entry list.', '');
+  }
   lines.push('| Component | Severity | Rule | Message |', '| --- | --- | --- | --- |');
-  for (const d of diagnostics) {
+  for (const r of rows) {
+    lines.push(`| ${reachOf(r, entryCount)} | ${r.severity} | \`${r.rule}\` | ${r.message.replace(/\|/g, '\\|')} |`);
+  }
+  for (const d of visible) {
     const component = d.componentId ? (summary.names.get(d.componentId) ?? d.componentId) : 'Manifest';
     const message = withProps(d.message, d.props).replace(/\|/g, '\\|');
     lines.push(`| ${component} | ${d.severity} | \`${d.rule}\` | ${message} |`);

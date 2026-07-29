@@ -3,7 +3,7 @@ import type { ComponentType } from 'react';
 import { Badge } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 import type { ComponentReport, Diagnostic, DiagnosticSeverity } from 'oversight-core';
-import { firstNonEmptyLine } from 'oversight-core';
+import { summarizeError } from 'oversight-core';
 import { parseInline, splitParagraphs, storybookPathId } from './markdown';
 
 /** A context-appropriate link to a `?path=/docs|story/<id>` target. The manager
@@ -237,7 +237,7 @@ function StoryFailuresSection({ storyFailures }: { storyFailures: ComponentRepor
       <Heading>Stories</Heading>
       <PropList>
         {storyFailures.map((failure) => {
-          const errorLine = firstNonEmptyLine(failure.error);
+          const errorLine = summarizeError(failure.errorName, failure.error);
           return (
             <li key={failure.storyId || failure.storyName}>
               <code>{failure.storyName}</code>{' '}
@@ -355,7 +355,7 @@ export function ReportView({
   const storyErrorsShown = diagnostics.some((d) => d.rule === 'story-extraction-error') && storyFailures.length > 0;
 
   if (failure) {
-    const failureLine = firstNonEmptyLine(failure.error);
+    const failureLine = summarizeError(failure.errorName, failure.error);
     return (
       <>
         <ManifestSection diagnostics={manifestDiagnostics} />

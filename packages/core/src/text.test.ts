@@ -41,6 +41,13 @@ describe('summarizeError', () => {
     expect(summarizeError('Error: no docs', 'no docs')).toBe('Error: no docs');
   });
 
+  it('matches on whole tokens, so a name embedded mid-word still leads', () => {
+    expect(summarizeError('SyntaxError', 'Unexpected token in SyntaxErrorHandler.tsx')).toBe(
+      'SyntaxError: Unexpected token in SyntaxErrorHandler.tsx',
+    );
+    expect(summarizeError('SyntaxErrorHandler failed', 'SyntaxError')).toBe('SyntaxErrorHandler failed: SyntaxError');
+  });
+
   it('returns null when both sides are empty', () => {
     expect(summarizeError(null, null)).toBeNull();
     expect(summarizeError(undefined, '')).toBeNull();

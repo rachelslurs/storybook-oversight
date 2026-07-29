@@ -115,6 +115,34 @@ describe('ReportView report rendering', () => {
     expect(container.textContent).toContain('docgen-missing');
   });
 
+  it('leads with the error name in the extraction and story sections (#34)', () => {
+    const manifest = {
+      components: {
+        'ex-broken': {
+          name: 'Broken',
+          path: './Broken.stories.tsx',
+          error: {
+            name: 'react-docgen-typescript found no component docs',
+            message: 'File: /repo/src/index.js\nno docs for this file.',
+          },
+          stories: [
+            {
+              id: 'ex-broken--basic',
+              name: 'Basic',
+              error: { name: 'SyntaxError', message: 'Expected story to be a function' },
+            },
+          ],
+        },
+      },
+    } as unknown as RawManifest;
+    const report = buildReport(manifest, 'ex-broken');
+    const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+    expect(container.textContent).toContain(
+      'Docgen extraction failed: react-docgen-typescript found no component docs: File: /repo/src/index.js',
+    );
+    expect(container.textContent).toContain('Basic failed extraction: SyntaxError: Expected story to be a function');
+  });
+
   it('clamps a multi-line extraction error to one line in the finding and the section (guards #16)', () => {
     const manifest = {
       components: {
