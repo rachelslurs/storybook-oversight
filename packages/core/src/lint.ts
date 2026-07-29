@@ -182,11 +182,15 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
 
     const deprecated = componentTags.deprecated;
     if (deprecated !== undefined) {
+      // Tag values arrive newline-joined, and a multi-line message breaks the
+      // CLI step-summary table row. A whitespace-only body used to read as
+      // truthy and emit a bare colon. The full value stays in `result.tags`.
+      const note = firstNonEmptyLine(deprecated);
       diagnostics.push({
         rule: 'deprecated-tag',
         severity: 'info',
         componentId: component.id,
-        message: `${component.name} is marked @deprecated${deprecated ? `: ${deprecated}` : ''}.`,
+        message: `${component.name} is marked @deprecated${note ? `: ${note}` : ''}.`,
       });
     }
 

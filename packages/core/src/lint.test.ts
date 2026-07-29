@@ -80,6 +80,46 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     expect(deprecated?.message).toContain('use B instead');
   });
 
+  it('renders a whitespace @deprecated body as a bare tag (#30)', () => {
+    const result = normalizeManifest({
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ui-old': {
+          name: 'Old',
+          path: './old.stories.tsx',
+          jsDocTags: { deprecated: ' ' },
+          reactDocgenTypescript: { description: 'Old.', props: {} },
+        },
+      },
+    });
+    const finding = lint(result).find((d) => d.rule === 'deprecated-tag');
+    expect(finding).toBeDefined();
+    expect(finding?.message).toBe('Old is marked @deprecated.');
+  });
+
+  it('clamps a multi-line @deprecated body to its first line (#30)', () => {
+    const result = normalizeManifest({
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ui-old': {
+          name: 'Old',
+          path: './old.stories.tsx',
+          // The array form is how a multi-line @deprecated arrives; stringifyTag
+          // joins it with newlines.
+          jsDocTags: { deprecated: ['use Gadget instead', 'since 2.0'] },
+          reactDocgenTypescript: { description: 'Old.', props: {} },
+        },
+      },
+    });
+    const finding = lint(result).find((d) => d.rule === 'deprecated-tag');
+    expect(finding).toBeDefined();
+    expect(finding?.message).toBe('Old is marked @deprecated: use Gadget instead.');
+    expect(finding?.message).not.toContain('\n');
+    expect(finding?.message).not.toContain('since 2.0');
+    // The full value stays available to consumers.
+    expect(result.tags['ui-old'].deprecated).toBe('use Gadget instead\nsince 2.0');
+  });
+
   it('flags extractor drift at manifest level', () => {
     const result = normalizeManifest({
       meta: { docgen: 'react-docgen' },
