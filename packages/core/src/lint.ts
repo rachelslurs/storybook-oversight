@@ -30,6 +30,7 @@ const RULE_SET = {
   'docs-link-dangling': true,
   'unknown-ignore-rule': true,
   'deprecated-tag': true,
+  'manifest-shape-unrecognized': true,
 } satisfies Record<DiagnosticRule, true>;
 /** Every diagnostic rule name. Exported so other surfaces (the CLI) can validate
  *  rule names against the single source of truth instead of hardcoding them. */
@@ -124,6 +125,19 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
     nameById.set(entry.id, entry.name);
   }
 
+  // Warning rather than error: a manifest arriving in a shape this version does
+  // not read is upstream's change, and failing the build for it would charge
+  // the user for someone else's release.
+  for (const shapeIssue of result.shapeIssues) {
+    const scope = shapeIssue.componentId ? `${nameById.get(shapeIssue.componentId) ?? shapeIssue.componentId}: ` : '';
+    diagnostics.push({
+      rule: 'manifest-shape-unrecognized',
+      severity: 'warning',
+      componentId: shapeIssue.componentId,
+      message: `${scope}expected ${shapeIssue.expected}, got ${shapeIssue.got}.`,
+    });
+  }
+
   // Redirect links in the component description hardcode manifest ids, so a
   // renamed story title leaves them dead — this rule catches them. Only the
   // description is scanned: that's the sanctioned redirect channel, and
@@ -158,9 +172,16 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
       });
     }
 
-    const undocumented = Object.entries(component.props)
-      .filter(([, prop]) => prop.description === null)
-      .map(([name]) => name);
+    // Both prop rules read fields the manifest no longer recognizably carries
+    // when the shape check failed. Reporting off a renamed field would mark
+    // every prop undocumented; staying silent about the silence would hide it,
+    // so `manifest-shape-unrecognized` says so once above.
+    const undocumented =
+      result.propShape === 'known'
+        ? Object.entries(component.props)
+            .filter(([, prop]) => prop.description === null)
+            .map(([name]) => name)
+        : [];
     if (undocumented.length > 0) {
       diagnostics.push({
         rule: 'prop-descriptions-missing',

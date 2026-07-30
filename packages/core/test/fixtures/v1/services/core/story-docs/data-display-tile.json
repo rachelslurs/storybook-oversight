@@ -1,0 +1,17 @@
+{
+  "components": {
+    "data-display-tile": {
+      "id": "data-display-tile",
+      "name": "Tile",
+      "path": "./stories/Tile/Tile.stories.tsx",
+      "import": "import { Tile } from \"oversight-workspace\";",
+      "stories": {
+        "data-display-tile--default": {
+          "id": "data-display-tile--default",
+          "name": "Default",
+          "snippet": "const Default = () => <Tile label=\"Uptime\">99.9%</Tile>;"
+        }
+      }
+    }
+  }
+}

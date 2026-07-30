@@ -1,0 +1,17 @@
+{
+  "components": {
+    "layout-panel": {
+      "id": "layout-panel",
+      "name": "Panel",
+      "path": "./stories/Panel/Panel.stories.tsx",
+      "import": "import { Panel } from \"oversight-workspace\";",
+      "stories": {
+        "layout-panel--default": {
+          "id": "layout-panel--default",
+          "name": "Default",
+          "snippet": "const Default = () => <Panel>Scaffolding content</Panel>;"
+        }
+      }
+    }
+  }
+}

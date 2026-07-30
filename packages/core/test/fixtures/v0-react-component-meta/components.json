@@ -1,0 +1,482 @@
+{
+  "v": 0,
+  "components": {
+    "data-display-badge": {
+      "id": "data-display-badge",
+      "name": "Badge",
+      "path": "./stories/Badge/Badge.stories.tsx",
+      "jsDocTags": {},
+      "reactComponentMeta": {
+        "displayName": "Badge",
+        "exportName": "Badge",
+        "filePath": "/repo/stories/Badge/Badge.tsx",
+        "description": "",
+        "props": {
+          "tone": {
+            "name": "tone",
+            "required": false,
+            "type": {
+              "name": "enum",
+              "raw": "\"neutral\" | \"success\" | \"danger\"",
+              "value": [
+                {
+                  "value": "\"neutral\""
+                },
+                {
+                  "value": "\"success\""
+                },
+                {
+                  "value": "\"danger\""
+                }
+              ]
+            },
+            "description": "Colour intent — 'neutral', 'success', or 'danger'.",
+            "defaultValue": {
+              "value": "'neutral'"
+            },
+            "parent": {
+              "name": "BadgeProps",
+              "fileName": "stories/Badge/Badge.tsx"
+            },
+            "declarations": [
+              {
+                "name": "BadgeProps",
+                "fileName": "stories/Badge/Badge.tsx"
+              }
+            ]
+          },
+          "children": {
+            "name": "children",
+            "required": false,
+            "type": {
+              "name": "ReactNode"
+            },
+            "description": "Short label rendered inside the badge.",
+            "defaultValue": null,
+            "parent": {
+              "name": "BadgeProps",
+              "fileName": "stories/Badge/Badge.tsx"
+            },
+            "declarations": [
+              {
+                "name": "BadgeProps",
+                "fileName": "stories/Badge/Badge.tsx"
+              }
+            ]
+          }
+        }
+      },
+      "stories": [
+        {
+          "id": "data-display-badge--neutral",
+          "name": "Neutral",
+          "snippet": "const Neutral = () => <Badge>Draft</Badge>;"
+        },
+        {
+          "id": "data-display-badge--success",
+          "name": "Success",
+          "snippet": "const Success = () => <Badge tone=\"success\">Live</Badge>;"
+        }
+      ],
+      "import": "import { Badge } from \"oversight-workspace\";"
+    },
+    "feedback-banner": {
+      "id": "feedback-banner",
+      "name": "Banner",
+      "path": "./stories/Banner/Banner.stories.tsx",
+      "jsDocTags": {
+        "deprecated": [
+          "Use Toast for transient messages, or Card for persistent ones."
+        ]
+      },
+      "description": "A full-width inline message.",
+      "reactComponentMeta": {
+        "displayName": "Banner",
+        "exportName": "Banner",
+        "filePath": "/repo/stories/Banner/Banner.tsx",
+        "description": "A full-width inline message.",
+        "jsDocTags": {
+          "deprecated": [
+            "Use Toast for transient messages, or Card for persistent ones."
+          ]
+        },
+        "props": {
+          "children": {
+            "name": "children",
+            "required": false,
+            "type": {
+              "name": "ReactNode"
+            },
+            "description": "Message shown in the banner.",
+            "defaultValue": null,
+            "parent": {
+              "name": "BannerProps",
+              "fileName": "stories/Banner/Banner.tsx"
+            },
+            "declarations": [
+              {
+                "name": "BannerProps",
+                "fileName": "stories/Banner/Banner.tsx"
+              }
+            ]
+          }
+        }
+      },
+      "stories": [
+        {
+          "id": "feedback-banner--default",
+          "name": "Default",
+          "snippet": "const Default = () => <Banner>Scheduled maintenance tonight at 11pm.</Banner>;"
+        }
+      ],
+      "import": "import { Banner } from \"oversight-workspace\";"
+    },
+    "actions-button": {
+      "id": "actions-button",
+      "name": "Button",
+      "path": "./stories/Button/Button.stories.tsx",
+      "jsDocTags": {},
+      "description": "Triggers an action when pressed — submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
+      "reactComponentMeta": {
+        "displayName": "Button",
+        "exportName": "Button",
+        "filePath": "/repo/stories/Button/Button.tsx",
+        "description": "Triggers an action when pressed — submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
+        "props": {
+          "variant": {
+            "name": "variant",
+            "required": true,
+            "type": {
+              "name": "enum",
+              "raw": "\"primary\" | \"secondary\"",
+              "value": [
+                {
+                  "value": "\"primary\""
+                },
+                {
+                  "value": "\"secondary\""
+                }
+              ]
+            },
+            "description": "Visual style — 'primary' for the main action, 'secondary' for supporting ones.",
+            "defaultValue": null,
+            "parent": {
+              "name": "ButtonProps",
+              "fileName": "stories/Button/Button.tsx"
+            },
+            "declarations": [
+              {
+                "name": "ButtonProps",
+                "fileName": "stories/Button/Button.tsx"
+              }
+            ]
+          },
+          "size": {
+            "name": "size",
+            "required": false,
+            "type": {
+              "name": "enum",
+              "raw": "\"sm\" | \"md\" | \"lg\"",
+              "value": [
+                {
+                  "value": "\"sm\""
+                },
+                {
+                  "value": "\"md\""
+                },
+                {
+                  "value": "\"lg\""
+                }
+              ]
+            },
+            "description": "Control height and padding. Defaults to 'md'.",
+            "defaultValue": {
+              "value": "'md'"
+            },
+            "parent": {
+              "name": "ButtonProps",
+              "fileName": "stories/Button/Button.tsx"
+            },
+            "declarations": [
+              {
+                "name": "ButtonProps",
+                "fileName": "stories/Button/Button.tsx"
+              }
+            ]
+          },
+          "children": {
+            "name": "children",
+            "required": false,
+            "type": {
+              "name": "ReactNode"
+            },
+            "description": "Content rendered inside the button.",
+            "defaultValue": null,
+            "parent": {
+              "name": "ButtonProps",
+              "fileName": "stories/Button/Button.tsx"
+            },
+            "declarations": [
+              {
+                "name": "ButtonProps",
+                "fileName": "stories/Button/Button.tsx"
+              }
+            ]
+          },
+          "onClick": {
+            "name": "onClick",
+            "required": false,
+            "type": {
+              "name": "() => void"
+            },
+            "description": "Fires when the button is activated by click, tap, or keyboard.",
+            "defaultValue": null,
+            "parent": {
+              "name": "ButtonProps",
+              "fileName": "stories/Button/Button.tsx"
+            },
+            "declarations": [
+              {
+                "name": "ButtonProps",
+                "fileName": "stories/Button/Button.tsx"
+              }
+            ]
+          }
+        }
+      },
+      "stories": [
+        {
+          "id": "actions-button--primary",
+          "name": "Primary",
+          "snippet": "const Primary = () => <Button variant=\"primary\">Save changes</Button>;"
+        },
+        {
+          "id": "actions-button--secondary",
+          "name": "Secondary",
+          "snippet": "const Secondary = () => <Button variant=\"secondary\">Cancel</Button>;"
+        }
+      ],
+      "import": "import { Button } from \"oversight-workspace\";"
+    },
+    "data-display-card": {
+      "id": "data-display-card",
+      "name": "Card",
+      "path": "./stories/Card/Card.stories.tsx",
+      "jsDocTags": {},
+      "description": "A surface that groups related content and actions on a single subject, with\noptional elevation to lift it above the page.",
+      "reactComponentMeta": {
+        "displayName": "Card",
+        "exportName": "Card",
+        "filePath": "/repo/stories/Card/Card.tsx",
+        "description": "A surface that groups related content and actions on a single subject, with\noptional elevation to lift it above the page.",
+        "props": {
+          "title": {
+            "name": "title",
+            "required": true,
+            "type": {
+              "name": "string"
+            },
+            "description": "",
+            "defaultValue": null,
+            "parent": {
+              "name": "CardProps",
+              "fileName": "stories/Card/Card.tsx"
+            },
+            "declarations": [
+              {
+                "name": "CardProps",
+                "fileName": "stories/Card/Card.tsx"
+              }
+            ]
+          },
+          "elevated": {
+            "name": "elevated",
+            "required": false,
+            "type": {
+              "name": "boolean"
+            },
+            "description": "",
+            "defaultValue": null,
+            "parent": {
+              "name": "CardProps",
+              "fileName": "stories/Card/Card.tsx"
+            },
+            "declarations": [
+              {
+                "name": "CardProps",
+                "fileName": "stories/Card/Card.tsx"
+              }
+            ]
+          },
+          "children": {
+            "name": "children",
+            "required": false,
+            "type": {
+              "name": "ReactNode"
+            },
+            "description": "Content rendered inside the card body.",
+            "defaultValue": null,
+            "parent": {
+              "name": "CardProps",
+              "fileName": "stories/Card/Card.tsx"
+            },
+            "declarations": [
+              {
+                "name": "CardProps",
+                "fileName": "stories/Card/Card.tsx"
+              }
+            ]
+          }
+        }
+      },
+      "stories": [
+        {
+          "id": "data-display-card--default",
+          "name": "Default",
+          "snippet": "const Default = () => <Card title=\"Weekly summary\">Everything is on track.</Card>;"
+        },
+        {
+          "id": "data-display-card--elevated",
+          "name": "Elevated",
+          "snippet": "const Elevated = () => <Card title=\"Elevated\" elevated>Lifted off the page.</Card>;"
+        }
+      ],
+      "import": "import { Card } from \"oversight-workspace\";"
+    },
+    "layout-panel": {
+      "id": "layout-panel",
+      "name": "Panel",
+      "path": "./stories/Panel/Panel.stories.tsx",
+      "jsDocTags": {
+        "oversightIgnore": [
+          "prop-descriptions-missing"
+        ]
+      },
+      "description": "An internal scaffolding surface. Its `slot` prop is intentionally undocumented,\nso `@oversightIgnore` exempts this component from the prop-coverage rule: a\ndeliberate opt-out, not an oversight.",
+      "reactComponentMeta": {
+        "displayName": "Panel",
+        "exportName": "Panel",
+        "filePath": "/repo/stories/Panel/Panel.tsx",
+        "description": "An internal scaffolding surface. Its `slot` prop is intentionally undocumented,\nso `@oversightIgnore` exempts this component from the prop-coverage rule: a\ndeliberate opt-out, not an oversight.",
+        "jsDocTags": {
+          "oversightIgnore": [
+            "prop-descriptions-missing"
+          ]
+        },
+        "props": {
+          "children": {
+            "name": "children",
+            "required": false,
+            "type": {
+              "name": "ReactNode"
+            },
+            "description": "Content rendered inside the panel.",
+            "defaultValue": null,
+            "parent": {
+              "name": "PanelProps",
+              "fileName": "stories/Panel/Panel.tsx"
+            },
+            "declarations": [
+              {
+                "name": "PanelProps",
+                "fileName": "stories/Panel/Panel.tsx"
+              }
+            ]
+          },
+          "slot": {
+            "name": "slot",
+            "required": false,
+            "type": {
+              "name": "string"
+            },
+            "description": "",
+            "defaultValue": null,
+            "parent": {
+              "name": "PanelProps",
+              "fileName": "stories/Panel/Panel.tsx"
+            },
+            "declarations": [
+              {
+                "name": "PanelProps",
+                "fileName": "stories/Panel/Panel.tsx"
+              }
+            ]
+          }
+        }
+      },
+      "stories": [
+        {
+          "id": "layout-panel--default",
+          "name": "Default",
+          "snippet": "const Default = () => <Panel>Scaffolding content</Panel>;"
+        }
+      ],
+      "import": "import { Panel } from \"oversight-workspace\";"
+    },
+    "data-display-tile": {
+      "id": "data-display-tile",
+      "name": "Tile",
+      "path": "./stories/Tile/Tile.stories.tsx",
+      "jsDocTags": {},
+      "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.\n\n(That link is intentionally broken — there is no `data-display-ghost`\ncomponent — so Oversight flags it as docs-link-dangling.)",
+      "reactComponentMeta": {
+        "displayName": "Tile",
+        "exportName": "Tile",
+        "filePath": "/repo/stories/Tile/Tile.tsx",
+        "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.\n\n(That link is intentionally broken — there is no `data-display-ghost`\ncomponent — so Oversight flags it as docs-link-dangling.)",
+        "props": {
+          "label": {
+            "name": "label",
+            "required": true,
+            "type": {
+              "name": "string"
+            },
+            "description": "Heading shown at the top of the tile.",
+            "defaultValue": null,
+            "parent": {
+              "name": "TileProps",
+              "fileName": "stories/Tile/Tile.tsx"
+            },
+            "declarations": [
+              {
+                "name": "TileProps",
+                "fileName": "stories/Tile/Tile.tsx"
+              }
+            ]
+          },
+          "children": {
+            "name": "children",
+            "required": false,
+            "type": {
+              "name": "ReactNode"
+            },
+            "description": "Content rendered below the heading.",
+            "defaultValue": null,
+            "parent": {
+              "name": "TileProps",
+              "fileName": "stories/Tile/Tile.tsx"
+            },
+            "declarations": [
+              {
+                "name": "TileProps",
+                "fileName": "stories/Tile/Tile.tsx"
+              }
+            ]
+          }
+        }
+      },
+      "stories": [
+        {
+          "id": "data-display-tile--default",
+          "name": "Default",
+          "snippet": "const Default = () => <Tile label=\"Uptime\">99.9%</Tile>;"
+        }
+      ],
+      "import": "import { Tile } from \"oversight-workspace\";"
+    }
+  },
+  "meta": {
+    "docgen": "react-component-meta",
+    "durationMs": 1308
+  }
+}

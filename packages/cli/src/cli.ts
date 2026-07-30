@@ -17,7 +17,7 @@ function readVersion(): string {
   }
 }
 
-function main(): number {
+async function main(): Promise<number> {
   const config = buildConfig(process.argv.slice(2), {
     cwd: process.cwd(),
     env: process.env,
@@ -37,7 +37,7 @@ function main(): number {
     return 2;
   }
 
-  const result = run(config.options);
+  const result = await run(config.options);
   if (result.stdout) process.stdout.write(`${result.stdout}\n`);
   if (result.stderr) process.stderr.write(`${result.stderr}\n`);
 
@@ -55,4 +55,6 @@ function main(): number {
 
 // Set the exit code and let Node exit once stdout has drained. `process.exit()`
 // would truncate output written to a pipe or file, where writes are async.
-process.exitCode = main();
+main().then((code) => {
+  process.exitCode = code;
+});

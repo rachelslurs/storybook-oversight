@@ -1,0 +1,63 @@
+{
+  "components": {
+    "feedback-banner": {
+      "id": "feedback-banner",
+      "name": "Banner",
+      "path": "./stories/Banner/Banner.stories.tsx",
+      "jsDocTags": {
+        "deprecated": [
+          "Use Toast for transient messages, or Card for persistent ones."
+        ]
+      },
+      "description": "A full-width inline message.",
+      "reactComponentMeta": {
+        "displayName": "Banner",
+        "exportName": "Banner",
+        "filePath": "/repo/stories/Banner/Banner.tsx",
+        "description": "A full-width inline message.",
+        "jsDocTags": {
+          "deprecated": [
+            "Use Toast for transient messages, or Card for persistent ones."
+          ]
+        },
+        "props": {
+          "children": {
+            "name": "children",
+            "required": false,
+            "type": {
+              "name": "ReactNode"
+            },
+            "description": "Message shown in the banner.",
+            "defaultValue": null,
+            "parent": {
+              "name": "BannerProps",
+              "fileName": "stories/Banner/Banner.tsx"
+            },
+            "declarations": [
+              {
+                "name": "BannerProps",
+                "fileName": "stories/Banner/Banner.tsx"
+              }
+            ]
+          }
+        }
+      },
+      "argTypes": {
+        "children": {
+          "name": "children",
+          "description": "Message shown in the banner.",
+          "type": {
+            "required": false,
+            "name": "other",
+            "value": "ReactNode"
+          },
+          "table": {
+            "type": {
+              "summary": "ReactNode"
+            }
+          }
+        }
+      }
+    }
+  }
+}

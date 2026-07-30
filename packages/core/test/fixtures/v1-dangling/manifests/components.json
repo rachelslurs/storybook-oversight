@@ -1,0 +1,31 @@
+{
+  "v": 1,
+  "components": {
+    "feedback-banner": {
+      "id": "feedback-banner",
+      "name": "Banner",
+      "description": "A full-width inline message.",
+      "docgen": {
+        "$ref": "../services/core/docgen/feedback-banner.json#/components/feedback-banner"
+      },
+      "stories": {
+        "$ref": "../services/core/story-docs/feedback-banner.json#/components/feedback-banner"
+      }
+    },
+    "layout-panel": {
+      "id": "layout-panel",
+      "name": "Panel",
+      "description": "An internal scaffolding surface. Its `slot` prop is intentionally undocumented,\nso `@oversightIgnore` exempts this component from the prop-coverage rule: a\ndeliberate opt-out, not an oversight.",
+      "docgen": {
+        "$ref": "../services/core/docgen/layout-panel.json#/components/layout-panel"
+      },
+      "stories": {
+        "$ref": "../services/core/story-docs/layout-panel.json#/components/layout-panel"
+      }
+    }
+  },
+  "meta": {
+    "docgen": "react-component-meta",
+    "durationMs": 0
+  }
+}

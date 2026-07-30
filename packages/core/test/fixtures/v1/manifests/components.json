@@ -1,0 +1,74 @@
+{
+  "v": 1,
+  "components": {
+    "data-display-badge": {
+      "id": "data-display-badge",
+      "name": "Badge",
+      "docgen": {
+        "$ref": "../services/core/docgen/data-display-badge.json#/components/data-display-badge"
+      },
+      "stories": {
+        "$ref": "../services/core/story-docs/data-display-badge.json#/components/data-display-badge"
+      }
+    },
+    "feedback-banner": {
+      "id": "feedback-banner",
+      "name": "Banner",
+      "description": "A full-width inline message.",
+      "docgen": {
+        "$ref": "../services/core/docgen/feedback-banner.json#/components/feedback-banner"
+      },
+      "stories": {
+        "$ref": "../services/core/story-docs/feedback-banner.json#/components/feedback-banner"
+      }
+    },
+    "actions-button": {
+      "id": "actions-button",
+      "name": "Button",
+      "description": "Triggers an action when pressed — submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
+      "docgen": {
+        "$ref": "../services/core/docgen/actions-button.json#/components/actions-button"
+      },
+      "stories": {
+        "$ref": "../services/core/story-docs/actions-button.json#/components/actions-button"
+      }
+    },
+    "data-display-card": {
+      "id": "data-display-card",
+      "name": "Card",
+      "description": "A surface that groups related content and actions on a single subject, with\noptional elevation to lift it above the page.",
+      "docgen": {
+        "$ref": "../services/core/docgen/data-display-card.json#/components/data-display-card"
+      },
+      "stories": {
+        "$ref": "../services/core/story-docs/data-display-card.json#/components/data-display-card"
+      }
+    },
+    "layout-panel": {
+      "id": "layout-panel",
+      "name": "Panel",
+      "description": "An internal scaffolding surface. Its `slot` prop is intentionally undocumented,\nso `@oversightIgnore` exempts this component from the prop-coverage rule: a\ndeliberate opt-out, not an oversight.",
+      "docgen": {
+        "$ref": "../services/core/docgen/layout-panel.json#/components/layout-panel"
+      },
+      "stories": {
+        "$ref": "../services/core/story-docs/layout-panel.json#/components/layout-panel"
+      }
+    },
+    "data-display-tile": {
+      "id": "data-display-tile",
+      "name": "Tile",
+      "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.\n\n(That link is intentionally broken — there is no `data-display-ghost`\ncomponent — so Oversight flags it as docs-link-dangling.)",
+      "docgen": {
+        "$ref": "../services/core/docgen/data-display-tile.json#/components/data-display-tile"
+      },
+      "stories": {
+        "$ref": "../services/core/story-docs/data-display-tile.json#/components/data-display-tile"
+      }
+    }
+  },
+  "meta": {
+    "docgen": "react-component-meta",
+    "durationMs": 0
+  }
+}

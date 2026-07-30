@@ -1,0 +1,76 @@
+{
+  "components": {
+    "data-display-card": {
+      "id": "data-display-card",
+      "name": "Card",
+      "description": "A surface that groups related content and actions on a single subject, with\noptional elevation to lift it above the page.",
+      "path": "./stories/Card/Card.stories.tsx",
+      "jsDocTags": {},
+      "reactComponentMeta": {
+        "displayName": "Card",
+        "exportName": "Card",
+        "filePath": "/repo/stories/Card/Card.tsx",
+        "description": "A surface that groups related content and actions on a single subject, with\noptional elevation to lift it above the page.",
+        "props": {
+          "title": {
+            "name": "title",
+            "required": true,
+            "type": {
+              "name": "string"
+            },
+            "description": "",
+            "defaultValue": null,
+            "parent": {
+              "name": "CardProps",
+              "fileName": "stories/Card/Card.tsx"
+            },
+            "declarations": [
+              {
+                "name": "CardProps",
+                "fileName": "stories/Card/Card.tsx"
+              }
+            ]
+          },
+          "elevated": {
+            "name": "elevated",
+            "required": false,
+            "type": {
+              "name": "boolean"
+            },
+            "description": "",
+            "defaultValue": null,
+            "parent": {
+              "name": "CardProps",
+              "fileName": "stories/Card/Card.tsx"
+            },
+            "declarations": [
+              {
+                "name": "CardProps",
+                "fileName": "stories/Card/Card.tsx"
+              }
+            ]
+          },
+          "children": {
+            "name": "children",
+            "required": false,
+            "type": {
+              "name": "ReactNode"
+            },
+            "description": "Content rendered inside the card body.",
+            "defaultValue": null,
+            "parent": {
+              "name": "CardProps",
+              "fileName": "stories/Card/Card.tsx"
+            },
+            "declarations": [
+              {
+                "name": "CardProps",
+                "fileName": "stories/Card/Card.tsx"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

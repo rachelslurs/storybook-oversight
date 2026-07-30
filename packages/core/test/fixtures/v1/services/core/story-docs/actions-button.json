@@ -1,0 +1,22 @@
+{
+  "components": {
+    "actions-button": {
+      "id": "actions-button",
+      "name": "Button",
+      "path": "./stories/Button/Button.stories.tsx",
+      "import": "import { Button } from \"oversight-workspace\";",
+      "stories": {
+        "actions-button--primary": {
+          "id": "actions-button--primary",
+          "name": "Primary",
+          "snippet": "const Primary = () => <Button variant=\"primary\">Save changes</Button>;"
+        },
+        "actions-button--secondary": {
+          "id": "actions-button--secondary",
+          "name": "Secondary",
+          "snippet": "const Secondary = () => <Button variant=\"secondary\">Cancel</Button>;"
+        }
+      }
+    }
+  }
+}
