@@ -1,4 +1,4 @@
-import { summarizeError } from 'oversight-core';
+import { firstNonEmptyLine, summarizeError } from 'oversight-core';
 import type { Diagnostic, DiagnosticRule, DiagnosticSeverity } from 'oversight-core';
 import type { LintSummary } from './types';
 
@@ -29,6 +29,14 @@ function plural(n: number, word: string): string {
 
 function entriesWord(n: number): string {
   return n === 1 ? 'entry' : 'entries';
+}
+
+/** The heading manifest-level findings render under, in both text surfaces. */
+const MANIFEST_HEADING = 'Manifest';
+
+/** Markdown table cells are pipe-delimited, so any value in one is escaped. */
+function escapeCell(value: string): string {
+  return value.replace(/\|/g, '\\|');
 }
 
 /** Distinct manifest entries the diagnostics sit on (manifest-level ones excluded). */
@@ -187,7 +195,7 @@ export function formatStylish(summary: LintSummary, options: { color: boolean; q
     lines.push('');
   }
 
-  const shared = sharedNames(summary);
+  const label = labeller(summary);
   const render = (title: string, detail: string, diags: Diagnostic[]) => {
     lines.push(paint(title, ANSI.bold, on) + paint(detail, ANSI.dim, on));
     const width = Math.max(...diags.map((d) => d.severity.length));
@@ -201,11 +209,11 @@ export function formatStylish(summary: LintSummary, options: { color: boolean; q
 
   for (const [componentId, diags] of groups) {
     if (componentId === null) continue;
-    const { name, detail } = labelOf(summary, componentId, shared);
+    const { name, detail } = label(componentId);
     render(name, detail, diags);
   }
   const manifestLevel = groups.get(null);
-  if (manifestLevel) render('Manifest', '', manifestLevel);
+  if (manifestLevel) render(MANIFEST_HEADING, '', manifestLevel);
 
   // The summary counts the full set, so `--quiet` never changes the tally.
   const { errors, warnings, infos, entryCount } = summary;
@@ -230,16 +238,31 @@ function entryShare(summary: LintSummary): string {
 }
 
 /**
- * Entry ids whose display name another entry in the same manifest also uses,
- * mapped to the text that tells them apart. One entry exists per stories file,
- * so a component split across `Foo.stories.tsx` and `Foo.features.stories.tsx`
- * is two entries under one name, and a heading of just the name leaves the
- * reader no way to know which file a finding came from. The stories file is the
- * disambiguator: it is what the reader opens next. The entry id stands in when
- * any of the colliding entries has no recorded file, so a name's entries are
- * never labelled two different ways.
+ * An entry's stories file as one repo-relative line, or `''` when the manifest
+ * records none. Clamped and type-checked at the source: nothing validates the
+ * manifest, `normalize` passes `entry.path` through as it found it, and the
+ * formatters run outside `run`'s try/catch, so a non-string path would replace
+ * the exit-2 malformed-manifest message with a stack trace, and a newline would
+ * split a step-summary row or a stylish heading in two.
  */
-function sharedNames(summary: LintSummary): Map<string, string> {
+function storiesFileOf(summary: LintSummary, componentId: string): string {
+  const file = summary.files.get(componentId);
+  if (typeof file !== 'string') return '';
+  return (firstNonEmptyLine(file) ?? '').replace(/^\.\//, '');
+}
+
+/**
+ * Labels entries whose display name is not theirs alone, so the heading says
+ * which one a finding sits on. One entry exists per stories file, so a component
+ * split across `Foo.stories.tsx` and `Foo.features.stories.tsx` is two entries
+ * under one name; the stories file is the label because it is what the reader
+ * opens next. An entry falls back to its own id when it records no usable file,
+ * or when a same-named entry records the same file. The choice is per entry, so
+ * an entry that renders nothing cannot degrade the headings that do. Entries
+ * named `Manifest` are always labelled, since the manifest-level section owns
+ * that heading.
+ */
+function labeller(summary: LintSummary): (componentId: string) => { name: string; detail: string } {
   const idsByName = new Map<string, string[]>();
   for (const [id, name] of summary.names) {
     const ids = idsByName.get(name) ?? [];
@@ -248,24 +271,24 @@ function sharedNames(summary: LintSummary): Map<string, string> {
   }
 
   const labels = new Map<string, string>();
-  for (const ids of idsByName.values()) {
-    if (ids.length < 2) continue;
-    const files = ids.map((id) => summary.files.get(id)?.replace(/^\.\//, '') ?? '');
-    const byFile = files.every((file) => file !== '') && new Set(files).size === files.length;
-    ids.forEach((id, i) => labels.set(id, byFile ? files[i] : id));
+  for (const [name, ids] of idsByName) {
+    if (ids.length < 2 && name !== MANIFEST_HEADING) continue;
+    const files = ids.map((id) => storiesFileOf(summary, id));
+    ids.forEach((id, i) => {
+      const file = files[i];
+      const label = file !== '' && !files.some((other, j) => j !== i && other === file) ? file : id;
+      // An entry keyed by the empty string with no file has nothing to show.
+      if (label !== '') labels.set(id, label);
+    });
   }
-  return labels;
-}
 
-/** An entry's display name, plus the parenthesized disambiguator when another
- *  entry shares that name (empty otherwise). */
-function labelOf(
-  summary: LintSummary,
-  componentId: string,
-  shared: Map<string, string>,
-): { name: string; detail: string } {
-  const label = shared.get(componentId);
-  return { name: summary.names.get(componentId) ?? componentId, detail: label ? ` (${label})` : '' };
+  return (componentId) => {
+    const label = labels.get(componentId);
+    return {
+      name: summary.names.get(componentId) ?? componentId,
+      detail: label === undefined ? '' : ` (${label})`,
+    };
+  };
 }
 
 /** Machine-readable output: top level keyed by component id. */
@@ -321,13 +344,13 @@ export function formatStepSummary(summary: LintSummary): string {
   }
   lines.push('| Component | Severity | Rule | Message |', '| --- | --- | --- | --- |');
   for (const r of rows) {
-    lines.push(`| ${reachOf(r, entryCount)} | ${r.severity} | \`${r.rule}\` | ${r.message.replace(/\|/g, '\\|')} |`);
+    lines.push(`| ${reachOf(r, entryCount)} | ${r.severity} | \`${r.rule}\` | ${escapeCell(r.message)} |`);
   }
-  const shared = sharedNames(summary);
+  const label = labeller(summary);
   for (const d of visible) {
-    const { name, detail } = d.componentId ? labelOf(summary, d.componentId, shared) : { name: 'Manifest', detail: '' };
-    const component = name + detail;
-    const message = withProps(d.message, d.props).replace(/\|/g, '\\|');
+    const { name, detail } = d.componentId === null ? { name: MANIFEST_HEADING, detail: '' } : label(d.componentId);
+    const component = escapeCell(name + detail);
+    const message = escapeCell(withProps(d.message, d.props));
     lines.push(`| ${component} | ${d.severity} | \`${d.rule}\` | ${message} |`);
   }
   return lines.join('\n');
@@ -375,7 +398,7 @@ export function formatGithub(summary: LintSummary): string {
     emitted[command] += 1;
 
     const properties = [`title=${encodeProperty(`oversight/${d.rule}`)}`];
-    const anchor = d.componentId ? summary.files.get(d.componentId)?.replace(/^\.\//, '') : undefined;
+    const anchor = d.componentId === null ? '' : storiesFileOf(summary, d.componentId);
     if (anchor) properties.push(`file=${encodeProperty(anchor)}`);
 
     lines.push(`::${command} ${properties.join(',')}::${encodeData(withProps(d.message, d.props))}`);

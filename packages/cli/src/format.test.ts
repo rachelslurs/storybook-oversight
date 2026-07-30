@@ -117,7 +117,12 @@ describe('formatStylish', () => {
 });
 
 describe('formatStylish: shared component names (#44)', () => {
-  const collision = (files: [string, string][]) =>
+  const NAMES: [string, string][] = [
+    ['ui-widget', 'Widget'],
+    ['ui-widget-features', 'Widget'],
+    ['ui-gadget', 'Gadget'],
+  ];
+  const collision = (files: [string, string][], over: Partial<LintSummary> = {}) =>
     summaryOf(
       [
         {
@@ -139,15 +144,7 @@ describe('formatStylish: shared component names (#44)', () => {
           message: 'Gadget has no description.',
         },
       ],
-      {
-        entryCount: 3,
-        names: new Map([
-          ['ui-widget', 'Widget'],
-          ['ui-widget-features', 'Widget'],
-          ['ui-gadget', 'Gadget'],
-        ]),
-        files: new Map(files),
-      },
+      { entryCount: 3, names: new Map(NAMES), files: new Map(files), ...over },
     );
 
   it('keeps the heading bare when every entry name is unique', () => {
@@ -173,14 +170,88 @@ describe('formatStylish: shared component names (#44)', () => {
     expect(lines).toContain('Gadget');
   });
 
-  it('falls back to the entry id when a colliding entry has no stories file', () => {
+  it('falls back to the entry id for the one entry that has no stories file', () => {
     const rendered = formatStylish(collision([['ui-widget', './Widget.stories.tsx']]), {
       color: false,
       quiet: false,
     });
     const lines = rendered.split('\n');
+    // The fallback is per entry, so the sibling that has a file keeps it.
+    expect(lines).toContain('Widget (Widget.stories.tsx)');
+    expect(lines).toContain('Widget (ui-widget-features)');
+  });
+
+  it('keeps the stories file on printed headings when a silent entry shares the name', () => {
+    const rendered = formatStylish(
+      collision(
+        [
+          ['ui-widget', './Widget.stories.tsx'],
+          ['ui-widget-features', './Widget.features.stories.tsx'],
+          ['ui-gadget', './Gadget.stories.tsx'],
+        ],
+        // A fourth Widget entry with no path and no findings: it renders nothing,
+        // so it must not change the labels of the entries that do render.
+        { entryCount: 4, names: new Map([...NAMES, ['ui-widget-dev', 'Widget']]) },
+      ),
+      { color: false, quiet: false },
+    );
+    const lines = rendered.split('\n');
+    expect(lines).toContain('Widget (Widget.stories.tsx)');
+    expect(lines).toContain('Widget (Widget.features.stories.tsx)');
+  });
+
+  it('falls back to entry ids when same-named entries record one stories file', () => {
+    const rendered = formatStylish(
+      collision([
+        ['ui-widget', './Widget.stories.tsx'],
+        ['ui-widget-features', './Widget.stories.tsx'],
+        ['ui-gadget', './Gadget.stories.tsx'],
+      ]),
+      { color: false, quiet: false },
+    );
+    const lines = rendered.split('\n');
     expect(lines).toContain('Widget (ui-widget)');
     expect(lines).toContain('Widget (ui-widget-features)');
+    expect(lines).toContain('Gadget');
+  });
+
+  it('clamps a multi-line stories file to its first line', () => {
+    const rendered = formatStylish(
+      collision([
+        ['ui-widget', './Widget.stories.tsx\nsecond line'],
+        ['ui-widget-features', './Widget.features.stories.tsx'],
+        ['ui-gadget', './Gadget.stories.tsx'],
+      ]),
+      { color: false, quiet: false },
+    );
+    const lines = rendered.split('\n');
+    expect(lines).toContain('Widget (Widget.stories.tsx)');
+    expect(rendered).not.toContain('second line');
+  });
+
+  it('distinguishes an entry named Manifest from the manifest-level section', () => {
+    const rendered = formatStylish(
+      summaryOf(
+        [
+          {
+            rule: 'component-description-missing',
+            severity: 'warning',
+            componentId: 'ui-manifest',
+            message: 'Manifest has no description.',
+          },
+          { rule: 'extractor-drift', severity: 'warning', componentId: null, message: 'drift' },
+        ],
+        {
+          entryCount: 1,
+          names: new Map([['ui-manifest', 'Manifest']]),
+          files: new Map([['ui-manifest', './Manifest.stories.tsx']]),
+        },
+      ),
+      { color: false, quiet: false },
+    );
+    const lines = rendered.split('\n');
+    expect(lines).toContain('Manifest (Manifest.stories.tsx)');
+    expect(lines.filter((l) => l === 'Manifest')).toHaveLength(1);
   });
 });
 
@@ -507,6 +578,63 @@ describe('formatStepSummary', () => {
     );
     expect(collide).toContain('| Widget (Widget.stories.tsx) |');
     expect(collide).toContain('| Widget (Widget.features.stories.tsx) |');
+  });
+
+  it('keeps a newline or a pipe in a stories file from breaking the table (#44)', () => {
+    const md = formatStepSummary(
+      summaryOf(
+        [
+          {
+            rule: 'component-description-missing',
+            severity: 'warning',
+            componentId: 'ui-widget',
+            message: 'Widget has no description.',
+          },
+          {
+            rule: 'component-description-missing',
+            severity: 'warning',
+            componentId: 'ui-widget-features',
+            message: 'Widget has no description.',
+          },
+        ],
+        {
+          entryCount: 2,
+          names: new Map([
+            ['ui-widget', 'Widget'],
+            ['ui-widget-features', 'Widget'],
+          ]),
+          files: new Map([
+            ['ui-widget', './Widget.stories.tsx\nsecond line'],
+            ['ui-widget-features', './Widget|features.stories.tsx'],
+          ]),
+        },
+      ),
+    );
+    const lines = md.split('\n');
+    const table = lines.slice(lines.findIndex((line) => line.startsWith('| Component |')));
+    // Header, separator, two findings, every line a closed row.
+    expect(table).toHaveLength(4);
+    for (const row of table) expect(row).toMatch(/^\|.*\|$/);
+    expect(md).not.toContain('second line');
+    expect(md).toContain('| Widget (Widget\\|features.stories.tsx) |');
+  });
+
+  it('files an entry keyed by the empty string under its own name, not Manifest (#44)', () => {
+    const md = formatStepSummary(
+      summaryOf(
+        [
+          {
+            rule: 'component-description-missing',
+            severity: 'warning',
+            componentId: '',
+            message: 'Widget has no description.',
+          },
+        ],
+        { entryCount: 1, names: new Map([['', 'Widget']]), files: new Map([['', './Widget.stories.tsx']]) },
+      ),
+    );
+    expect(md).toContain('| Widget | warning |');
+    expect(md).not.toContain('| Manifest |');
   });
 
   it('names the manifest, its extractor, and the affected entries', () => {

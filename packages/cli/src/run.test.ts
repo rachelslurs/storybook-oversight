@@ -296,6 +296,27 @@ describe('run: shared component names in text output (#44)', () => {
     expect(headings).toHaveLength(2);
     expect(headings[0]).not.toBe(headings[1]);
   });
+
+  it('survives a non-string path on an entry whose name is shared (#44)', () => {
+    const shared = {
+      v: 0,
+      components: {
+        // Nothing validates the manifest, so `path` arrives as whatever JSON held.
+        'ui-widget': { name: 'Widget', path: 42, reactDocgenTypescript: { props: {} } },
+        'ui-widget-features': {
+          name: 'Widget',
+          path: './Widget.features.stories.tsx',
+          reactDocgenTypescript: { props: {} },
+        },
+      },
+    };
+    const lint = () => run(options({ manifestPath: fixture(shared) }));
+    expect(lint).not.toThrow();
+    const result = lint();
+    // The entry with no usable path is labelled by its id; its sibling keeps the file.
+    expect(result.stdout).toContain('Widget (ui-widget)');
+    expect(result.stdout).toContain('Widget (Widget.features.stories.tsx)');
+  });
 });
 
 describe('run: mass-failure collapse in text output (#34)', () => {
