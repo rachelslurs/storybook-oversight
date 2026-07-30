@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { lstatSync, readFileSync, realpathSync } from 'node:fs';
+import { dirname, resolve, sep } from 'node:path';
 import { detectManifestFormat, resolveManifestRefs } from 'oversight-core';
 import type { RawManifest } from 'oversight-core';
 
@@ -55,5 +55,31 @@ export async function hydrateManifest(raw: RawManifest, path: string): Promise<R
   if (format.kind === 'inline') return raw;
 
   const base = dirname(path);
-  return resolveManifestRefs(raw, (target) => readFileSync(resolve(base, target), 'utf8'));
+  // The index sits one level below the build output, and refs reach its
+  // siblings under `services/`.
+  const root = realpathSync(resolve(base, '..'));
+  return resolveManifestRefs(raw, (target) => readLeafFile(resolve(base, target), root));
+}
+
+/** Refs may not name a payload larger than this. Real leaves run to a few KB. */
+const MAX_LEAF_BYTES = 8 * 1024 * 1024;
+
+/**
+ * Read one ref target, confined to the build output.
+ *
+ * `resolveManifestRefs` checks the ref string, which cannot see the filesystem.
+ * `readFileSync` follows symlinks on every path component, so a link placed
+ * anywhere along a textually legal path would read whatever it points at, and a
+ * link to a device or FIFO would hang the run until CI timed it out. Resolving
+ * the real path and requiring a regular file inside the root closes both.
+ */
+function readLeafFile(target: string, root: string): string {
+  const real = realpathSync(target);
+  if (real !== root && !real.startsWith(root + sep)) {
+    throw new Error('resolves outside the build output');
+  }
+  const stat = lstatSync(real);
+  if (!stat.isFile()) throw new Error('not a regular file');
+  if (stat.size > MAX_LEAF_BYTES) throw new Error(`larger than ${MAX_LEAF_BYTES} bytes`);
+  return readFileSync(real, 'utf8');
 }

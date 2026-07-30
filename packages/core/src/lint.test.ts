@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { lint } from './lint';
+import { ALL_RULES, lint } from './lint';
 import { normalizeManifest } from './normalize';
 import type { RawManifest } from './types';
 
@@ -557,5 +557,31 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     });
     const diagnostic = diagnostics.find((d) => d.rule === 'component-description-missing');
     expect(diagnostic?.severity).toBe('warning'); // default kept, not "warn"
+  });
+});
+
+describe('manifest-shape-unrecognized is wired like every other rule', () => {
+  const shapeIssue = {
+    extractor: null,
+    format: 'ref' as const,
+    propShape: 'known' as const,
+    components: [],
+    failures: [],
+    storyFailures: [],
+    shapeIssues: [{ componentId: null, expected: 'a resolved payload', got: 'nothing' }],
+    tags: {},
+  };
+
+  it('is in ALL_RULES, so --rule and @oversightIgnore accept it', () => {
+    expect(ALL_RULES).toContain('manifest-shape-unrecognized');
+  });
+
+  it('honours a severity override', () => {
+    const escalated = lint(shapeIssue, { rules: { 'manifest-shape-unrecognized': 'error' } });
+    expect(escalated[0].severity).toBe('error');
+  });
+
+  it('honours being turned off', () => {
+    expect(lint(shapeIssue, { rules: { 'manifest-shape-unrecognized': 'off' } })).toEqual([]);
   });
 });
