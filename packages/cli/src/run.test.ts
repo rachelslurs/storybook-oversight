@@ -307,4 +307,26 @@ describe('run: mass-failure collapse in text output (#34)', () => {
     const json = run(options({ manifestPath: path, format: 'json' }));
     expect(Object.keys(JSON.parse(json.stdout).components)).toHaveLength(20);
   });
+
+  it('groups a collapsed rule by error name, not by per-entry message text (#44)', () => {
+    const components = Object.fromEntries(
+      Array.from({ length: 12 }, (_, i) => [
+        `ui-c${i}`,
+        {
+          name: `C${i}`,
+          path: `./c${i}.stories.tsx`,
+          // One diagnosis, a different file path per entry: the grommet shape.
+          error: {
+            name: 'react-docgen-typescript found no component docs',
+            message: `File: /repo/src/c${i}.tsx\nreact-docgen-typescript did not return any component docs for this file.`,
+          },
+        },
+      ]),
+    );
+    const result = run(options({ manifestPath: fixture({ v: 0, components }) }));
+    // Fails today: one pooled row reading "12 distinct errors", diagnosis absent.
+    expect(result.stdout).toContain('12 of 12 entries');
+    expect(result.stdout).toContain('react-docgen-typescript found no component docs');
+    expect(result.stdout).not.toMatch(/distinct errors|other errors/);
+  });
 });

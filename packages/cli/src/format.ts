@@ -1,4 +1,4 @@
-import { summarizeError } from 'oversight-core';
+import { firstNonEmptyLine, summarizeError } from 'oversight-core';
 import type { Diagnostic, DiagnosticRule, DiagnosticSeverity } from 'oversight-core';
 import type { LintSummary } from './types';
 
@@ -77,11 +77,30 @@ type CollapsedRow = {
   message: string;
 };
 
-/** The clamped one-line error summary doubles as the grouping signature: it is
- *  the only single-line, diagnosis-led text (raw `errorName` can be multi-line
- *  or whitespace, and the raw message's first line can be a bare file path). */
-function signatureOf(d: Diagnostic): string {
+/** The one-line error summary the finding messages use: the clamped name with
+ *  the message's first line appended when it adds information. */
+function composedSummaryOf(d: Diagnostic): string {
   return summarizeError(d.errorName, d.error) ?? 'unknown error';
+}
+
+/** Grouping signature: the error name's first non-empty line, else the
+ *  composed summary. The composed summary appends the message's first line,
+ *  and for extraction failures that line is each entry's own file path, so
+ *  keying on it fragments one diagnosis into per-entry groups (#44). Clamping
+ *  the name keeps a multi-line or whitespace `errorName` out of the rendered
+ *  rows, which is why the raw name could not be the key. */
+function signatureOf(d: Diagnostic): string {
+  return firstNonEmptyLine(d.errorName) ?? composedSummaryOf(d);
+}
+
+/** Row text for a signature group. The composed summary carries the message's
+ *  first line, per-entry detail such as a file path, so showing one entry's
+ *  line for the whole group would misstate it. It appears only when every
+ *  finding in the group shares it; otherwise the row shows the clamped
+ *  diagnosis alone. */
+function displayOf(group: Diagnostic[], signature: string): string {
+  const composed = composedSummaryOf(group[0]);
+  return group.every((d) => composedSummaryOf(d) === composed) ? composed : signature;
 }
 
 function rowOf(group: Diagnostic[], message: string): CollapsedRow {
@@ -107,8 +126,8 @@ function reachOf(row: CollapsedRow, entryCount: number): string {
  * touch at least 10 distinct entries and at least half the manifest's
  * entries; the thresholds count entries, so a pile of failing stories on one
  * entry never collapses. A collapsed rule renders one row per signature, with
- * signatures under the entry floor pooled into one leftovers row, so
- * per-entry variation in the signature text cannot re-flood the output.
+ * signatures under the entry floor pooled into one leftovers row, so unnamed
+ * errors whose text varies per entry cannot re-flood the output.
  * Rendering only: the tally still counts every finding, and `--format json`
  * keeps each one.
  */
@@ -144,7 +163,7 @@ function collapseMassFailures(
     const sorted = [...bySignature.entries()].sort((a, b) => b[1].length - a[1].length);
     for (const [signature, group] of sorted) {
       if (affectedEntries(group) >= COLLAPSE_MIN_ENTRIES) {
-        rows.push(rowOf(group, signature));
+        rows.push(rowOf(group, displayOf(group, signature)));
         ownRows += 1;
       } else {
         leftovers.push(...group);
@@ -153,7 +172,7 @@ function collapseMassFailures(
     }
     if (leftoverSignatures === 1) {
       // A lone leftover signature reads better as itself than as a pool of one.
-      rows.push(rowOf(leftovers, signatureOf(leftovers[0])));
+      rows.push(rowOf(leftovers, displayOf(leftovers, signatureOf(leftovers[0]))));
     } else if (leftoverSignatures > 1) {
       rows.push(rowOf(leftovers, `${leftoverSignatures} ${ownRows > 0 ? 'other' : 'distinct'} errors`));
     }
