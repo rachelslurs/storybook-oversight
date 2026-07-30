@@ -120,13 +120,18 @@ function recordedExtractor(raw: RawManifest): string | null {
  * Whether the prop payload still carries the keys `prop-descriptions-missing`
  * and `required-prop-undocumented` read.
  *
- * The test is key presence, never value truthiness, because an undocumented
- * prop and a renamed field are otherwise identical: react-component-meta emits
- * `description: ""` for a prop nobody documented, so the key survives. It is
- * also asked of the whole manifest rather than each prop, since a rename is a
- * schema change that hits every prop at once: one prop anywhere carrying the
- * key proves the field still exists under that name, and an individual prop
- * missing it then reads as undocumented.
+ * The test is the field's type, never its value, because an undocumented prop
+ * and a renamed field are otherwise identical: react-component-meta emits
+ * `description: ""` for a prop nobody documented, and `typeof "" === 'string'`
+ * keeps that case passing. Presence alone is not enough. A `description`
+ * retyped to an object would still be present, `text()` would read it as
+ * truthy, and every prop would report as documented with nothing said.
+ *
+ * The question is asked of the whole manifest rather than each prop: one prop
+ * anywhere carrying the field proves it still exists under that name, and an
+ * individual prop missing it then reads as undocumented. The `props` container
+ * gets the same treatment one level up: renaming it would otherwise look like a
+ * library that takes no props, and pass.
  *
  * Unknown extra keys never fail this. Additive changes are the common
  * non-breaking case, and refusing them would manufacture the under-report the
@@ -134,35 +139,50 @@ function recordedExtractor(raw: RawManifest): string | null {
  */
 function inspectPropShape(raw: RawManifest): { propShape: 'known' | 'unrecognized'; issue?: ShapeIssue } {
   let total = 0;
+  let sawPayload = false;
+  let sawPropsContainer = false;
   let sawDescription = false;
   let sawRequired = false;
   let sample: string[] = [];
 
   for (const entry of Object.values(raw.components ?? {})) {
     const payload = payloadOf(entry);
-    for (const prop of Object.values(payload?.props ?? {})) {
+    if (!payload) continue;
+    sawPayload = true;
+    if (payload.props !== null && typeof payload.props === 'object') sawPropsContainer = true;
+    for (const prop of Object.values(payload.props ?? {})) {
       if (prop === null || typeof prop !== 'object') continue;
       total += 1;
       if (total === 1) sample = Object.keys(prop);
-      if ('description' in prop) sawDescription = true;
+      if (typeof prop.description === 'string') sawDescription = true;
       if (typeof prop.required === 'boolean') sawRequired = true;
       if (sawDescription && sawRequired) return { propShape: 'known' };
     }
   }
 
-  // No props at all leaves nothing to misread, and the two rules would stay
-  // silent either way.
-  if (total === 0) return { propShape: 'known' };
-
-  const missing = [!sawDescription && 'description', !sawRequired && 'required'].filter(Boolean).join(' and ');
-  return {
+  const unrecognized = (got: string): { propShape: 'unrecognized'; issue: ShapeIssue } => ({
     propShape: 'unrecognized',
     issue: {
       componentId: null,
-      expected: `every prop to carry "description" and a boolean "required"`,
-      got: `${total} prop${total === 1 ? '' : 's'} with no ${missing}, keys: ${sample.join(', ') || '(none)'}`,
+      expected: 'a prop payload carrying "description" as a string and "required" as a boolean',
+      got: `${got}. prop-descriptions-missing and required-prop-undocumented did not run`,
     },
-  };
+  });
+
+  // An extracted payload always carries a `props` object, empty when the
+  // component takes none. Every payload lacking one means the container moved.
+  if (sawPayload && !sawPropsContainer) return unrecognized('no payload carries a "props" object');
+
+  // A library that genuinely takes no props leaves nothing to misread, and the
+  // two rules would stay silent either way.
+  if (total === 0) return { propShape: 'known' };
+
+  const missing = [!sawDescription && 'a string "description"', !sawRequired && 'a boolean "required"']
+    .filter(Boolean)
+    .join(' and ');
+  return unrecognized(
+    `${total} prop${total === 1 ? '' : 's'}, none with ${missing} (first prop's keys: ${sample.join(', ') || 'none'})`,
+  );
 }
 
 export function normalizeManifest(raw: RawManifest): NormalizeResult {
@@ -211,6 +231,11 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
 
     const props: NormalizedComponent['props'] = {};
     for (const [propName, prop] of Object.entries(payload.props ?? {})) {
+      // A null or non-object prop used to throw out of the whole normalizer,
+      // which cost every diagnostic in the manifest for one malformed entry.
+      // Skipping it also keeps a string-valued `props` map from inventing props
+      // named "0" and "1" and reporting them as undocumented.
+      if (prop === null || typeof prop !== 'object') continue;
       props[propName] = {
         description: text(prop.description),
         required: prop.required === true,
@@ -235,13 +260,15 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
 
     // A resolved entry can still carry an error: a v:1 component whose docgen
     // ref loaded while its stories ref did not keeps its payload, so the
-    // failure would otherwise be recorded and reported nowhere.
-    const entryError = stringifyError(entry.error);
+    // failure would otherwise be recorded and reported nowhere. Gated on the
+    // ref format because an inline entry's error has no refs to blame, and
+    // clamped to one line because the message reaches a step-summary table row.
+    const entryError = format === 'ref' ? firstNonEmptyLine(stringifyError(entry.error)) : null;
     if (entryError) {
       shapeIssues.push({
         componentId: id,
         expected: 'every $ref on this entry to resolve',
-        got: entryError,
+        got: entryError.replace(/\.$/, ''),
       });
     }
 

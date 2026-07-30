@@ -350,7 +350,7 @@ export function ReportView({
     return <StatusMessage>No manifest entry for this component.</StatusMessage>;
   }
 
-  const { component, failure, storyFailures, diagnostics, manifestDiagnostics } = report;
+  const { component, failure, storyFailures, diagnostics, manifestDiagnostics, propShape } = report;
   const componentId = component?.id ?? failure?.id ?? '';
   const storyErrorsShown = diagnostics.some((d) => d.rule === 'story-extraction-error') && storyFailures.length > 0;
 
@@ -394,7 +394,11 @@ export function ReportView({
       />
       <Section>
         <Heading>Props</Heading>
-        {propNames.length === 0 ? (
+        {propShape === 'unrecognized' ? (
+          // The lint rules are held in this case. A coverage figure read from
+          // the same fields would contradict the finding that says so.
+          <span>Prop coverage is unavailable: the manifest&rsquo;s prop payload was not recognized.</span>
+        ) : propNames.length === 0 ? (
           <span>No props extracted.</span>
         ) : (
           <>
