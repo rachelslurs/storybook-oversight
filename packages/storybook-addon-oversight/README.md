@@ -144,11 +144,15 @@ the whole manifest rather than any one component.
 
 ## Troubleshooting `docgen-missing`
 
-`docgen-missing` means `react-docgen-typescript` returned no docs for the
-component's file, so its props and JSDoc never reach the manifest. An agent sees
-the component with no documented props. In order of likelihood:
+`docgen-missing` means the extractor returned no docs for the component's file,
+so its props and JSDoc never reach the manifest. An agent sees the component with
+no documented props. In order of likelihood:
 
 1. **`reactDocgen` isn't `react-docgen-typescript`.** See [Install](#install).
+   This one does not apply if `features.experimentalReactComponentMeta` is on.
+   That flag selects the extractor on its own and `typescript.reactDocgen` is
+   never read, so changing it has no effect. Check `meta.docgen` in the manifest
+   for which extractor actually ran.
 2. **Your root `tsconfig.json` is solution-style.** The default `npm create vite`
    (react-ts) scaffold ships a root that only delegates to project references and
    owns no files:

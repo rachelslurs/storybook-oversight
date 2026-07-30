@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { detectRepoRoot, normalizeManifest } from './normalize';
-import type { RawManifest } from './types';
+import type { RawManifest, RawPayload } from './types';
 
 function loadFixture(): RawManifest {
   const url = new URL('../test/fixtures/components.json', import.meta.url);
@@ -117,7 +117,7 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
           id: 'data-display-widget',
           name: 'Widget',
           path: './src/Widget/Widget.stories.tsx',
-          jsDocTags: { deprecated: ['use Gadget instead'] },
+          jsDocTags: { deprecated: ['from the entry'] },
           reactComponentMeta: {
             description: 'A widget.',
             filePath: '/repo/src/Widget/Widget.tsx',
@@ -128,7 +128,14 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
                 declarations: [{ fileName: 'src/Widget/Widget.tsx' }],
               },
             },
-          },
+            // Real manifests carry the entry's tags here too, under `jsDocTags`
+            // rather than `tags`, with identical values. The values are made to
+            // disagree here so the assertion below can prove which copy is read.
+            // `RawPayload` omits the field on purpose, so nothing reads tags off
+            // the payload; the cast keeps the fixture on the real wire shape
+            // without widening the type to allow it.
+            jsDocTags: { deprecated: ['from the payload'] },
+          } as RawPayload,
         },
       },
     };
@@ -139,7 +146,11 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
     expect(widget.description).toBe('A widget.');
     expect(widget.sourceFile).toBe('src/Widget/Widget.tsx');
     expect(widget.props.size).toEqual({ description: null, required: true });
-    expect(result.tags['data-display-widget'].deprecated).toBe('use Gadget instead');
+    // Proves the entry's copy is the one read. Tags reaching this flavor depend
+    // on it: the payload's own `jsDocTags` is never consulted, so if upstream
+    // stopped mirroring tags onto the entry they would be dropped silently and
+    // `@oversightIgnore` exemptions would stop applying.
+    expect(result.tags['data-display-widget'].deprecated).toBe('from the entry');
   });
 
   it('infers react-component-meta from payload keys when meta is unrecorded', () => {
@@ -196,6 +207,7 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
       components: {
         'ui-a': { name: 'A', path: './a.stories.tsx', reactDocgenTypescript: { props: {} } },
         'ui-b': { name: 'B', path: './b.stories.tsx', reactDocgen: { props: {} } },
+        'ui-c': { name: 'C', path: './c.stories.tsx', reactComponentMeta: { props: {} } },
       },
     });
     expect(result.extractor).toBeNull();
