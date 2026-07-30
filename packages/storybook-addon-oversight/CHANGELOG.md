@@ -1,4 +1,4 @@
-# v0.1.3 (Thu Jul 16 2026)
+# storybook-addon-oversight
 
 ## 0.2.2
 
@@ -30,6 +30,8 @@
 ### Patch Changes
 
 - dc6adc2: Republish from the new `storybook-oversight` monorepo. No API or behavior change: the addon now builds over a shared `oversight-core` package, alongside the new `oversight-lint` CLI, and its repository metadata points at the renamed repo.
+
+# v0.1.3 (Thu Jul 16 2026)
 
 #### 🐛 Bug Fix
 
