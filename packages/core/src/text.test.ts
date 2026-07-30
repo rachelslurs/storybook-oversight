@@ -8,6 +8,11 @@ describe('firstNonEmptyLine', () => {
     expect(firstNonEmptyLine('one\r\ntwo')).toBe('one');
   });
 
+  it('treats a lone carriage return as a line break', () => {
+    expect(firstNonEmptyLine('one\rtwo')).toBe('one');
+    expect(firstNonEmptyLine('\rtwo')).toBe('two');
+  });
+
   it('returns null when nothing has content', () => {
     expect(firstNonEmptyLine('')).toBeNull();
     expect(firstNonEmptyLine(' \n\t')).toBeNull();
@@ -17,10 +22,27 @@ describe('firstNonEmptyLine', () => {
 });
 
 describe('summarizeError', () => {
-  it('leads with the name and appends the message first line', () => {
+  it('leads with the name and appends the message diagnosis line', () => {
     expect(
       summarizeError('react-docgen-typescript found no component docs', 'File: /repo/src/index.js\nno docs here'),
-    ).toBe('react-docgen-typescript found no component docs: File: /repo/src/index.js');
+    ).toBe('react-docgen-typescript found no component docs: no docs here');
+  });
+
+  it('skips a leading file-location line when picking the message line (#44)', () => {
+    expect(summarizeError(null, 'File: /repo/src/index.js\nno docs here')).toBe('no docs here');
+  });
+
+  it('skips a bare Error: label line, the react-docgen shape (#44)', () => {
+    expect(
+      summarizeError(
+        'No component definition found',
+        'File: /a/index.ts\nError:\nNo suitable component definition found.',
+      ),
+    ).toBe('No component definition found: No suitable component definition found.');
+  });
+
+  it('keeps the location when the message holds nothing else', () => {
+    expect(summarizeError(null, 'File: /repo/src/index.js')).toBe('File: /repo/src/index.js');
   });
 
   it('uses the message alone when there is no name', () => {
