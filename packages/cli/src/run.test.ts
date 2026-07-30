@@ -278,6 +278,26 @@ describe('run: manifest provenance in the output (#35)', () => {
   });
 });
 
+describe('run: shared component names in text output (#44)', () => {
+  it('distinguishes headings for entries that share a component name (#44)', () => {
+    const shared = {
+      v: 0,
+      components: {
+        'ui-widget': { name: 'Widget', path: './Widget.stories.tsx', reactDocgenTypescript: { props: {} } },
+        'ui-widget-features': {
+          name: 'Widget',
+          path: './Widget.features.stories.tsx',
+          reactDocgenTypescript: { props: {} },
+        },
+      },
+    };
+    const stdout = run(options({ manifestPath: fixture(shared) })).stdout;
+    const headings = stdout.split('\n').filter((l) => l.startsWith('Widget'));
+    expect(headings).toHaveLength(2);
+    expect(headings[0]).not.toBe(headings[1]);
+  });
+});
+
 describe('run: mass-failure collapse in text output (#34)', () => {
   it('collapses a manifest-wide docgen failure to one line naming share and signature', () => {
     const entries = Object.fromEntries(

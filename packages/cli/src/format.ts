@@ -164,7 +164,7 @@ function collapseMassFailures(
   return { rows, visible: diagnostics.filter((d) => !hidden.has(d)) };
 }
 
-/** ESLint `stylish`-style output, grouped by component instead of by file. */
+/** ESLint `stylish`-style output, grouped by manifest entry instead of by file. */
 export function formatStylish(summary: LintSummary, options: { color: boolean; quiet: boolean }): string {
   const on = options.color;
   const shown = options.quiet ? summary.diagnostics.filter((d) => d.severity === 'error') : summary.diagnostics;
@@ -187,8 +187,9 @@ export function formatStylish(summary: LintSummary, options: { color: boolean; q
     lines.push('');
   }
 
-  const render = (title: string, diags: Diagnostic[]) => {
-    lines.push(paint(title, ANSI.bold, on));
+  const shared = sharedNames(summary);
+  const render = (title: string, detail: string, diags: Diagnostic[]) => {
+    lines.push(paint(title, ANSI.bold, on) + paint(detail, ANSI.dim, on));
     const width = Math.max(...diags.map((d) => d.severity.length));
     for (const d of diags) {
       const severity = paint(d.severity.padEnd(width), SEVERITY_COLOR[d.severity], on);
@@ -200,10 +201,11 @@ export function formatStylish(summary: LintSummary, options: { color: boolean; q
 
   for (const [componentId, diags] of groups) {
     if (componentId === null) continue;
-    render(summary.names.get(componentId) ?? componentId, diags);
+    const { name, detail } = labelOf(summary, componentId, shared);
+    render(name, detail, diags);
   }
   const manifestLevel = groups.get(null);
-  if (manifestLevel) render('Manifest', manifestLevel);
+  if (manifestLevel) render('Manifest', '', manifestLevel);
 
   // The summary counts the full set, so `--quiet` never changes the tally.
   const { errors, warnings, infos, entryCount } = summary;
@@ -225,6 +227,45 @@ function entryShare(summary: LintSummary): string {
   const affected = affectedEntries(summary.diagnostics);
   if (affected === 0) return '';
   return `, ${affected} of ${summary.entryCount} ${entriesWord(summary.entryCount)} affected`;
+}
+
+/**
+ * Entry ids whose display name another entry in the same manifest also uses,
+ * mapped to the text that tells them apart. One entry exists per stories file,
+ * so a component split across `Foo.stories.tsx` and `Foo.features.stories.tsx`
+ * is two entries under one name, and a heading of just the name leaves the
+ * reader no way to know which file a finding came from. The stories file is the
+ * disambiguator: it is what the reader opens next. The entry id stands in when
+ * any of the colliding entries has no recorded file, so a name's entries are
+ * never labelled two different ways.
+ */
+function sharedNames(summary: LintSummary): Map<string, string> {
+  const idsByName = new Map<string, string[]>();
+  for (const [id, name] of summary.names) {
+    const ids = idsByName.get(name) ?? [];
+    idsByName.set(name, ids);
+    ids.push(id);
+  }
+
+  const labels = new Map<string, string>();
+  for (const ids of idsByName.values()) {
+    if (ids.length < 2) continue;
+    const files = ids.map((id) => summary.files.get(id)?.replace(/^\.\//, '') ?? '');
+    const byFile = files.every((file) => file !== '') && new Set(files).size === files.length;
+    ids.forEach((id, i) => labels.set(id, byFile ? files[i] : id));
+  }
+  return labels;
+}
+
+/** An entry's display name, plus the parenthesized disambiguator when another
+ *  entry shares that name (empty otherwise). */
+function labelOf(
+  summary: LintSummary,
+  componentId: string,
+  shared: Map<string, string>,
+): { name: string; detail: string } {
+  const label = shared.get(componentId);
+  return { name: summary.names.get(componentId) ?? componentId, detail: label ? ` (${label})` : '' };
 }
 
 /** Machine-readable output: top level keyed by component id. */
@@ -282,8 +323,10 @@ export function formatStepSummary(summary: LintSummary): string {
   for (const r of rows) {
     lines.push(`| ${reachOf(r, entryCount)} | ${r.severity} | \`${r.rule}\` | ${r.message.replace(/\|/g, '\\|')} |`);
   }
+  const shared = sharedNames(summary);
   for (const d of visible) {
-    const component = d.componentId ? (summary.names.get(d.componentId) ?? d.componentId) : 'Manifest';
+    const { name, detail } = d.componentId ? labelOf(summary, d.componentId, shared) : { name: 'Manifest', detail: '' };
+    const component = name + detail;
     const message = withProps(d.message, d.props).replace(/\|/g, '\\|');
     lines.push(`| ${component} | ${d.severity} | \`${d.rule}\` | ${message} |`);
   }

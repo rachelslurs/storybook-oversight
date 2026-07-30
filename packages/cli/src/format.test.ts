@@ -116,6 +116,64 @@ describe('formatStylish', () => {
   });
 });
 
+describe('formatStylish: shared component names (#44)', () => {
+  const collision = (files: [string, string][]) =>
+    summaryOf(
+      [
+        {
+          rule: 'component-description-missing',
+          severity: 'warning',
+          componentId: 'ui-widget',
+          message: 'Widget has no description.',
+        },
+        {
+          rule: 'component-description-missing',
+          severity: 'warning',
+          componentId: 'ui-widget-features',
+          message: 'Widget has no description.',
+        },
+      ],
+      {
+        entryCount: 2,
+        names: new Map([
+          ['ui-widget', 'Widget'],
+          ['ui-widget-features', 'Widget'],
+        ]),
+        files: new Map(files),
+      },
+    );
+
+  it('keeps the heading bare when every entry name is unique', () => {
+    const lines = formatStylish(summary, { color: false, quiet: false }).split('\n');
+    expect(lines).toContain('Card');
+    expect(lines).toContain('Old');
+  });
+
+  it('names the stories file when several entries share a name', () => {
+    const rendered = formatStylish(
+      collision([
+        ['ui-widget', './Widget.stories.tsx'],
+        ['ui-widget-features', './Widget.features.stories.tsx'],
+      ]),
+      { color: false, quiet: false },
+    );
+    const lines = rendered.split('\n');
+    expect(lines).toContain('Widget (Widget.stories.tsx)');
+    expect(lines).toContain('Widget (Widget.features.stories.tsx)');
+    expect(lines).not.toContain('Widget');
+  });
+
+  it('falls back to the entry id when a colliding entry has no stories file', () => {
+    const rendered = formatStylish(collision([['ui-widget', './Widget.stories.tsx']]), {
+      color: false,
+      quiet: false,
+    });
+    const lines = rendered.split('\n');
+    expect(lines).toContain('Widget (ui-widget)');
+    expect(lines).toContain('Widget (ui-widget-features)');
+  });
+});
+
 describe('formatStylish: mass-failure collapse', () => {
   const render = (diags: Diagnostic[], entryCount: number) =>
     formatStylish(summaryOf(diags, { entryCount }), { color: false, quiet: false });
@@ -405,6 +463,40 @@ describe('formatStepSummary', () => {
   it('is a markdown table with a heading', () => {
     expect(md).toContain('### Oversight manifest lint');
     expect(md).toContain('| Component | Severity | Rule | Message |');
+  });
+
+  it('distinguishes Component cells for entries that share a name (#44)', () => {
+    const collide = formatStepSummary(
+      summaryOf(
+        [
+          {
+            rule: 'component-description-missing',
+            severity: 'warning',
+            componentId: 'ui-widget',
+            message: 'Widget has no description.',
+          },
+          {
+            rule: 'component-description-missing',
+            severity: 'warning',
+            componentId: 'ui-widget-features',
+            message: 'Widget has no description.',
+          },
+        ],
+        {
+          entryCount: 2,
+          names: new Map([
+            ['ui-widget', 'Widget'],
+            ['ui-widget-features', 'Widget'],
+          ]),
+          files: new Map([
+            ['ui-widget', './Widget.stories.tsx'],
+            ['ui-widget-features', './Widget.features.stories.tsx'],
+          ]),
+        },
+      ),
+    );
+    expect(collide).toContain('| Widget (Widget.stories.tsx) |');
+    expect(collide).toContain('| Widget (Widget.features.stories.tsx) |');
   });
 
   it('names the manifest, its extractor, and the affected entries', () => {
