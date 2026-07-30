@@ -88,7 +88,14 @@ relative to components. The CLI does not deduplicate by component name: names
 collide across packages, and the manifest offers no stronger component identity
 than the entry id.
 
-Findings are grouped by component. `--format json` (alias `--json`) emits the
+Findings are grouped by entry, headed with the entry's component name. When
+another entry in the manifest shares that name, the heading adds the stories
+file, because the name alone cannot say which file a finding came from:
+`Features (src/Dialog/Dialog.features.stories.tsx)`. The entry id stands in when
+an entry records no stories file. The Actions step summary labels its Component
+column the same way.
+
+`--format json` (alias `--json`) emits the
 same findings keyed by component id, with the summary counts and the manifest's
 `path`, `docgen`, and `entries` count under `summary.manifest`, for programmatic
 use. `docgen-missing` and `story-extraction-error` findings carry the full
