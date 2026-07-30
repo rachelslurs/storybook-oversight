@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -393,5 +393,46 @@ describe('run: mass-failure collapse in text output (#34)', () => {
     expect(result.stdout).toContain('12 of 12 entries');
     expect(result.stdout).toContain('react-docgen-typescript found no component docs');
     expect(result.stdout).not.toMatch(/distinct errors|other errors/);
+  });
+});
+
+describe('run: ref targets are confined to the build output', () => {
+  // The ref grammar is checked as a string, which cannot see symlinks.
+  // readFileSync follows them on every path component, so the boundary has to
+  // be enforced after the path resolves.
+  function refTree(target: string): string {
+    const out = join(dir, 'out');
+    mkdirSync(join(out, 'manifests'), { recursive: true });
+    mkdirSync(join(out, 'services/core/docgen'), { recursive: true });
+    writeFileSync(
+      join(out, 'manifests/components.json'),
+      JSON.stringify({
+        v: 1,
+        meta: { docgen: 'react-component-meta' },
+        components: {
+          x: { id: 'x', name: 'X', docgen: { $ref: '../services/core/docgen/x.json#/components/x' } },
+        },
+      }),
+    );
+    symlinkSync(target, join(out, 'services/core/docgen/x.json'));
+    return join(out, 'manifests/components.json');
+  }
+
+  it('refuses a symlink pointing outside the build output', async () => {
+    const secret = join(dir, 'secret.json');
+    writeFileSync(secret, JSON.stringify({ components: { x: { reactComponentMeta: { props: {} } } } }));
+    const result = await run(options({ manifestPath: refTree(secret) }));
+    // Degrades to a finding about that entry, never the file's contents.
+    expect(result.stdout).toMatch(/docgen-missing/);
+    expect(result.stdout).toMatch(/outside the build output/);
+    expect(result.code).toBe(1);
+  });
+
+  it('refuses a ref that does not name a regular file', async () => {
+    // A symlink to a device or FIFO would otherwise hang the run until CI
+    // timed the job out.
+    const result = await run(options({ manifestPath: refTree('/dev/null') }));
+    expect(result.stdout).toMatch(/not a regular file|outside the build output/);
+    expect(result.code).toBe(1);
   });
 });

@@ -55,6 +55,13 @@ async function main(): Promise<number> {
 
 // Set the exit code and let Node exit once stdout has drained. `process.exit()`
 // would truncate output written to a pipe or file, where writes are async.
-main().then((code) => {
-  process.exitCode = code;
-});
+main()
+  .then((code) => {
+    process.exitCode = code;
+  })
+  .catch((err: unknown) => {
+    // Node's default for an unhandled rejection is also a non-zero exit, but
+    // saying so here keeps the exit-code matrix readable from one place.
+    process.stderr.write(`oversight: ${err instanceof Error ? err.message : String(err)}\n`);
+    process.exitCode = 2;
+  });

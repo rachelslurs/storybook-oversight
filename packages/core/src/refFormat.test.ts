@@ -242,3 +242,52 @@ describe('unresolved refs', () => {
     expect(shapeIssueOf(inline)).toBeUndefined();
   });
 });
+
+describe('entry shapes the index can emit', () => {
+  it('converts keyed stories even when only docgen was deferred', async () => {
+    // An index that defers `docgen` but inlines `stories` hands over the leaf's
+    // keyed object with no stories ref to convert it. Leaving it would throw
+    // out of the normalizer, which is the failure this format support exists to
+    // remove.
+    const resolved = await resolveManifestRefs(
+      {
+        v: 1,
+        components: {
+          x: {
+            id: 'x',
+            name: 'X',
+            docgen: { $ref: '../services/core/docgen/x.json#/components/x' },
+            stories: { 'x--a': { id: 'x--a', name: 'A' } },
+          },
+        },
+      } as unknown as RawManifest,
+      () => JSON.stringify({ components: { x: { path: './x.stories.tsx', reactComponentMeta: { props: {} } } } }),
+    );
+    expect(Array.isArray(resolved.components?.x.stories)).toBe(true);
+    expect(() => normalizeManifest(resolved)).not.toThrow();
+  });
+
+  it('keeps a ref failure alongside an error the entry already carried', async () => {
+    // Replacing the entry's error dropped the resolution failure, and
+    // docgen-missing then reported the stale error as the reason docgen failed.
+    const resolved = await resolveManifestRefs(
+      {
+        v: 1,
+        components: {
+          x: {
+            id: 'x',
+            name: 'X',
+            error: { message: 'pre-existing extraction problem' },
+            docgen: { $ref: '../services/core/docgen/x.json#/components/x' },
+          },
+        },
+      } as unknown as RawManifest,
+      () => {
+        throw new Error('leaf unreachable');
+      },
+    );
+    const error = String(resolved.components?.x.error);
+    expect(error).toMatch(/pre-existing extraction problem/);
+    expect(error).toMatch(/failed to load/);
+  });
+});

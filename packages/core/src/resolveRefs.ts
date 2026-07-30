@@ -78,12 +78,31 @@ type LoadFile = (path: string) => Promise<FileLoad>;
  * `describeManifestUnavailable` screens the detail before it can reach an
  * entry error (in dev these paths return an HTML 404 page).
  */
+/**
+ * A filesystem loader's failure names the absolute path it tried, which the
+ * message already identifies by ref and which puts CI runner directory layout
+ * into build logs. The errno alone says what went wrong.
+ */
+function loaderDetail(error: unknown): string | undefined {
+  const code = (error as { code?: unknown })?.code;
+  if (typeof code === 'string') {
+    const known: Record<string, string> = {
+      ENOENT: 'no such file',
+      EACCES: 'permission denied',
+      EISDIR: 'not a file',
+      ELOOP: 'too many symbolic links',
+    };
+    return known[code] ?? code;
+  }
+  return error instanceof Error ? error.message : undefined;
+}
+
 async function readLeaf(load: RefLoader, path: string): Promise<FileLoad> {
   let body: string;
   try {
     body = await load(path);
   } catch (error) {
-    return { ok: false, detail: error instanceof Error ? error.message : undefined };
+    return { ok: false, detail: loaderDetail(error) };
   }
   try {
     return { ok: true, data: JSON.parse(body) as unknown };
@@ -128,17 +147,28 @@ function storiesToArray(value: unknown): RawStory[] | undefined {
   return Object.values(value) as RawStory[];
 }
 
+/**
+ * The normalizer iterates `stories`, so no entry may leave here with the keyed
+ * object a leaf carries. An index that defers `docgen` while inlining `stories`
+ * reaches this with the leaf's shape and no ref to convert it.
+ */
+function withIterableStories(entry: RawEntry): RawEntry {
+  if (entry.stories === undefined || Array.isArray(entry.stories)) return entry;
+  return { ...entry, stories: storiesToArray(entry.stories) };
+}
+
+/** The entry's own error, in the loose shapes the manifest uses for it. */
+function existingErrorText(error: unknown): string {
+  if (error == null) return '';
+  if (typeof error === 'string') return error;
+  const message = (error as { message?: unknown }).message;
+  return typeof message === 'string' ? message : '';
+}
+
 async function resolveEntry(entry: RawEntry, loadFile: LoadFile): Promise<RawEntry> {
   const docgen = refOf((entry as { docgen?: unknown }).docgen);
   const stories = refOf(entry.stories);
-  if (!docgen.isRef && !stories.isRef) {
-    // An entry the index inlined rather than deferred still carries the leaf's
-    // keyed `stories`, which the normalizer cannot iterate.
-    if (entry.stories !== undefined && !Array.isArray(entry.stories)) {
-      return { ...entry, stories: storiesToArray(entry.stories) };
-    }
-    return entry;
-  }
+  if (!docgen.isRef && !stories.isRef) return withIterableStories(entry);
 
   const next = { ...entry } as RawEntry & { docgen?: unknown };
   delete next.docgen;
@@ -172,8 +202,13 @@ async function resolveEntry(entry: RawEntry, loadFile: LoadFile): Promise<RawEnt
     }
   }
 
-  if (errors.length > 0 && next.error == null) next.error = errors.join('\n');
-  return next;
+  // Append rather than replace. Overwriting only when the entry had no error
+  // dropped every resolution failure on an entry that arrived carrying one, and
+  // `docgen-missing` then reported the stale error as the reason docgen failed.
+  if (errors.length > 0) {
+    next.error = [existingErrorText(next.error), ...errors].filter(Boolean).join('\n');
+  }
+  return withIterableStories(next);
 }
 
 /**
