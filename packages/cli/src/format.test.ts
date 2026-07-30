@@ -700,6 +700,18 @@ describe('formatGithub', () => {
     expect(errorLine).not.toContain('./stories');
   });
 
+  it('anchors an entry keyed by the empty string, clamping its path (#44)', () => {
+    const anchored = formatGithub(
+      summaryOf([{ rule: 'docgen-missing', severity: 'error', componentId: '', message: 'Widget failed.' }], {
+        entryCount: 1,
+        names: new Map([['', 'Widget']]),
+        files: new Map([['', './Widget.stories.tsx\nsecond line']]),
+      }),
+    );
+    expect(anchored).toContain('file=Widget.stories.tsx');
+    expect(anchored).not.toContain('second line');
+  });
+
   it('emits manifest-level findings without a file (job-level)', () => {
     const drift = lines.find((l) => l.includes('oversight/extractor-drift'));
     expect(drift).toBeDefined();
