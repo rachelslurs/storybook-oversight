@@ -132,12 +132,19 @@ describe('formatStylish: shared component names (#44)', () => {
           componentId: 'ui-widget-features',
           message: 'Widget has no description.',
         },
+        {
+          rule: 'component-description-missing',
+          severity: 'warning',
+          componentId: 'ui-gadget',
+          message: 'Gadget has no description.',
+        },
       ],
       {
-        entryCount: 2,
+        entryCount: 3,
         names: new Map([
           ['ui-widget', 'Widget'],
           ['ui-widget-features', 'Widget'],
+          ['ui-gadget', 'Gadget'],
         ]),
         files: new Map(files),
       },
@@ -149,11 +156,12 @@ describe('formatStylish: shared component names (#44)', () => {
     expect(lines).toContain('Old');
   });
 
-  it('names the stories file when several entries share a name', () => {
+  it('names the stories file when several entries share a name, leaving unique names bare', () => {
     const rendered = formatStylish(
       collision([
         ['ui-widget', './Widget.stories.tsx'],
         ['ui-widget-features', './Widget.features.stories.tsx'],
+        ['ui-gadget', './Gadget.stories.tsx'],
       ]),
       { color: false, quiet: false },
     );
@@ -161,6 +169,8 @@ describe('formatStylish: shared component names (#44)', () => {
     expect(lines).toContain('Widget (Widget.stories.tsx)');
     expect(lines).toContain('Widget (Widget.features.stories.tsx)');
     expect(lines).not.toContain('Widget');
+    // The unique name in the same manifest keeps its bare heading.
+    expect(lines).toContain('Gadget');
   });
 
   it('falls back to the entry id when a colliding entry has no stories file', () => {
