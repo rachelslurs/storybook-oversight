@@ -1,5 +1,24 @@
 # oversight-lint
 
+## 0.4.0
+
+### Minor Changes
+
+- 22951bd: Say what was linted, and collapse mass extraction failures. The stylish output now opens with the manifest path and its recorded extractor, and the tally counts affected manifest entries; JSON output gains `summary.manifest` (`path`, `docgen`, `entries`). When a rule's `docgen-missing` or `story-extraction-error` findings touch at least 10 distinct entries and at least half the manifest's entries, the text output and the Actions step summary render one row per error signature (signatures on fewer than 10 entries pool into one leftovers row) instead of the per-entry lines, while `--format json` keeps every finding. Extraction-failure messages now lead with the manifest error's `name` and append the message's first line when it adds information; the full error text stays on the finding's `error` field, and the name rides along on `errorName`. The addon panel's Extraction and Stories sections use the same name-led summary, hence the patch.
+
+### Patch Changes
+
+- 0f12767: Clamp the `@deprecated` value in the `deprecated-tag` finding message to its first non-empty line. A multi-line note used to split the CLI step-summary table row, and a whitespace-only body rendered as `X is marked @deprecated:  .`. That body now reads as a bare tag, and a note ending in a period no longer renders a doubled period. When the clamp drops continuation lines, the finding's `error` field carries the full note, included in `--format json`. Component names are also clamped to their first non-empty line, so a newline in a manifest name cannot split any finding message.
+- 56bc132: The missing-manifest message now states which Storybook versions can produce a
+  components manifest: 10.3 and later emit one when `features.componentsManifest`
+  is enabled in `.storybook/main.ts` (installing `@storybook/addon-mcp` enables
+  it), 10.1 and 10.2 only behind `features.experimentalComponentsManifest`
+  (unsupported), and below 10.1 no configuration produces one. It previously
+  advised enabling `@storybook/addon-mcp` alone, advice that cannot work below
+  10.3. The CLI README now states the supported range, and records that
+  `docs-link-dangling` validates the description-redirect convention and stays
+  silent in repos that do not use it.
+
 ## 0.3.0
 
 ### Minor Changes
