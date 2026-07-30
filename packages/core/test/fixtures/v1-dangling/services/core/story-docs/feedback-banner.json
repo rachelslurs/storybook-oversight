@@ -1,0 +1,17 @@
+{
+  "components": {
+    "feedback-banner": {
+      "id": "feedback-banner",
+      "name": "Banner",
+      "path": "./stories/Banner/Banner.stories.tsx",
+      "import": "import { Banner } from \"oversight-workspace\";",
+      "stories": {
+        "feedback-banner--default": {
+          "id": "feedback-banner--default",
+          "name": "Default",
+          "snippet": "const Default = () => <Banner>Scheduled maintenance tonight at 11pm.</Banner>;"
+        }
+      }
+    }
+  }
+}

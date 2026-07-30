@@ -65,6 +65,49 @@ export type RawManifest = {
   components?: Record<string, RawEntry>;
 };
 
+/**
+ * v:1 raw types (`features.experimentalDocgenServer`). The index defers each
+ * entry's payload to per-component leaf files via
+ * `../services/core/{docgen,story-docs}/<id>.json#/components/<id>`;
+ * `resolveManifestRefs` folds the leaves back into the inline `RawEntry`
+ * shape. The same instability caveat applies: every field is optional.
+ */
+export type RawRef = { $ref?: string };
+
+export type RawIndexEntry = {
+  id?: string;
+  name?: string;
+  description?: string;
+  docgen?: RawRef;
+  stories?: RawRef;
+};
+
+/** The docgen leaf's per-component node: the fields an inline entry carries
+ *  directly, minus stories. */
+export type RawDocgenNode = {
+  id?: string;
+  name?: string;
+  path?: string;
+  description?: string;
+  jsDocTags?: Record<string, unknown>;
+  reactComponentMeta?: RawPayload;
+};
+
+/** The story-docs leaf's per-component node. Stories arrive keyed by story id;
+ *  `RawEntry.stories` is an array, so resolution converts with Object.values. */
+export type RawStoryDocsNode = {
+  id?: string;
+  name?: string;
+  path?: string;
+  import?: string;
+  stories?: Record<string, RawStory>;
+};
+
+/** A leaf file's envelope: the `#/components/<id>` pointer lands in `components`. */
+export type RawLeafFile<Node = RawDocgenNode | RawStoryDocsNode> = {
+  components?: Record<string, Node>;
+};
+
 /** An entry whose docgen extraction failed (no payload in the manifest). */
 export type ExtractionFailure = {
   id: string;
@@ -85,13 +128,33 @@ export type StoryFailure = {
   errorName: string | null;
 };
 
+/**
+ * A part of the manifest that did not arrive in the shape this version reads.
+ * `componentId` is null when the finding is manifest-wide.
+ */
+export type ShapeIssue = {
+  componentId: string | null;
+  /** What was looked for. */
+  expected: string;
+  /** What arrived instead. */
+  got: string;
+};
+
 export type NormalizeResult = {
   /** The manifest's recorded extractor: `meta.docgen` verbatim when non-empty,
    *  else the payload key every extracted entry shares, else null. */
   extractor: string | null;
+  /** Which manifest shape this came from. `ref` means the payloads were
+   *  resolved from per-component files rather than read inline. */
+  format: 'inline' | 'ref';
+  /** Whether the prop payload still carries the keys the prop rules read.
+   *  `unrecognized` holds those two rules rather than reporting every prop as
+   *  undocumented off a renamed field. */
+  propShape: 'known' | 'unrecognized';
   components: NormalizedComponent[];
   failures: ExtractionFailure[];
   storyFailures: StoryFailure[];
+  shapeIssues: ShapeIssue[];
   /** Side-band JSDoc tags per component id; values normalized to strings. */
   tags: Record<string, Record<string, string>>;
 };
@@ -105,7 +168,8 @@ export type DiagnosticRule =
   | 'required-prop-undocumented'
   | 'docs-link-dangling'
   | 'unknown-ignore-rule'
-  | 'deprecated-tag';
+  | 'deprecated-tag'
+  | 'manifest-shape-unrecognized';
 
 export type DiagnosticSeverity = 'error' | 'warning' | 'info';
 

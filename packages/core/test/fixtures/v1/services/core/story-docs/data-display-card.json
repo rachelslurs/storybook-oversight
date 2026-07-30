@@ -1,0 +1,22 @@
+{
+  "components": {
+    "data-display-card": {
+      "id": "data-display-card",
+      "name": "Card",
+      "path": "./stories/Card/Card.stories.tsx",
+      "import": "import { Card } from \"oversight-workspace\";",
+      "stories": {
+        "data-display-card--default": {
+          "id": "data-display-card--default",
+          "name": "Default",
+          "snippet": "const Default = () => <Card title=\"Weekly summary\">Everything is on track.</Card>;"
+        },
+        "data-display-card--elevated": {
+          "id": "data-display-card--elevated",
+          "name": "Elevated",
+          "snippet": "const Elevated = () => <Card title=\"Elevated\" elevated>Lifted off the page.</Card>;"
+        }
+      }
+    }
+  }
+}

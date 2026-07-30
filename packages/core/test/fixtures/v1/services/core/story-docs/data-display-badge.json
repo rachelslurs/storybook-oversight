@@ -1,0 +1,22 @@
+{
+  "components": {
+    "data-display-badge": {
+      "id": "data-display-badge",
+      "name": "Badge",
+      "path": "./stories/Badge/Badge.stories.tsx",
+      "import": "import { Badge } from \"oversight-workspace\";",
+      "stories": {
+        "data-display-badge--neutral": {
+          "id": "data-display-badge--neutral",
+          "name": "Neutral",
+          "snippet": "const Neutral = () => <Badge>Draft</Badge>;"
+        },
+        "data-display-badge--success": {
+          "id": "data-display-badge--success",
+          "name": "Success",
+          "snippet": "const Success = () => <Badge tone=\"success\">Live</Badge>;"
+        }
+      }
+    }
+  }
+}

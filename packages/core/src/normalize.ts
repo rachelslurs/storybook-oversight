@@ -1,3 +1,4 @@
+import { detectManifestFormat } from './format';
 import { firstNonEmptyLine } from './text';
 import type {
   ExtractionFailure,
@@ -6,6 +7,7 @@ import type {
   RawEntry,
   RawManifest,
   RawPayload,
+  ShapeIssue,
   StoryFailure,
 } from './types';
 
@@ -114,13 +116,67 @@ function recordedExtractor(raw: RawManifest): string | null {
   return flavors.size === 1 ? [...flavors][0] : null;
 }
 
+/**
+ * Whether the prop payload still carries the keys `prop-descriptions-missing`
+ * and `required-prop-undocumented` read.
+ *
+ * The test is key presence, never value truthiness, because an undocumented
+ * prop and a renamed field are otherwise identical: react-component-meta emits
+ * `description: ""` for a prop nobody documented, so the key survives. It is
+ * also asked of the whole manifest rather than each prop, since a rename is a
+ * schema change that hits every prop at once: one prop anywhere carrying the
+ * key proves the field still exists under that name, and an individual prop
+ * missing it then reads as undocumented.
+ *
+ * Unknown extra keys never fail this. Additive changes are the common
+ * non-breaking case, and refusing them would manufacture the under-report the
+ * check exists to prevent.
+ */
+function inspectPropShape(raw: RawManifest): { propShape: 'known' | 'unrecognized'; issue?: ShapeIssue } {
+  let total = 0;
+  let sawDescription = false;
+  let sawRequired = false;
+  let sample: string[] = [];
+
+  for (const entry of Object.values(raw.components ?? {})) {
+    const payload = payloadOf(entry);
+    for (const prop of Object.values(payload?.props ?? {})) {
+      if (prop === null || typeof prop !== 'object') continue;
+      total += 1;
+      if (total === 1) sample = Object.keys(prop);
+      if ('description' in prop) sawDescription = true;
+      if (typeof prop.required === 'boolean') sawRequired = true;
+      if (sawDescription && sawRequired) return { propShape: 'known' };
+    }
+  }
+
+  // No props at all leaves nothing to misread, and the two rules would stay
+  // silent either way.
+  if (total === 0) return { propShape: 'known' };
+
+  const missing = [!sawDescription && 'description', !sawRequired && 'required'].filter(Boolean).join(' and ');
+  return {
+    propShape: 'unrecognized',
+    issue: {
+      componentId: null,
+      expected: `every prop to carry "description" and a boolean "required"`,
+      got: `${total} prop${total === 1 ? '' : 's'} with no ${missing}, keys: ${sample.join(', ') || '(none)'}`,
+    },
+  };
+}
+
 export function normalizeManifest(raw: RawManifest): NormalizeResult {
   const rawExtractor = recordedExtractor(raw);
   const repoRoot = detectRepoRoot(raw);
+  const format = detectManifestFormat(raw).kind === 'ref' ? 'ref' : 'inline';
+  // Scoped to the ref format: react-docgen declares `description` optional on
+  // its own prop descriptor, so an inline manifest may legitimately omit it.
+  const { propShape, issue } = format === 'ref' ? inspectPropShape(raw) : { propShape: 'known' as const };
 
   const components: NormalizedComponent[] = [];
   const failures: ExtractionFailure[] = [];
   const storyFailures: StoryFailure[] = [];
+  const shapeIssues: ShapeIssue[] = issue ? [issue] : [];
   const tags: NormalizeResult['tags'] = {};
 
   for (const [id, entry] of Object.entries(raw.components ?? {})) {
@@ -177,6 +233,18 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
       props,
     });
 
+    // A resolved entry can still carry an error: a v:1 component whose docgen
+    // ref loaded while its stories ref did not keeps its payload, so the
+    // failure would otherwise be recorded and reported nowhere.
+    const entryError = stringifyError(entry.error);
+    if (entryError) {
+      shapeIssues.push({
+        componentId: id,
+        expected: 'every $ref on this entry to resolve',
+        got: entryError,
+      });
+    }
+
     // Entry-level tags (story-meta JSDoc) win collisions with payload tags.
     const componentTags = { ...tagsFrom(payload.tags), ...entryTags };
     if (Object.keys(componentTags).length > 0) {
@@ -184,5 +252,5 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
     }
   }
 
-  return { extractor: rawExtractor, components, failures, storyFailures, tags };
+  return { extractor: rawExtractor, format, propShape, components, failures, storyFailures, shapeIssues, tags };
 }

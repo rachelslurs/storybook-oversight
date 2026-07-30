@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { detectRepoRoot, normalizeManifest } from './normalize';
+import { resolveManifestRefs } from './resolveRefs';
 import type { RawManifest, RawPayload } from './types';
 
 function loadFixture(): RawManifest {
@@ -339,13 +340,12 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
     expect(result.components[0].sourceFile).toBe('/repo/my-storybook/src/A.tsx');
   });
 
-  it('throws on the ref-based index shape (experimentalDocgenServer, not yet supported)', () => {
-    // Storybook's experimentalDocgenServer emits a lightweight index whose entries
-    // point at per-component files via $ref, and `stories` is a { $ref } object
-    // rather than an array. normalize iterates `stories`, so it throws on this
-    // shape. The manager panel and docs block catch this and show an error state
-    // (#11); teaching normalize to read the ref format is tracked in #13, which
-    // will replace this expectation.
+  it("requires a ref index to be resolved first: refs are not normalize's job (#13)", async () => {
+    // `stories` arrives as a { $ref } object rather than an array, and normalize
+    // iterates it. resolveManifestRefs is what turns a v:1 index into the inline
+    // shape; calling normalize on a raw index skips that step. Pinning the throw
+    // keeps the two steps from being silently collapsed: a caller that forgets to
+    // hydrate gets an error, never a manifest that reads as empty.
     const refIndex = {
       v: 1,
       meta: { docgen: 'react-component-meta' },
@@ -360,5 +360,21 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
       },
     } as unknown as RawManifest;
     expect(() => normalizeManifest(refIndex)).toThrow();
+
+    const resolved = await resolveManifestRefs(refIndex, () =>
+      JSON.stringify({
+        components: {
+          'example-button': {
+            path: './Button.stories.tsx',
+            reactComponentMeta: { props: { label: { description: 'The text.', required: true } } },
+            stories: { 'example-button--primary': { id: 'example-button--primary', name: 'Primary' } },
+          },
+        },
+      }),
+    );
+    const result = normalizeManifest(resolved);
+    expect(result.format).toBe('ref');
+    expect(result.components).toHaveLength(1);
+    expect(result.components[0].storiesFile).toBe('./Button.stories.tsx');
   });
 });

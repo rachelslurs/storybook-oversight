@@ -1,0 +1,95 @@
+{
+  "components": {
+    "layout-panel": {
+      "id": "layout-panel",
+      "name": "Panel",
+      "path": "./stories/Panel/Panel.stories.tsx",
+      "jsDocTags": {
+        "oversightIgnore": [
+          "prop-descriptions-missing"
+        ]
+      },
+      "description": "An internal scaffolding surface. Its `slot` prop is intentionally undocumented,\nso `@oversightIgnore` exempts this component from the prop-coverage rule: a\ndeliberate opt-out, not an oversight.",
+      "reactComponentMeta": {
+        "displayName": "Panel",
+        "exportName": "Panel",
+        "filePath": "/repo/stories/Panel/Panel.tsx",
+        "description": "An internal scaffolding surface. Its `slot` prop is intentionally undocumented,\nso `@oversightIgnore` exempts this component from the prop-coverage rule: a\ndeliberate opt-out, not an oversight.",
+        "jsDocTags": {
+          "oversightIgnore": [
+            "prop-descriptions-missing"
+          ]
+        },
+        "props": {
+          "children": {
+            "name": "children",
+            "required": false,
+            "type": {
+              "name": "ReactNode"
+            },
+            "description": "Content rendered inside the panel.",
+            "defaultValue": null,
+            "parent": {
+              "name": "PanelProps",
+              "fileName": "stories/Panel/Panel.tsx"
+            },
+            "declarations": [
+              {
+                "name": "PanelProps",
+                "fileName": "stories/Panel/Panel.tsx"
+              }
+            ]
+          },
+          "slot": {
+            "name": "slot",
+            "required": false,
+            "type": {
+              "name": "string"
+            },
+            "description": "",
+            "defaultValue": null,
+            "parent": {
+              "name": "PanelProps",
+              "fileName": "stories/Panel/Panel.tsx"
+            },
+            "declarations": [
+              {
+                "name": "PanelProps",
+                "fileName": "stories/Panel/Panel.tsx"
+              }
+            ]
+          }
+        }
+      },
+      "argTypes": {
+        "children": {
+          "name": "children",
+          "description": "Content rendered inside the panel.",
+          "type": {
+            "required": false,
+            "name": "other",
+            "value": "ReactNode"
+          },
+          "table": {
+            "type": {
+              "summary": "ReactNode"
+            }
+          }
+        },
+        "slot": {
+          "name": "slot",
+          "description": "",
+          "type": {
+            "required": false,
+            "name": "string"
+          },
+          "table": {
+            "type": {
+              "summary": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

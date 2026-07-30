@@ -1,0 +1,57 @@
+{
+  "components": {
+    "data-display-tile": {
+      "id": "data-display-tile",
+      "name": "Tile",
+      "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.\n\n(That link is intentionally broken — there is no `data-display-ghost`\ncomponent — so Oversight flags it as docs-link-dangling.)",
+      "path": "./stories/Tile/Tile.stories.tsx",
+      "jsDocTags": {},
+      "reactComponentMeta": {
+        "displayName": "Tile",
+        "exportName": "Tile",
+        "filePath": "/repo/stories/Tile/Tile.tsx",
+        "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.\n\n(That link is intentionally broken — there is no `data-display-ghost`\ncomponent — so Oversight flags it as docs-link-dangling.)",
+        "props": {
+          "label": {
+            "name": "label",
+            "required": true,
+            "type": {
+              "name": "string"
+            },
+            "description": "Heading shown at the top of the tile.",
+            "defaultValue": null,
+            "parent": {
+              "name": "TileProps",
+              "fileName": "stories/Tile/Tile.tsx"
+            },
+            "declarations": [
+              {
+                "name": "TileProps",
+                "fileName": "stories/Tile/Tile.tsx"
+              }
+            ]
+          },
+          "children": {
+            "name": "children",
+            "required": false,
+            "type": {
+              "name": "ReactNode"
+            },
+            "description": "Content rendered below the heading.",
+            "defaultValue": null,
+            "parent": {
+              "name": "TileProps",
+              "fileName": "stories/Tile/Tile.tsx"
+            },
+            "declarations": [
+              {
+                "name": "TileProps",
+                "fileName": "stories/Tile/Tile.tsx"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

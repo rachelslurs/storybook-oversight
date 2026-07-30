@@ -1,7 +1,7 @@
 import { analyzeManifest } from 'oversight-core';
 import type { RunOptions } from './config';
 import { formatGithub, formatJson, formatStepSummary, formatStylish } from './format';
-import { ManifestError, readManifest } from './manifest';
+import { ManifestError, hydrateManifest, readManifest } from './manifest';
 import type { LintSummary } from './types';
 
 export type RunResult = {
@@ -13,12 +13,13 @@ export type RunResult = {
 };
 
 /** Read, analyze, and format a manifest. Pure over the filesystem: no process
- *  exit, no console, no env — the caller owns that so the exit-code matrix is
- *  testable. */
-export function run(options: RunOptions): RunResult {
+ *  exit, no console, no env. The caller owns those so the exit-code matrix is
+ *  testable. Async because a ref-based manifest resolves its payloads by
+ *  reading further files. */
+export async function run(options: RunOptions): Promise<RunResult> {
   let manifest;
   try {
-    manifest = readManifest(options.manifestPath);
+    manifest = await hydrateManifest(readManifest(options.manifestPath), options.manifestPath);
   } catch (err) {
     if (err instanceof ManifestError) return { code: 2, stdout: '', stderr: err.message };
     throw err;
@@ -28,16 +29,15 @@ export function run(options: RunOptions): RunResult {
   try {
     analysis = analyzeManifest(manifest, options.lint);
   } catch (err) {
-    // Only the ref-based v:1 manifest gets the docgen-server hint; any other
-    // shape that trips the normalizer is reported as a plain malformed manifest.
-    const hint =
-      (manifest as { v?: number }).v === 1
-        ? 'This is the experimentalDocgenServer ref-based (v:1) manifest, which is not supported yet.'
-        : 'The manifest could not be analyzed; it may be malformed or in an unsupported format.';
+    // A version this build knows is refused by name in hydrateManifest, so
+    // anything reaching here is a shape no message can describe. The raw error
+    // is the only information available and it earns its place.
     return {
       code: 2,
       stdout: '',
-      stderr: `Could not analyze ${options.manifestPath}: ${(err as Error).message}\n${hint}`,
+      stderr:
+        `Could not analyze ${options.manifestPath}: ${(err as Error).message}\n` +
+        `The manifest could not be analyzed; it may be malformed or in an unsupported format.`,
     };
   }
 

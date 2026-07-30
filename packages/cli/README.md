@@ -36,9 +36,20 @@ behind `features.experimentalComponentsManifest`, and those flag-built manifests
 happen to lint; that spelling was renamed at 10.3.0 with no alias. Below 10.1
 there is no components manifest to lint.
 
-Storybook's experimental `experimentalDocgenServer` flag emits a different,
-ref-based manifest that is not supported yet; `oversight-lint` reports it as an
-unsupported format (exit 2) rather than guessing.
+Storybook's experimental `experimentalDocgenServer` flag emits a ref-based
+manifest (`v: 1`) whose entries defer their payloads to per-component files under
+`services/core/`. `oversight-lint` reads it, resolving those refs relative to the
+manifest. Findings come out the same as for an inline manifest.
+
+Two things to know about that flag. It writes a manifest only when
+`features.componentsManifest` is also on, which `@storybook/addon-mcp` supplies;
+with the flag alone, no manifest is written at all. And the manifest is written
+on `storybook build`, never served in dev.
+
+Storybook documents the `services/core/` layout as an internal construct that may
+change in patch versions. A ref that stops resolving is reported as
+`docgen-missing` for that component, and a manifest version this build does not
+know is refused by version number (exit 2) rather than guessed at.
 
 ## Usage
 
@@ -192,6 +203,14 @@ rules from `oversight-core`, at these default severities:
 | `docs-link-dangling`            | error            | a prose `?path=/docs\|story/…` link targets an id whose component prefix isn't in the manifest     |
 | `unknown-ignore-rule`           | warning          | `@oversightIgnore` lists a token that is not a rule name                                           |
 | `deprecated-tag`                | info             | a `@deprecated` tag is present                                                                     |
+| `manifest-shape-unrecognized`   | warning          | part of the manifest did not arrive in the shape this build reads: a prop payload missing the fields the prop rules need, or a `$ref` that did not resolve |
+
+When `manifest-shape-unrecognized` fires against the prop payload,
+`prop-descriptions-missing` and `required-prop-undocumented` do not run. Both read
+`props[n].description` and `props[n].required`, and a build where those fields
+have moved would otherwise report every prop in the library as undocumented. The
+check asks whether the field names still exist anywhere in the manifest, so a prop
+carrying an empty description still counts as undocumented and is still reported.
 
 ## Why these are lint rules
 

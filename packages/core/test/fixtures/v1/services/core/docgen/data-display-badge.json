@@ -1,0 +1,108 @@
+{
+  "components": {
+    "data-display-badge": {
+      "id": "data-display-badge",
+      "name": "Badge",
+      "path": "./stories/Badge/Badge.stories.tsx",
+      "jsDocTags": {},
+      "reactComponentMeta": {
+        "displayName": "Badge",
+        "exportName": "Badge",
+        "filePath": "/repo/stories/Badge/Badge.tsx",
+        "description": "",
+        "props": {
+          "tone": {
+            "name": "tone",
+            "required": false,
+            "type": {
+              "name": "enum",
+              "raw": "\"neutral\" | \"success\" | \"danger\"",
+              "value": [
+                {
+                  "value": "\"neutral\""
+                },
+                {
+                  "value": "\"success\""
+                },
+                {
+                  "value": "\"danger\""
+                }
+              ]
+            },
+            "description": "Colour intent — 'neutral', 'success', or 'danger'.",
+            "defaultValue": {
+              "value": "'neutral'"
+            },
+            "parent": {
+              "name": "BadgeProps",
+              "fileName": "stories/Badge/Badge.tsx"
+            },
+            "declarations": [
+              {
+                "name": "BadgeProps",
+                "fileName": "stories/Badge/Badge.tsx"
+              }
+            ]
+          },
+          "children": {
+            "name": "children",
+            "required": false,
+            "type": {
+              "name": "ReactNode"
+            },
+            "description": "Short label rendered inside the badge.",
+            "defaultValue": null,
+            "parent": {
+              "name": "BadgeProps",
+              "fileName": "stories/Badge/Badge.tsx"
+            },
+            "declarations": [
+              {
+                "name": "BadgeProps",
+                "fileName": "stories/Badge/Badge.tsx"
+              }
+            ]
+          }
+        }
+      },
+      "argTypes": {
+        "tone": {
+          "name": "tone",
+          "description": "Colour intent — 'neutral', 'success', or 'danger'.",
+          "type": {
+            "required": false,
+            "raw": "\"neutral\" | \"success\" | \"danger\"",
+            "name": "enum",
+            "value": [
+              "neutral",
+              "success",
+              "danger"
+            ]
+          },
+          "table": {
+            "type": {
+              "summary": "\"neutral\" | \"success\" | \"danger\""
+            },
+            "defaultValue": {
+              "summary": "\"'neutral'\""
+            }
+          }
+        },
+        "children": {
+          "name": "children",
+          "description": "Short label rendered inside the badge.",
+          "type": {
+            "required": false,
+            "name": "other",
+            "value": "ReactNode"
+          },
+          "table": {
+            "type": {
+              "summary": "ReactNode"
+            }
+          }
+        }
+      }
+    }
+  }
+}
