@@ -30,6 +30,11 @@ export type ComponentReport = {
    *  the same list on every component's report, rendered in their own section
    *  and deliberately kept out of the per-component count. */
   manifestDiagnostics: Diagnostic[];
+  /** `unrecognized` means the prop payload was not in a shape this build reads,
+   *  so `props` is not trustworthy. Renderers must not present prop coverage
+   *  from it: the lint rules are held in that case, and a coverage figure drawn
+   *  from the same fields would contradict the diagnostic saying so. */
+  propShape: 'known' | 'unrecognized';
 };
 
 export function analyzeManifest(manifest: RawManifest, options?: LintOptions): ManifestAnalysis {
@@ -48,6 +53,7 @@ export function resolveComponent(analysis: ManifestAnalysis, componentId: string
     storyFailures: analysis.result.storyFailures.filter((f) => f.componentId === componentId),
     diagnostics: analysis.diagnostics.filter((d) => d.componentId === componentId),
     manifestDiagnostics: analysis.diagnostics.filter((d) => d.componentId === null),
+    propShape: analysis.result.propShape,
   };
 }
 
