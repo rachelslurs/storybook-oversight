@@ -138,7 +138,7 @@ describe('ReportView report rendering', () => {
     const report = buildReport(manifest, 'ex-broken');
     const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
     expect(container.textContent).toContain(
-      'Docgen extraction failed: react-docgen-typescript found no component docs: File: /repo/src/index.js',
+      'Docgen extraction failed: react-docgen-typescript found no component docs: no docs for this file.',
     );
     expect(container.textContent).toContain('Basic failed extraction: SyntaxError: Expected story to be a function');
   });

@@ -324,7 +324,6 @@ describe('run: mass-failure collapse in text output (#34)', () => {
       ]),
     );
     const result = run(options({ manifestPath: fixture({ v: 0, components }) }));
-    // Fails today: one pooled row reading "12 distinct errors", diagnosis absent.
     expect(result.stdout).toContain('12 of 12 entries');
     expect(result.stdout).toContain('react-docgen-typescript found no component docs');
     expect(result.stdout).not.toMatch(/distinct errors|other errors/);

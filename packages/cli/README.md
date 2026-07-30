@@ -94,7 +94,11 @@ same findings keyed by component id, with the summary counts and the manifest's
 use. `docgen-missing` and `story-extraction-error` findings carry the full
 extraction error on an `error` field and, when the manifest error carries one,
 its `name` on `errorName`; their messages lead with the name and append the
-message's first line when it adds information.
+message's diagnosis line when it adds information. In the audited manifests,
+react-docgen-typescript failures open the message with a `File: <path>` line
+and react-docgen adds a bare `Error:` label; the summary skips those lines
+and leads with the line after them, while the full text stays on the JSON
+`error` field.
 
 ### Mass failures collapse in text output
 
@@ -103,19 +107,17 @@ A repo-wide extraction failure fires `docgen-missing` once per entry and
 output would render hundreds of near-identical findings. When one rule's
 findings touch at least 10 distinct entries and at least half the manifest's
 entries, they leave the per-component groups and render as one line per error
-name, stating the count, the share, and the diagnosis:
+signature (the same one-line summary the messages use), stating the count,
+the share, and the diagnosis:
 
 ```
   error  docgen-missing  122 of 123 entries: No component found: We could not detect the component from your story file. Specify meta.component.
 ```
 
-Rows group on the error's name because the message's first line is usually a
-per-entry file path; keying on it would split one diagnosis into per-entry
-rows. A row appends the message's first line only when every finding in the
-group shares it, since one entry's path would misstate the rest. Errors
-without a name group on the message's first line instead. Names on fewer than
-10 entries pool into one leftovers line ("8 other
-errors"). The Actions step summary collapses the same way, since GitHub
+Because the summary skips the message's `File: <path>` location line, entries
+that share a diagnosis share a row instead of fragmenting on their per-entry
+paths. Signatures on fewer than 10 entries pool into one leftovers line ("8
+other errors"). The Actions step summary collapses the same way, since GitHub
 truncates oversized step summaries. The tally still counts every finding, and
 `--format json` keeps the per-entry list.
 

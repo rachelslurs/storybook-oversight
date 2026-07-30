@@ -125,7 +125,7 @@ describe('formatStylish: mass-failure collapse', () => {
       rule: 'docgen-missing',
       severity: 'error',
       componentId: `ui-c${i}`,
-      message: `Docgen extraction failed for C${i}: No docs found: File: /repo/index.tsx`,
+      message: `Docgen extraction failed for C${i}: No docs found: no docs for this file`,
       error: 'File: /repo/index.tsx\nno docs for this file',
       errorName: 'No docs found',
       ...over,
@@ -136,14 +136,14 @@ describe('formatStylish: mass-failure collapse', () => {
 
   it('collapses a dominant signature into one line with share and summary', () => {
     const out = render(twelve, 20);
-    expect(out).toContain('12 of 20 entries: No docs found: File: /repo/index.tsx');
+    expect(out).toContain('12 of 20 entries: No docs found: no docs for this file');
     expect(out).not.toContain('Docgen extraction failed for C3');
     expect(out).toContain('--json');
   });
 
   it('collapses unnamed per-entry errors into one distinct-errors line', () => {
     const unnamed = Array.from({ length: 12 }, (_, i) =>
-      docgenFailure(i, { error: `File: /repo/c${i}.tsx\nno docs`, errorName: undefined }),
+      docgenFailure(i, { error: `boom ${i}\nat parse (/x:1:1)`, errorName: undefined }),
     );
     const out = render(unnamed, 20);
     expect(out).toContain('12 of 20 entries: 12 distinct errors');
@@ -158,7 +158,7 @@ describe('formatStylish: mass-failure collapse', () => {
       ),
     ];
     const out = render(split, 30);
-    expect(out).toContain('10 of 30 entries: No docs found: File: /repo/index.tsx');
+    expect(out).toContain('10 of 30 entries: No docs found: no docs for this file');
     expect(out).toContain('10 of 30 entries: Unreadable: story file unreadable');
     expect(out).not.toContain('Docgen extraction failed for C3');
   });
@@ -196,7 +196,7 @@ describe('formatStylish: mass-failure collapse', () => {
       errorName: 'Unreadable',
     });
     const out = render([...twelve, straggler], 20);
-    expect(out).toContain('12 of 20 entries: No docs found: File: /repo/index.tsx');
+    expect(out).toContain('12 of 20 entries: No docs found: no docs for this file');
     expect(out).toContain('1 of 20 entries: Unreadable: story file unreadable');
     expect(out).not.toContain('Docgen extraction failed for C12');
   });
@@ -207,7 +207,7 @@ describe('formatStylish: mass-failure collapse', () => {
       docgenFailure(13, { componentId: 'ui-s1', error: 'permission denied', errorName: 'EACCES' }),
     ];
     const out = render([...twelve, ...stragglers], 20);
-    expect(out).toContain('12 of 20 entries: No docs found: File: /repo/index.tsx');
+    expect(out).toContain('12 of 20 entries: No docs found: no docs for this file');
     expect(out).toContain('2 of 20 entries: 2 other errors');
   });
 
@@ -227,7 +227,7 @@ describe('formatStylish: mass-failure collapse', () => {
   it('keeps a multi-line error name out of the collapsed line', () => {
     const noisy = Array.from({ length: 12 }, (_, i) => docgenFailure(i, { errorName: 'No docs found\nsecond line' }));
     const out = render(noisy, 20);
-    expect(out).toContain('12 of 20 entries: No docs found: File: /repo/index.tsx');
+    expect(out).toContain('12 of 20 entries: No docs found: no docs for this file');
     expect(out).not.toContain('second line');
   });
 
@@ -239,7 +239,7 @@ describe('formatStylish: mass-failure collapse', () => {
     expect(out).toContain('12 of 20 entries: kaput');
   });
 
-  it('groups on the error name across per-entry message lines (#44)', () => {
+  it('skips the per-entry file location so one diagnosis forms one row (#44)', () => {
     const mixed = [
       ...Array.from({ length: 12 }, (_, i) =>
         docgenFailure(i, {
@@ -255,25 +255,71 @@ describe('formatStylish: mass-failure collapse', () => {
       ),
     ];
     const out = render(mixed, 22);
-    expect(out).toContain('12 of 22 entries: react-docgen-typescript found no component docs');
+    expect(out).toContain('12 of 22 entries: react-docgen-typescript found no component docs: no docs for this file');
     expect(out).toContain(
       '10 of 22 entries: No component found: We could not detect the component from your story file.',
     );
     expect(out).not.toMatch(/distinct errors|other errors/);
   });
 
-  it('drops the message line from the row when the group does not share it (#44)', () => {
+  it('keeps the file location out of the row and the diagnosis in it (#44)', () => {
     const varied = Array.from({ length: 12 }, (_, i) =>
       docgenFailure(i, { error: `File: /repo/c${i}.tsx\nno docs`, errorName: 'No docs found' }),
     );
     const row = render(varied, 20)
       .split('\n')
       .find((line) => line.includes('12 of 20 entries'));
-    expect(row).toMatch(/No docs found$/);
+    expect(row).toContain('No docs found: no docs');
     expect(row).not.toContain('File:');
   });
 
-  it('clamps a multi-line error name that becomes the row text (#44)', () => {
+  it('keeps distinct diagnoses that share an error class in separate rows (#44)', () => {
+    const syntaxFailure = (i: number, diagnosis: string): Diagnostic => ({
+      rule: 'story-extraction-error',
+      severity: 'warning',
+      componentId: `ui-c${i}`,
+      message: `Story "S${i}" failed extraction: SyntaxError: ${diagnosis}`,
+      error: `${diagnosis}\nat parse (/x:1:1)`,
+      errorName: 'SyntaxError',
+    });
+    const mixed = [
+      ...Array.from({ length: 10 }, (_, i) => syntaxFailure(i, 'Expected story to be a function')),
+      ...Array.from({ length: 10 }, (_, i) => syntaxFailure(10 + i, 'Unexpected token')),
+    ];
+    const out = render(mixed, 20);
+    expect(out).toContain('10 of 20 entries: SyntaxError: Expected story to be a function');
+    expect(out).toContain('10 of 20 entries: SyntaxError: Unexpected token');
+    const md = formatStepSummary(summaryOf(mixed, { entryCount: 20 }));
+    expect(md).toContain(
+      '| 10 of 20 entries | warning | `story-extraction-error` | SyntaxError: Expected story to be a function |',
+    );
+    expect(md).toContain('| 10 of 20 entries | warning | `story-extraction-error` | SyntaxError: Unexpected token |');
+  });
+
+  it('groups string and object error shapes carrying one diagnosis together (#44)', () => {
+    const twelve = Array.from({ length: 12 }, (_, i) =>
+      docgenFailure(
+        i,
+        i % 2
+          ? { error: 'SyntaxError: Expected a function', errorName: undefined }
+          : { error: 'Expected a function\nat parse (/x:1:1)', errorName: 'SyntaxError' },
+      ),
+    );
+    const out = render(twelve, 12);
+    expect(out).toContain('12 of 12 entries: SyntaxError: Expected a function');
+    expect(out).not.toMatch(/distinct errors|other errors/);
+  });
+
+  it('breaks the row text on a lone carriage return (#44)', () => {
+    const macs = Array.from({ length: 12 }, (_, i) =>
+      docgenFailure(i, { error: 'kaput\rat parse (/x:1:1)', errorName: undefined }),
+    );
+    const out = render(macs, 20);
+    expect(out).toContain('12 of 20 entries: kaput');
+    expect(out).not.toContain('\r');
+  });
+
+  it('keeps a multi-line error name clamped in the row (#44)', () => {
     const noisy = Array.from({ length: 12 }, (_, i) =>
       docgenFailure(i, { error: `File: /repo/c${i}.tsx\nno docs`, errorName: 'No docs found\nsecond line' }),
     );
@@ -383,13 +429,13 @@ describe('formatStepSummary', () => {
       rule: 'docgen-missing',
       severity: 'error',
       componentId: `ui-c${i}`,
-      message: `Docgen extraction failed for C${i}: No docs found: File: /repo/index.tsx`,
+      message: `Docgen extraction failed for C${i}: No docs found: no docs for this file`,
       error: 'File: /repo/index.tsx\nno docs for this file',
       errorName: 'No docs found',
     }));
     const collapsed = formatStepSummary(summaryOf(failures, { entryCount: 20 }));
     expect(collapsed).toContain(
-      '| 12 of 20 entries | error | `docgen-missing` | No docs found: File: /repo/index.tsx |',
+      '| 12 of 20 entries | error | `docgen-missing` | No docs found: no docs for this file |',
     );
     expect(collapsed).not.toContain('Docgen extraction failed for C3');
     expect(collapsed).toContain('--json');
