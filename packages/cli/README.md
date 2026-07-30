@@ -98,10 +98,10 @@ how its siblings read. Entries named `Manifest` are always labelled, since
 manifest-level findings own that heading. The Actions step summary labels its
 Component column the same way.
 
-`--format json` (alias `--json`) emits the
-same findings keyed by component id, with the summary counts and the manifest's
-`path`, `docgen`, and `entries` count under `summary.manifest`, for programmatic
-use. `docgen-missing` and `story-extraction-error` findings carry the full
+`--format json` (alias `--json`) emits the same findings keyed by component id,
+with the summary counts and the manifest's `path`, `docgen`, and `entries` count
+under `summary.manifest`, for programmatic use. `docgen-missing` and
+`story-extraction-error` findings carry the full
 extraction error on an `error` field and, when the manifest error carries one,
 its `name` on `errorName`; their messages lead with the name and append the
 message's diagnosis line when it adds information. In the audited manifests,
