@@ -70,6 +70,11 @@ Set the same value as `expectedExtractor` (see
 with a different extractor. The rule runs only when an expectation is
 configured.
 
+If you enable `features.experimentalReactComponentMeta`, set `expectedExtractor`
+to `react-component-meta` instead. That flag chooses the extractor itself and
+`typescript.reactDocgen` above is not consulted, so the manifest records
+`react-component-meta` regardless of what the pin says.
+
 ### Optional: enable the Docs-page block
 
 Register the global container in `.storybook/preview.ts` to render Oversight at

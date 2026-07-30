@@ -56,7 +56,10 @@ Actions, that is two steps:
 
 `--expected-extractor` states the extractor your `.storybook/main.ts` pins;
 `extractor-drift` runs only when an expectation is configured, via the flag or
-the config file.
+the config file. With `features.experimentalReactComponentMeta` enabled the value
+to state is `react-component-meta`: that flag picks the extractor itself and
+`typescript.reactDocgen` is not consulted, so the manifest records
+`react-component-meta` whatever the pin says.
 
 `--format github` emits `::error`/`::warning`/`::notice` annotations; GitHub shows
 them on the run and the pull request's Checks tab, not beside your changed code
@@ -78,9 +81,12 @@ Card
 
 The header names the manifest that was linted and its recorded extractor:
 `meta.docgen` when the manifest sets it, else the payload key every extracted
-entry shares. It matters because the same path can hold a different artifact
-per build: a config like `reactDocgen: isCI ? 'react-docgen-typescript' :
-'react-docgen'` writes one manifest in CI and another locally.
+entry shares (`reactDocgenTypescript`, `reactDocgen` or `reactComponentMeta`).
+It matters because the same path can hold a different artifact per build: a
+config like `reactDocgen: isCI ? 'react-docgen-typescript' : 'react-docgen'`
+writes one manifest in CI and another locally, and toggling
+`features.experimentalReactComponentMeta` changes it without touching
+`reactDocgen` at all.
 
 Counts are per manifest entry. One entry exists per stories file, so a component
 with several stories files produces several entries, and every count is inflated
