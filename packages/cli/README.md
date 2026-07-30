@@ -91,9 +91,12 @@ than the entry id.
 Findings are grouped by entry, headed with the entry's component name. When
 another entry in the manifest shares that name, the heading adds the stories
 file, because the name alone cannot say which file a finding came from:
-`Features (src/Dialog/Dialog.features.stories.tsx)`. The entry id stands in when
-an entry records no stories file. The Actions step summary labels its Component
-column the same way.
+`Features (src/Dialog/Dialog.features.stories.tsx)`. An entry is labelled with
+its entry id instead when it records no stories file, or when a same-named entry
+records the same one; that choice is made per entry, so one entry never changes
+how its siblings read. Entries named `Manifest` are always labelled, since
+manifest-level findings own that heading. The Actions step summary labels its
+Component column the same way.
 
 `--format json` (alias `--json`) emits the
 same findings keyed by component id, with the summary counts and the manifest's
@@ -113,9 +116,9 @@ A repo-wide extraction failure fires `docgen-missing` once per entry and
 `story-extraction-error` once per failing story, several per entry, so text
 output would render hundreds of near-identical findings. When one rule's
 findings touch at least 10 distinct entries and at least half the manifest's
-entries, they leave the per-component groups and render as one line per error
-signature (the same one-line summary the messages use), stating the count,
-the share, and the diagnosis:
+entries, they leave the per-entry groups and render as one line per error
+signature (the same one-line summary the messages use), stating the count, the
+share, and the diagnosis:
 
 ```
   error  docgen-missing  122 of 123 entries: No component found: We could not detect the component from your story file. Specify meta.component.
