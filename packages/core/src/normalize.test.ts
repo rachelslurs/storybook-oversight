@@ -105,6 +105,55 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
     expect(result.tags['data-display-widget'].deprecated).toBe('use Gadget instead\nsince 2.0');
   });
 
+  it('supports the react-component-meta payload shape', () => {
+    // `features.experimentalReactComponentMeta` emits a plain v:0 manifest whose
+    // payload key is neither of the other two. Reading it as a missing payload
+    // reported every component as an extraction failure.
+    const raw: RawManifest = {
+      v: 0,
+      meta: { docgen: 'react-component-meta' },
+      components: {
+        'data-display-widget': {
+          id: 'data-display-widget',
+          name: 'Widget',
+          path: './src/Widget/Widget.stories.tsx',
+          jsDocTags: { deprecated: ['use Gadget instead'] },
+          reactComponentMeta: {
+            description: 'A widget.',
+            filePath: '/repo/src/Widget/Widget.tsx',
+            props: {
+              size: {
+                description: '',
+                required: true,
+                declarations: [{ fileName: 'src/Widget/Widget.tsx' }],
+              },
+            },
+          },
+        },
+      },
+    };
+    const result = normalizeManifest(raw);
+    expect(result.failures).toHaveLength(0);
+    expect(result.components).toHaveLength(1);
+    const [widget] = result.components;
+    expect(widget.description).toBe('A widget.');
+    expect(widget.sourceFile).toBe('src/Widget/Widget.tsx');
+    expect(widget.props.size).toEqual({ description: null, required: true });
+    expect(result.tags['data-display-widget'].deprecated).toBe('use Gadget instead');
+  });
+
+  it('infers react-component-meta from payload keys when meta is unrecorded', () => {
+    const result = normalizeManifest({
+      v: 0,
+      meta: null,
+      components: {
+        'ui-x': { name: 'X', path: './x.stories.tsx', reactComponentMeta: { props: {} } },
+        'ui-y': { name: 'Y', path: './y.stories.tsx', reactComponentMeta: { props: {} } },
+      },
+    });
+    expect(result.extractor).toBe('react-component-meta');
+  });
+
   it('clamps a component name to its first non-empty line (#30)', () => {
     const result = normalizeManifest({
       components: {
