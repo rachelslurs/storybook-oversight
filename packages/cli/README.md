@@ -127,9 +127,18 @@ share, and the diagnosis:
 Because the summary skips the message's `File: <path>` location line, entries
 that share a diagnosis share a row instead of fragmenting on their per-entry
 paths. Signatures on fewer than 10 entries pool into one leftovers line ("8
-other errors"). The Actions step summary collapses the same way, since GitHub
-truncates oversized step summaries. The tally still counts every finding, and
-`--format json` keeps the per-entry list.
+other errors"). The Actions step summary collapses the same way, so both
+surfaces stay the same size on the same input. The tally still counts every
+finding, and `--format json` keeps the per-entry list.
+
+Documentation gaps do not collapse. `component-description-missing`,
+`prop-descriptions-missing`, and `required-prop-undocumented` each name a
+different component, and the prop rules name that component's own undocumented
+props, so a summary row would trade the list for a count the tally already
+reports. Extraction failures repeat one diagnosis across many entries, which is
+what makes one row worth reading in their place. Where a manifest has hundreds
+of documentation gaps, `--quiet` prints the errors alone and `--format json`
+keeps every finding.
 
 ## Exit codes
 
