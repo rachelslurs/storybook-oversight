@@ -24,7 +24,11 @@ async function load(name: string): Promise<RawManifest> {
   return resolveManifestRefs(raw, (target) => readFileSync(resolve(base, target), 'utf8'));
 }
 
-function payloadOf(entry: { reactDocgenTypescript?: RawPayload; reactDocgen?: RawPayload; reactComponentMeta?: RawPayload }) {
+function payloadOf(entry: {
+  reactDocgenTypescript?: RawPayload;
+  reactDocgen?: RawPayload;
+  reactComponentMeta?: RawPayload;
+}) {
   return entry.reactDocgenTypescript ?? entry.reactDocgen ?? entry.reactComponentMeta;
 }
 
@@ -50,7 +54,8 @@ function comparable(diagnostics: Diagnostic[]): string[] {
 }
 
 const rulesOf = (m: RawManifest) => lint(normalizeManifest(m)).map((d) => d.rule);
-const shapeIssueOf = (m: RawManifest) => lint(normalizeManifest(m)).find((d) => d.rule === 'manifest-shape-unrecognized');
+const shapeIssueOf = (m: RawManifest) =>
+  lint(normalizeManifest(m)).find((d) => d.rule === 'manifest-shape-unrecognized');
 
 describe('ref manifests reach the same verdict as inline ones', () => {
   it('produces diagnostics identical to the v:0 react-component-meta build', async () => {
@@ -88,7 +93,10 @@ describe('the prop shape guard', () => {
   });
 
   it('holds both rules when no prop carries a string description', async () => {
-    const m = mutatePayloads(await load(V1), eachProp((p) => delete p.description));
+    const m = mutatePayloads(
+      await load(V1),
+      eachProp((p) => delete p.description),
+    );
     expect(normalizeManifest(m).propShape).toBe('unrecognized');
     expect(rulesOf(m)).not.toContain('prop-descriptions-missing');
     expect(rulesOf(m)).not.toContain('required-prop-undocumented');
@@ -174,7 +182,10 @@ describe('the prop shape guard', () => {
   it('stays off on an inline manifest, where react-docgen may omit description', async () => {
     // The same mutation that trips the guard on a ref manifest must not trip it
     // here: react-docgen declares `description` optional on its own descriptor.
-    const m = mutatePayloads(await load(V0_RCM), eachProp((p) => delete p.description));
+    const m = mutatePayloads(
+      await load(V0_RCM),
+      eachProp((p) => delete p.description),
+    );
     const result = normalizeManifest(m);
     expect(result.format).toBe('inline');
     expect(result.propShape).toBe('known');
