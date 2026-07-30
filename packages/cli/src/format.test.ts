@@ -238,6 +238,58 @@ describe('formatStylish: mass-failure collapse', () => {
     const out = render(unnamed, 20);
     expect(out).toContain('12 of 20 entries: kaput');
   });
+
+  it('groups on the error name across per-entry message lines (#44)', () => {
+    const mixed = [
+      ...Array.from({ length: 12 }, (_, i) =>
+        docgenFailure(i, {
+          error: `File: /repo/src/c${i}.tsx\nno docs for this file`,
+          errorName: 'react-docgen-typescript found no component docs',
+        }),
+      ),
+      ...Array.from({ length: 10 }, (_, i) =>
+        docgenFailure(12 + i, {
+          error: 'We could not detect the component from your story file.',
+          errorName: 'No component found',
+        }),
+      ),
+    ];
+    const out = render(mixed, 22);
+    expect(out).toContain('12 of 22 entries: react-docgen-typescript found no component docs');
+    expect(out).toContain(
+      '10 of 22 entries: No component found: We could not detect the component from your story file.',
+    );
+    expect(out).not.toMatch(/distinct errors|other errors/);
+  });
+
+  it('drops the message line from the row when the group does not share it (#44)', () => {
+    const varied = Array.from({ length: 12 }, (_, i) =>
+      docgenFailure(i, { error: `File: /repo/c${i}.tsx\nno docs`, errorName: 'No docs found' }),
+    );
+    const row = render(varied, 20)
+      .split('\n')
+      .find((line) => line.includes('12 of 20 entries'));
+    expect(row).toMatch(/No docs found$/);
+    expect(row).not.toContain('File:');
+  });
+
+  it('clamps a multi-line error name that becomes the row text (#44)', () => {
+    const noisy = Array.from({ length: 12 }, (_, i) =>
+      docgenFailure(i, { error: `File: /repo/c${i}.tsx\nno docs`, errorName: 'No docs found\nsecond line' }),
+    );
+    const out = render(noisy, 20);
+    const row = out.split('\n').find((line) => line.includes('12 of 20 entries'));
+    expect(row).toContain('No docs found');
+    expect(out).not.toContain('second line');
+  });
+
+  it('groups on the composed summary when the error name is whitespace (#44)', () => {
+    const blank = Array.from({ length: 12 }, (_, i) =>
+      docgenFailure(i, { error: 'kaput\nat parse (/x:1:1)', errorName: ' \n ' }),
+    );
+    const out = render(blank, 20);
+    expect(out).toContain('12 of 20 entries: kaput');
+  });
 });
 
 describe('formatJson', () => {

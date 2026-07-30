@@ -103,14 +103,18 @@ A repo-wide extraction failure fires `docgen-missing` once per entry and
 output would render hundreds of near-identical findings. When one rule's
 findings touch at least 10 distinct entries and at least half the manifest's
 entries, they leave the per-component groups and render as one line per error
-signature (the same one-line summary the messages use), stating the count, the
-share, and the diagnosis:
+name, stating the count, the share, and the diagnosis:
 
 ```
   error  docgen-missing  122 of 123 entries: No component found: We could not detect the component from your story file. Specify meta.component.
 ```
 
-Signatures on fewer than 10 entries pool into one leftovers line ("8 other
+Rows group on the error's name because the message's first line is usually a
+per-entry file path; keying on it would split one diagnosis into per-entry
+rows. A row appends the message's first line only when every finding in the
+group shares it, since one entry's path would misstate the rest. Errors
+without a name group on the message's first line instead. Names on fewer than
+10 entries pool into one leftovers line ("8 other
 errors"). The Actions step summary collapses the same way, since GitHub
 truncates oversized step summaries. The tally still counts every finding, and
 `--format json` keeps the per-entry list.
