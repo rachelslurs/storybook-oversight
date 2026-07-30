@@ -50,6 +50,11 @@ export type RawEntry = {
   jsDocTags?: Record<string, unknown>;
   reactDocgenTypescript?: RawPayload;
   reactDocgen?: RawPayload;
+  // Emitted when `features.experimentalReactComponentMeta` is on, and inside the
+  // per-component payload under `features.experimentalDocgenServer`. Same shape,
+  // except tags arrive as `jsDocTags` (arrays) rather than `tags` (strings);
+  // the entry-level `jsDocTags` carries the same values, so tags read from there.
+  reactComponentMeta?: RawPayload;
   stories?: RawStory[];
   error?: unknown;
 };

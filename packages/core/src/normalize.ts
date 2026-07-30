@@ -15,7 +15,7 @@ function text(value: string | undefined | null): string | null {
 }
 
 function payloadOf(entry: RawEntry): RawPayload | undefined {
-  return entry.reactDocgenTypescript ?? entry.reactDocgen;
+  return entry.reactDocgenTypescript ?? entry.reactDocgen ?? entry.reactComponentMeta;
 }
 
 function sourcePathOf(payload: RawPayload): string | undefined {
@@ -109,6 +109,7 @@ function recordedExtractor(raw: RawManifest): string | null {
   for (const entry of Object.values(raw.components ?? {})) {
     if (entry.reactDocgenTypescript) flavors.add('react-docgen-typescript');
     else if (entry.reactDocgen) flavors.add('react-docgen');
+    else if (entry.reactComponentMeta) flavors.add('react-component-meta');
   }
   return flavors.size === 1 ? [...flavors][0] : null;
 }
