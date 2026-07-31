@@ -12,9 +12,9 @@ export type LinkComponent = ComponentType<{ label: string; target: string }>;
 
 export type ReportViewStatus = 'loading' | 'error' | 'unavailable' | 'no-story' | 'no-entry' | 'ready';
 
-/** "full" renders the description as markdown (the manager panel — no other
+/** "full" renders the description as markdown (the manager panel, with no other
  *  description nearby). "compact" shows a documented/missing verdict (the docs
- *  block — autodocs renders the prose right beside it). */
+ *  block, where autodocs renders the prose right beside it). */
 export type ReportViewVariant = 'full' | 'compact';
 
 export type ReportViewProps = {
@@ -149,7 +149,7 @@ function FindingsList({ diagnostics }: { diagnostics: Diagnostic[] }) {
   );
 }
 
-/** This component's coverage as named lint rules — or a clean-state note when
+/** This component's coverage as named lint rules, or a clean-state note when
  *  nothing fired. */
 function FindingsSection({ diagnostics }: { diagnostics: Diagnostic[] }) {
   return (
@@ -295,7 +295,7 @@ function DebuggerFooter({ debuggerUrl, componentId }: { debuggerUrl: string; com
   // debugger currently anchors components by array index (`c-<N>-<id>-…`), so
   // `#<componentId>` is a harmless no-op (the browser just opens the debugger at
   // the top) until a stable `id="<componentId>"` anchor lands upstream
-  // (storybookjs/storybook → render-components-manifest.ts) — then it just works.
+  // (storybookjs/storybook → render-components-manifest.ts). Then it just works.
   const href = componentId ? `${debuggerUrl}#${componentId}` : debuggerUrl;
   return (
     <Footer>
@@ -307,7 +307,7 @@ function DebuggerFooter({ debuggerUrl, componentId }: { debuggerUrl: string; com
 }
 
 /**
- * Presentational only — a resolved report plus a variant. No manager-api
+ * Presentational only: a resolved report plus a variant. No manager-api
  * imports, so it runs in both the manager panel and a docs-page block.
  */
 export function ReportView({

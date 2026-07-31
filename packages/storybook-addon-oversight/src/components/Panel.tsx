@@ -35,13 +35,13 @@ function ManagerLink({ label, target }: { label: string; target: string }) {
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
           return;
         }
-        if (!id) return; // external target — let the browser handle it
+        if (!id) return; // external target, let the browser handle it
         try {
           api.selectStory(id);
           event.preventDefault();
         } catch {
           // selectStory throws "Unknown id or title" for ids absent from the
-          // manager index — keep the href fallback alive.
+          // manager index, so keep the href fallback alive.
         }
       }}
     >

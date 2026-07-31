@@ -5,7 +5,7 @@ import type { LintOptions } from 'oversight-core';
  * panel (`addons.setConfig({ [ADDON_ID]: … })` in `.storybook/manager.ts`)
  * and the docs block (`parameters: { oversight: … }`). It extends the pure
  * `src/core` `LintOptions` with addon-level display flags that never reach the
- * linter — so `src/core` stays a Storybook-free, plain-data linter.
+ * linter, so `src/core` stays a Storybook-free, plain-data linter.
  */
 export type OversightConfig = LintOptions & {
   /**
@@ -15,6 +15,6 @@ export type OversightConfig = LintOptions & {
   debuggerLink?: boolean;
 };
 
-/** Display default for {@link OversightConfig.debuggerLink} — the footer link
+/** Display default for {@link OversightConfig.debuggerLink}. The footer link
  *  shows unless a consumer explicitly opts out. */
 export const DEFAULT_DEBUGGER_LINK = true;

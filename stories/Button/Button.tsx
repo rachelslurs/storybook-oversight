@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 export interface ButtonProps {
-  /** Visual style — 'primary' for the main action, 'secondary' for supporting ones. */
+  /** Visual style: 'primary' for the main action, 'secondary' for supporting ones. */
   variant: 'primary' | 'secondary';
   /** Control height and padding. Defaults to 'md'. */
   size?: 'sm' | 'md' | 'lg';
@@ -12,7 +12,7 @@ export interface ButtonProps {
 }
 
 /**
- * Triggers an action when pressed — submitting a form, opening a dialog, or
+ * Triggers an action when pressed: submitting a form, opening a dialog, or
  * running a command. For grouping related content in a container, see
  * [Card](?path=/docs/data-display-card--docs).
  */

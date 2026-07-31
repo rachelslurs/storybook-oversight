@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 export interface BadgeProps {
-  /** Colour intent — 'neutral', 'success', or 'danger'. */
+  /** Color intent: 'neutral', 'success', or 'danger'. */
   tone?: 'neutral' | 'success' | 'danger';
   /** Short label rendered inside the badge. */
   children?: ReactNode;

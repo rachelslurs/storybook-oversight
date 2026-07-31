@@ -8,7 +8,7 @@ const SEGMENT = String.raw`\?path=\/(?:docs|story)\/([^/?&#)\s]+)`;
 
 /**
  * A fresh **global** matcher for scanning prose for every `?path=` target.
- * Returns a new RegExp each call — a shared global regex carries `lastIndex`
+ * Returns a new RegExp each call. A shared global regex carries `lastIndex`
  * state, and though `String.matchAll` clones it, per-call instances keep other
  * uses (`.exec`, `.test`) safe.
  */

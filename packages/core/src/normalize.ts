@@ -49,7 +49,7 @@ function errorNameOf(error: unknown): string | null {
 /** Tag values are newline-joined strings or arrays depending on the extractor. */
 function stringifyTag(value: unknown): string {
   // A value-less JSDoc tag (bare `@oversightIgnore` / `@deprecated`) arrives as
-  // `true`, `[true]`, or `""` depending on the extractor — normalize the boolean
+  // `true`, `[true]`, or `""` depending on the extractor. Normalize the boolean
   // forms to "" so a bare tag reads as "no value" rather than the token "true".
   if (value === true) return '';
   if (Array.isArray(value)) {
@@ -72,7 +72,7 @@ function tagsFrom(source: Record<string, unknown> | undefined): Record<string, s
  * Per-prop `declarations[].fileName` values are repo-relative
  * ("storybook/src/X/X.tsx"), so any declaration that is a path-boundary
  * suffix of its entry's source path reveals the prefix. Scans all props and
- * all declarations — some props carry extra declarations pointing at
+ * all declarations, since some props carry extra declarations pointing at
  * node_modules type files, which the suffix guard skips. Returns "" when the
  * manifest is already repo-relative (the committed fixture), null when
  * undetectable.

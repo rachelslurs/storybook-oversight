@@ -9,7 +9,7 @@ import { firstNonEmptyLine } from './text';
  * guessing. In particular, Storybook's `experimentalDocgenServer` returns a dev
  * 404 whose body says exactly why ("…not available in dev when
  * experimentalDocgenServer is enabled"). That beats the default "enable
- * @storybook/addon-mcp" hint, which is simply wrong when addon-mcp is already on.
+ * @storybook/addon-mcp" hint, which is wrong when addon-mcp is already on.
  *
  * Returns `undefined` when there's no usable explanation (empty body, an HTML
  * error page, an oversized body), so callers fall back to the generic hint.
