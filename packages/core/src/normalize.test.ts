@@ -343,7 +343,7 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
   it("requires a ref index to be resolved first: refs are not normalize's job (#13)", async () => {
     // `stories` arrives as a { $ref } object rather than an array, and normalize
     // iterates it. resolveManifestRefs is what turns a v:1 index into the inline
-    // shape; calling normalize on a raw index skips that step. Pinning the throw
+    // shape; calling normalize on a raw index skips that step. Covering the throw
     // keeps the two steps from being silently collapsed: a caller that forgets to
     // hydrate gets an error, never a manifest that reads as empty.
     const refIndex = {

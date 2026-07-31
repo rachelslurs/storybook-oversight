@@ -9,7 +9,7 @@ const commonConfig: Options = {
   format: ['esm'],
   treeshake: true,
   splitting: true,
-  // Provided by Storybook — externalize, don't bundle or declare as deps.
+  // Provided by Storybook, so externalize rather than bundling or declaring as deps.
   external: ['react', 'react-dom', '@storybook/icons'],
 };
 
@@ -38,7 +38,7 @@ export default defineConfig([
   {
     // The opt-in Docs block consumers import from `storybook-addon-oversight/blocks`.
     // Unlike manager entries (which Storybook re-bundles), this is a plain import
-    // resolved by the consumer's Vite build — so every `storybook/*` and
+    // resolved by the consumer's Vite build, so every `storybook/*` and
     // `@storybook/*` import must be EXTERNAL, not bundled. Bundling `storybook/theming`
     // would give the block a second emotion instance that never receives the preview's
     // ThemeProvider context (theme.typography → undefined at render).

@@ -15,7 +15,7 @@ const config: StorybookConfig = {
   stories: ['../stories/**/*.mdx', '../stories/**/*.stories.@(ts|tsx)'],
   addons: [
     getAbsolutePath('@storybook/addon-docs'),
-    // Serves /manifests/components.json in dev — the manifest Oversight lints.
+    // Serves /manifests/components.json in dev, the manifest Oversight lints.
     getAbsolutePath('@storybook/addon-mcp'),
     // The workspace addon, resolved by package name (the real consumer path).
     // pnpm links packages/storybook-addon-oversight into node_modules; Storybook
@@ -23,7 +23,7 @@ const config: StorybookConfig = {
     getAbsolutePath('storybook-addon-oversight'),
   ],
   framework: getAbsolutePath('@storybook/react-vite'),
-  // Pin the extractor so JSDoc on components and props is extracted into the
+  // Set the extractor so JSDoc on components and props is extracted into the
   // manifest. Stating the same value as expectedExtractor (manager.ts or the
   // CLI flag) enables Oversight's extractor-drift rule.
   typescript: {
