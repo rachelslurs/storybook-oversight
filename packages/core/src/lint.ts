@@ -86,11 +86,15 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
         message: `Manifest does not record which extractor ran; this project expects "${expectedExtractor}".`,
       });
     } else if (result.extractor !== expectedExtractor) {
+      // States the mismatch and stops. The message used to append "prop docs
+      // may be incomplete", an outcome that holds for at most one orientation
+      // of one pairing: react-component-meta extracts more documented props
+      // than react-docgen, and matches react-docgen-typescript (#52).
       diagnostics.push({
         rule: 'extractor-drift',
         severity: 'warning',
         componentId: null,
-        message: `Manifest was extracted with "${result.extractor}" but this project expects "${expectedExtractor}"; prop docs may be incomplete.`,
+        message: `Manifest was extracted with "${result.extractor}" but this project expects "${expectedExtractor}".`,
       });
     }
   }

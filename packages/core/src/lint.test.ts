@@ -1,12 +1,35 @@
 import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { ALL_RULES, lint } from './lint';
 import { normalizeManifest } from './normalize';
+import { resolveManifestRefs } from './resolveRefs';
+import type { RefLoader } from './resolveRefs';
 import type { RawManifest } from './types';
 
 function loadFixture(): RawManifest {
   const url = new URL('../test/fixtures/components.json', import.meta.url);
   return JSON.parse(readFileSync(url, 'utf8')) as RawManifest;
+}
+
+/** A ref index, whose entries defer their payloads to files under `services/`. */
+function loadIndex(fixture: string): RawManifest {
+  const url = new URL(`../test/fixtures/${fixture}/manifests/components.json`, import.meta.url);
+  return JSON.parse(readFileSync(url, 'utf8')) as RawManifest;
+}
+
+/** An inline manifest, which carries its payloads in the one file. */
+function loadInline(fixture: string): RawManifest {
+  const url = new URL(`../test/fixtures/${fixture}/components.json`, import.meta.url);
+  return JSON.parse(readFileSync(url, 'utf8')) as RawManifest;
+}
+
+/** The CLI's loader shape: leaf paths resolve against the index file's directory. */
+function fsLoader(fixture: string): RefLoader {
+  const indexUrl = new URL(`../test/fixtures/${fixture}/manifests/components.json`, import.meta.url);
+  const indexDir = dirname(fileURLToPath(indexUrl));
+  return (p) => readFileSync(resolve(indexDir, p), 'utf8');
 }
 
 describe('lint (fixture baseline)', () => {
@@ -236,6 +259,24 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
       (d) => d.rule === 'extractor-drift',
     );
     expect(drift?.message).toContain('does not record');
+  });
+
+  it('states the mismatch without predicting an outcome for prop docs', () => {
+    const result = normalizeManifest({
+      meta: { docgen: 'react-component-meta' },
+      components: {
+        'ui-a': { name: 'A', path: './a.stories.tsx', reactComponentMeta: { description: 'A.', props: {} } },
+      },
+    });
+    const drift = lint(result, { expectedExtractor: 'react-docgen-typescript' }).find(
+      (d) => d.rule === 'extractor-drift',
+    );
+    // The claim this asserts against named an outcome the rule cannot know:
+    // the same message serves every pairing in both directions (#52).
+    expect(drift?.message).not.toContain('prop docs');
+    expect(drift?.message).toBe(
+      'Manifest was extracted with "react-component-meta" but this project expects "react-docgen-typescript".',
+    );
   });
 
   it('skips prop rules on components with no props', () => {
@@ -584,5 +625,57 @@ describe('the shape rules are wired like every other rule', () => {
 
   it('honours being turned off', () => {
     expect(lint(shapeIssue, { rules: { 'prop-shape-unrecognized': 'off' } })).toEqual([]);
+  });
+});
+
+describe('extractor-drift under the react-component-meta extractors', () => {
+  // Both `experimentalDocgenServer` and `experimentalReactComponentMeta` record
+  // `react-component-meta`, and they produce different shapes: a ref index and
+  // an inline manifest. The rule reads the label, so it behaves the same on
+  // both, and these two fixtures are the same six components either way (#52).
+  const driftOn = async (fixture: 'v1' | 'v0-react-component-meta', expectedExtractor: string) => {
+    const result = normalizeManifest(
+      fixture === 'v1' ? await resolveManifestRefs(loadIndex('v1'), fsLoader('v1')) : loadInline(fixture),
+    );
+    return lint(result, { expectedExtractor }).filter((d) => d.rule === 'extractor-drift');
+  };
+
+  for (const fixture of ['v1', 'v0-react-component-meta'] as const) {
+    it(`stays silent on ${fixture} when the project expects react-component-meta`, async () => {
+      expect(await driftOn(fixture, 'react-component-meta')).toHaveLength(0);
+    });
+
+    it(`flags ${fixture} against a react-docgen-typescript pin, and names no outcome`, async () => {
+      const [drift] = await driftOn(fixture, 'react-docgen-typescript');
+      expect(drift?.message).toBe(
+        'Manifest was extracted with "react-component-meta" but this project expects "react-docgen-typescript".',
+      );
+    });
+  }
+
+  it('reports an unrecorded extractor on a ref index that records nothing (guards #32)', async () => {
+    // Suppressing drift on the ref format would drop this row. `meta` is absent
+    // because the v:1 index writer passes the generator's through rather than
+    // recomputing it, and every ref fails, so no payload key survives for
+    // `recordedExtractor` to infer from. A v:1 index shipped without its
+    // `services/` tree reaches exactly this state.
+    const index = {
+      v: 1,
+      components: {
+        'x-widget': { id: 'x-widget', name: 'Widget', docgen: { $ref: '../services/core/docgen/x-widget.json#/c/x' } },
+      },
+    } as unknown as RawManifest;
+    const result = normalizeManifest(
+      await resolveManifestRefs(index, () => {
+        throw new Error('ENOENT');
+      }),
+    );
+
+    expect(result.extractor).toBeNull();
+    const diagnostics = lint(result, { expectedExtractor: 'react-component-meta' });
+    expect(diagnostics.find((d) => d.rule === 'extractor-drift')?.message).toContain('does not record');
+    // The per-component row is not a substitute: it says nothing about the
+    // expectation the project configured.
+    expect(diagnostics.filter((d) => d.rule === 'docgen-missing')).toHaveLength(1);
   });
 });
