@@ -107,7 +107,10 @@ export function detectRepoRoot(raw: RawManifest): string | null {
  */
 function recordedExtractor(raw: RawManifest): string | null {
   const recorded = raw.meta?.docgen;
-  if (typeof recorded === 'string' && recorded.trim() !== '') return recorded;
+  // Trimmed, not just tested for emptiness. Returning it raw put whatever
+  // whitespace the manifest carried into a comparison against a clean
+  // expectation, and a newline in it broke the CLI's one-line finding row.
+  if (typeof recorded === 'string' && recorded.trim() !== '') return recorded.trim();
   const flavors = new Set<string>();
   for (const entry of Object.values(raw.components ?? {})) {
     if (entry.reactDocgenTypescript) flavors.add('react-docgen-typescript');
