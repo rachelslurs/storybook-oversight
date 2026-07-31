@@ -70,7 +70,11 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
   // The addon's config channels are untyped casts, so null or "" can arrive
   // here; both read as "no expectation", never as a value to compare against.
   const stated = options.expectedExtractor;
-  const expectedExtractor = typeof stated === 'string' && stated.trim() !== '' ? stated : undefined;
+  // Trimmed on the way in. A value read from a file or an unquoted shell
+  // variable arrives with a trailing newline, passed the emptiness test, and
+  // then mismatched a manifest that recorded the same extractor, naming both
+  // sides identically in the warning.
+  const expectedExtractor = typeof stated === 'string' && stated.trim() !== '' ? stated.trim() : undefined;
   const diagnostics: Diagnostic[] = [];
 
   // Drift requires a stated expectation. A default here warned projects that

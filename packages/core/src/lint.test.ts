@@ -224,6 +224,23 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     expect(lint(result, { expectedExtractor: '   ' })).toHaveLength(0);
   });
 
+  it('matches an expectation carrying surrounding whitespace', () => {
+    // A config value read from a file, or an unquoted shell variable, arrives
+    // with a trailing newline. Comparing it raw fired a warning that named the
+    // same extractor on both sides and failed CI under --max-warnings 0.
+    const result = normalizeManifest({ meta: { docgen: 'react-docgen-typescript' }, components: {} });
+    expect(lint(result, { expectedExtractor: 'react-docgen-typescript\n' })).toHaveLength(0);
+    expect(lint(result, { expectedExtractor: '  react-docgen-typescript  ' })).toHaveLength(0);
+  });
+
+  it('matches a recorded extractor carrying surrounding whitespace', () => {
+    // The same defect on the manifest side, where a newline also reached the
+    // finding message and broke the CLI's one-line row.
+    const result = normalizeManifest({ meta: { docgen: 'react-docgen-typescript\n' }, components: {} });
+    expect(result.extractor).toBe('react-docgen-typescript');
+    expect(lint(result, { expectedExtractor: 'react-docgen-typescript' })).toHaveLength(0);
+  });
+
   it('does not flag a meta-less manifest whose entries record the extractor', () => {
     const result = normalizeManifest({
       meta: null,
