@@ -69,11 +69,17 @@ Set the same value as `expectedExtractor` (see
 with a different extractor. The rule runs only when an expectation is
 configured.
 
-If you enable `features.experimentalReactComponentMeta` or
-`features.experimentalDocgenServer`, set `expectedExtractor` to
-`react-component-meta` instead. Either flag chooses the extractor itself, so the
+If you enable `features.experimentalReactComponentMeta`, set `expectedExtractor`
+to `react-component-meta` instead. That flag chooses the extractor itself, so the
 manifest records `react-component-meta` and `typescript.reactDocgen` above is
 never read.
+
+`features.experimentalDocgenServer` records the same extractor, but the panel
+cannot read the ref-based manifest that flag emits, so set
+`--expected-extractor react-component-meta` on
+[`oversight-lint`](../cli/README.md) instead. The panel stays unavailable under
+that flag, tracked in
+[#50](https://github.com/rachelslurs/storybook-oversight/issues/50).
 
 ### Optional: enable the Docs-page block
 
@@ -154,10 +160,10 @@ so its props and JSDoc never reach the manifest. An agent sees the component wit
 no documented props. In order of likelihood:
 
 1. **`reactDocgen` isn't `react-docgen-typescript`.** See [Install](#install).
-   This one does not apply if `features.experimentalReactComponentMeta` is on.
-   That flag selects the extractor on its own and `typescript.reactDocgen` is
-   never read, so changing it has no effect. Check `meta.docgen` in the manifest
-   for which extractor actually ran.
+   This one does not apply if `features.experimentalReactComponentMeta` or
+   `features.experimentalDocgenServer` is on. Either flag selects the extractor
+   on its own and `typescript.reactDocgen` is never read, so changing it has no
+   effect. Check `meta.docgen` in the manifest for which extractor actually ran.
 2. **Your root `tsconfig.json` is solution-style.** The default `npm create vite`
    (react-ts) scaffold ships a root that only delegates to project references and
    owns no files:
