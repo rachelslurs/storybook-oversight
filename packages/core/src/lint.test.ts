@@ -20,7 +20,7 @@ describe('lint (fixture baseline)', () => {
   const result = normalizeManifest(loadFixture());
   const diagnostics = lint(result, { expectedExtractor: 'react-docgen-typescript' });
 
-  it('does not flag extractor drift for the pinned extractor', () => {
+  it('does not flag extractor drift for the configured extractor', () => {
     expect(diagnostics.filter((d) => d.rule === 'extractor-drift')).toHaveLength(0);
   });
 
@@ -653,12 +653,12 @@ describe('the shape rules are wired like every other rule', () => {
     expect(ALL_RULES).toContain('ref-unresolved');
   });
 
-  it('honours a severity override', () => {
+  it('honors a severity override', () => {
     const escalated = lint(shapeIssue, { rules: { 'prop-shape-unrecognized': 'warning' } });
     expect(escalated[0].severity).toBe('warning');
   });
 
-  it('honours being turned off', () => {
+  it('honors being turned off', () => {
     expect(lint(shapeIssue, { rules: { 'prop-shape-unrecognized': 'off' } })).toEqual([]);
   });
 });
@@ -688,8 +688,8 @@ describe('extractor-drift under the react-component-meta extractors', () => {
   it('reports an unrecorded extractor on a ref index that records nothing (guards #32)', async () => {
     // The index is hand-built because no observed generator output omits `meta`:
     // the React generator writes it on every branch, so a real v:1 build shipped
-    // without its `services/` tree still records `react-component-meta`. What
-    // this pins is the rule's behavior when nothing records an extractor, which
+    // without its `services/` tree still records `react-component-meta`. It covers
+    // the rule's behavior when nothing records an extractor, which
     // #52's decision criteria requires to warn rather than pass, and which
     // gating the rule on the ref format would drop. It is also the only place
     // the manifest-level row and per-ref `docgen-missing` rows are asserted
