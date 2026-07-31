@@ -6,3 +6,8 @@ storybook-static
 # Written by changesets on release. Reflowing generated entries only creates
 # churn on the next release commit.
 CHANGELOG.md
+
+# Changesets joins an entry's body into one line when it writes the CHANGELOG, so
+# how these wrap never reaches a reader. Half the folder is the tool's own files.
+# Leaving it alone keeps a hand-written entry exactly as it was written.
+.changeset/
