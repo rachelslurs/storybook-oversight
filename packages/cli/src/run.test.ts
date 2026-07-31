@@ -111,7 +111,7 @@ const REF_V1 = {
   },
 };
 
-describe('run — exit codes', () => {
+describe('run: exit codes', () => {
   it('exits 0 on a clean manifest', async () => {
     expect((await run(options({ manifestPath: fixture(CLEAN) }))).code).toBe(0);
   });
@@ -187,7 +187,7 @@ describe('run — exit codes', () => {
   });
 });
 
-describe('run — extractor expectation wiring', () => {
+describe('run: extractor expectation wiring', () => {
   // Guards #32 at the CLI layer: reintroducing a default expectation anywhere
   // in the wiring would make the first assertion fail.
   it('runs extractor-drift only when the options carry an expectation', async () => {
@@ -215,7 +215,7 @@ describe('run — extractor expectation wiring', () => {
   });
 });
 
-describe('run — rule overrides and output', () => {
+describe('run: rule overrides and output', () => {
   it('escalates a warning to an error via a rule override, flipping the exit code', async () => {
     const path = fixture(WARNINGS_ONLY);
     expect((await run(options({ manifestPath: path }))).code).toBe(0);

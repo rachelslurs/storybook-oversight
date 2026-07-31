@@ -104,6 +104,32 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     expect(finding?.message).toBe('Old is marked @deprecated.');
   });
 
+  it('reads a null tag value as a bare tag, not the token "null"', () => {
+    // `String(null)` is "null", which reached the message as a note and, worse,
+    // reached `splitTokens` as a rule name: `@oversightIgnore: null` exempted
+    // nothing and reported `null` as an unknown rule.
+    const withTags = (jsDocTags: Record<string, unknown>) =>
+      normalizeManifest({
+        meta: { docgen: 'react-docgen-typescript' },
+        components: {
+          'ui-old': {
+            name: 'Old',
+            path: './old.stories.tsx',
+            jsDocTags,
+            reactDocgenTypescript: { description: 'Old.', props: { value: { description: '', required: true } } },
+          },
+        },
+      });
+
+    const deprecated = lint(withTags({ deprecated: null })).find((d) => d.rule === 'deprecated-tag');
+    expect(deprecated?.message).toBe('Old is marked @deprecated.');
+
+    const ignored = lint(withTags({ oversightIgnore: null }));
+    expect(ignored.filter((d) => d.rule === 'unknown-ignore-rule')).toHaveLength(0);
+    // A bare tag exempts every rule, so the undocumented required prop is quiet.
+    expect(ignored.filter((d) => d.rule === 'required-prop-undocumented')).toHaveLength(0);
+  });
+
   it('clamps a multi-line @deprecated body to its first line (#30)', () => {
     const result = normalizeManifest({
       meta: { docgen: 'react-docgen-typescript' },
@@ -471,7 +497,7 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         a: {
           name: 'A',
           path: './a.stories.tsx',
-          // Space-separated — the natural JSDoc form, not comma-separated.
+          // Space-separated, the natural JSDoc form rather than comma-separated.
           reactDocgenTypescript: {
             tags: {
               oversightIgnore: 'component-description-missing prop-descriptions-missing',
@@ -533,7 +559,7 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     expect(unknown).toHaveLength(1);
     // Whitespace-separated, so each word is surfaced as an unknown token.
     expect(unknown[0].message).toContain('internal, token, catalog');
-    // The malformed list exempts nothing — other rules still fire.
+    // The malformed list exempts nothing, so other rules still fire.
     expect(diagnostics.some((d) => d.rule === 'component-description-missing')).toBe(true);
   });
 
@@ -560,7 +586,7 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     expect(dangling[0].componentId).toBe('a');
     expect(dangling[0].message).toContain('group-ghost--docs');
     expect(dangling[0].message).not.toContain('group-b--docs');
-    // Structured targets drive the inline strikethrough — only the dead id.
+    // Structured targets drive the inline strikethrough, so only the dead id.
     expect(dangling[0].targets).toEqual(['group-ghost--docs']);
   });
 
@@ -594,7 +620,7 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
       },
     });
     const diagnostics = lint(result, {
-      // ESLint muscle memory — not a valid RuleSetting.
+      // ESLint muscle memory, not a valid RuleSetting.
       rules: { 'component-description-missing': 'warn' as never },
     });
     const diagnostic = diagnostics.find((d) => d.rule === 'component-description-missing');

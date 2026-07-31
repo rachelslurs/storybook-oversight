@@ -1,7 +1,6 @@
 /**
- * The normalization contract. Everything the
- * panel renders derives from these types; nothing here may import from
- * `storybook/*` or `@storybook/*`.
+ * The normalization contract. Everything the panel renders derives from these
+ * types; nothing here may import from `storybook/*` or `@storybook/*`.
  */
 export type NormalizedComponent = {
   id: string; // manifest key, e.g. "forms-checkbox"
