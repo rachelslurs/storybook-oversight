@@ -80,8 +80,8 @@ type MetaOf = {
 };
 
 /**
- * A documentation-coverage panel for the current component's Docs page,
- * showing the same diagnostics the Oversight manager panel shows, surfaced inline.
+ * The same diagnostics the Oversight manager panel shows, rendered inline on
+ * the current component's Docs page.
  * Reads which component it documents from `useOf("meta")`. Requires the
  * components-manifest feature (e.g. `@storybook/addon-mcp`).
  */
@@ -168,8 +168,8 @@ function ThemedRoot({ children }: { children: ReactNode }) {
  *   const preview = { parameters: { docs: { container: OversightDocsContainer } } };
  *
  * Delete that line to remove it from every page. Unattached MDX pages (an
- * Overview with no `of`) get the plain container, since there's no component to
- * diagnose, so no block. (For per-page control instead, place `<Oversight/>`
+ * Overview with no `of`) get the plain container: there's no component to
+ * diagnose. (For per-page control instead, place `<Oversight/>`
  * in an individual MDX rather than using this container.)
  */
 export function OversightDocsContainer({ context, children }: PropsWithChildren<DocsContainerProps>) {

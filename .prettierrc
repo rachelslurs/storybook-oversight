@@ -7,7 +7,7 @@
   "useTabs": false,
   "overrides": [
     {
-      "files": "*.md",
+      "files": "*.{md,mdx}",
       "options": {
         "proseWrap": "never"
       }

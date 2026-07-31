@@ -75,7 +75,7 @@ describe('buildReport (fixture)', () => {
       },
     };
     const report = buildReport(drift, 'ui-thing', { expectedExtractor: 'react-docgen-typescript' });
-    // The component itself is clean — drift must not leak into its findings/count.
+    // The component itself is clean, so drift must not leak into its findings/count.
     expect(report.diagnostics).toHaveLength(0);
     expect(report.manifestDiagnostics.map((d) => d.rule)).toEqual(['extractor-drift']);
     expect(report.manifestDiagnostics[0].severity).toBe('warning');

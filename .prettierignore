@@ -7,7 +7,7 @@ storybook-static
 # churn on the next release commit.
 CHANGELOG.md
 
-# Changesets joins an entry's body into one line when it writes the CHANGELOG, so
-# how these wrap never reaches a reader. Half the folder is the tool's own files.
-# Leaving it alone keeps a hand-written entry exactly as it was written.
-.changeset/
+# How a changeset body wraps does not change how the released entry reads, so
+# reflowing these only rewrites prose someone chose the shape of. Scoped to the
+# entries: `config.json` stays formatted.
+.changeset/*.md

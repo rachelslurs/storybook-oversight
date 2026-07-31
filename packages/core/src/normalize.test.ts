@@ -328,7 +328,7 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
               x: {
                 description: 'doc',
                 required: false,
-                // Suffix of the path but not on a path boundary — must not match.
+                // Suffix of the path but not on a path boundary, so it must not match.
                 declarations: [{ fileName: 'storybook/src/A.tsx' }],
               },
             },

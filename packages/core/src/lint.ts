@@ -41,8 +41,8 @@ export const ALL_RULES = Object.keys(RULE_SET) as DiagnosticRule[];
 export const VALID_SETTINGS: ReadonlySet<string> = new Set<RuleSetting>(['off', 'error', 'warning', 'info']);
 
 function splitTokens(value: string): string[] {
-  // Split on whitespace as well as commas/newlines, so `@oversightIgnore a b`
-  // (the natural JSDoc form) must parse the same as the comma-separated form.
+  // `@oversightIgnore a b`, the natural JSDoc form, must parse the same as the
+  // comma-separated form, so split on whitespace as well as commas/newlines.
   return value
     .split(/[\s,]+/)
     .map((token) => token.trim())
