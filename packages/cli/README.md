@@ -67,10 +67,10 @@ Actions, that is two steps:
 
 `--expected-extractor` states the extractor your `.storybook/main.ts` pins;
 `extractor-drift` runs only when an expectation is configured, via the flag or
-the config file. With `features.experimentalReactComponentMeta` enabled the value
-to state is `react-component-meta`: that flag picks the extractor itself and
-`typescript.reactDocgen` is not consulted, so the manifest records
-`react-component-meta` whatever the pin says.
+the config file. With `features.experimentalReactComponentMeta` or
+`features.experimentalDocgenServer` enabled the value to state is
+`react-component-meta`: either flag picks the extractor itself, so the manifest
+records `react-component-meta` and `typescript.reactDocgen` is never read.
 
 `--format github` emits `::error`/`::warning`/`::notice` annotations; GitHub shows
 them on the run and the pull request's Checks tab, not beside your changed code

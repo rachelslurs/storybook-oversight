@@ -69,10 +69,11 @@ Set the same value as `expectedExtractor` (see
 with a different extractor. The rule runs only when an expectation is
 configured.
 
-If you enable `features.experimentalReactComponentMeta`, set `expectedExtractor`
-to `react-component-meta` instead. That flag chooses the extractor itself and
-`typescript.reactDocgen` above is not consulted, so the manifest records
-`react-component-meta` regardless of what the pin says.
+If you enable `features.experimentalReactComponentMeta` or
+`features.experimentalDocgenServer`, set `expectedExtractor` to
+`react-component-meta` instead. Either flag chooses the extractor itself, so the
+manifest records `react-component-meta` and `typescript.reactDocgen` above is
+never read.
 
 ### Optional: enable the Docs-page block
 
