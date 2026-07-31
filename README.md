@@ -13,20 +13,14 @@
   <a href="https://rachelslurs.github.io/storybook-oversight/"><strong>▶ Live demo</strong></a>
 </p>
 
-Your coding agent reads your components from the manifest Storybook's MCP server
-generates. When a description never reaches that manifest (extraction failed, the
-wrong docgen extractor ran, or the JSDoc is missing), the agent sees a component
-with no docs, and nothing tells you. Oversight lints that manifest per component
-so the gap surfaces, either while you work or in CI.
+Your coding agent reads your components from the manifest Storybook's MCP server generates. When a description never reaches that manifest (extraction failed, the wrong docgen extractor ran, or the JSDoc is missing), the agent sees a component with no docs, and nothing tells you. Oversight lints that manifest per component so the gap surfaces, either while you work or in CI.
 
-The rules live once, in a shared core, and run two ways: one interactive in
-Storybook, one headless in CI. Each package's own README has its full install,
-usage, and options:
+The rules live once, in a shared core, and run two ways: one interactive in Storybook, one headless in CI. Each package's own README has its full install, usage, and options:
 
-| Package                                                                         | Use it for                                                                                                                    |
-| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| [**storybook-addon-oversight**](./packages/storybook-addon-oversight/README.md) | Lints the manifest live in Storybook: an addon panel on every story and an inline Docs-page block, while you work.            |
-| [**oversight-lint**](./packages/cli/README.md)                                  | Lints the built manifest in CI. Fails the build when a change drops or breaks a component's docs. The command is `oversight`. |
+| Package | Use it for |
+| --- | --- |
+| [**storybook-addon-oversight**](./packages/storybook-addon-oversight/README.md) | Lints the manifest live in Storybook: an addon panel on every story and an inline Docs-page block, while you work. |
+| [**oversight-lint**](./packages/cli/README.md) | Lints the built manifest in CI. Fails the build when a change drops or breaks a component's docs. The command is `oversight`. |
 
 <p>Blog post: <a href="https://rachel.fyi/posts/your-agent-is-reading-a-different-design-system"><em>Your Agent Is Reading a Different Design System</em></a></p>
 
@@ -40,9 +34,7 @@ packages/
 .storybook/  stories/          the demo Storybook that dogfoods the addon
 ```
 
-`oversight-core` holds every rule as pure functions with zero Storybook or React
-imports. The addon and the CLI each bundle it, so the two can never disagree
-about what a finding is. It is never published on its own.
+`oversight-core` holds every rule as pure functions with zero Storybook or React imports. The addon and the CLI each bundle it, so the two can never disagree about what a finding is. It is never published on its own.
 
 ## Development
 
@@ -55,10 +47,7 @@ pnpm build-storybook # build the addon, then the demo Storybook
 pnpm storybook       # run the demo at http://localhost:6006
 ```
 
-The demo ships a handful of components each engineered to trip one rule. Open a
-component's story to see the addon panel, or its Docs page for the inline block.
-Run `oversight storybook-static/manifests/components.json` after
-`pnpm build-storybook` to see the CLI report the same findings.
+The demo ships a handful of components each engineered to trip one rule. Open a component's story to see the addon panel, or its Docs page for the inline block. Run `oversight storybook-static/manifests/components.json` after `pnpm build-storybook` to see the CLI report the same findings.
 
 Changes land through pull requests; see [CONTRIBUTING.md](./CONTRIBUTING.md).
 

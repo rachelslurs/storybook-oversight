@@ -2,3 +2,7 @@ dist
 pnpm-lock.yaml
 node_modules
 storybook-static
+
+# Written by changesets on release. Reflowing generated entries only creates
+# churn on the next release commit.
+CHANGELOG.md

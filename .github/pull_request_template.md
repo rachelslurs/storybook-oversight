@@ -4,11 +4,9 @@
 
 ## Release impact
 
-Releases are versioned with Changesets. Run `pnpm changeset` and select the
-affected packages and bump levels.
+Releases are versioned with Changesets. Run `pnpm changeset` and select the affected packages and bump levels.
 
-For a change that needs no release, such as docs, CI, or a chore, run
-`pnpm changeset add --empty`.
+For a change that needs no release, such as docs, CI, or a chore, run `pnpm changeset add --empty`.
 
 ## Checklist
 

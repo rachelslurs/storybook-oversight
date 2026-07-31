@@ -4,5 +4,13 @@
   "arrowParens": "always",
   "printWidth": 120,
   "tabWidth": 2,
-  "useTabs": false
+  "useTabs": false,
+  "overrides": [
+    {
+      "files": "*.md",
+      "options": {
+        "proseWrap": "never"
+      }
+    }
+  ]
 }
