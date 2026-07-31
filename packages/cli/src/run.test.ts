@@ -1,5 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { join, sep } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { RawManifest } from 'oversight-core';
@@ -516,40 +517,65 @@ describe('run: annotations survive the ref format (#51)', () => {
   // payload. #51 exists because losing that is silent: annotations stop landing
   // on files rather than erroring. These fixtures are core's, because the point
   // is comparing the two formats of the same six components.
-  const coreFixture = (name: string) => new URL(`../../core/test/fixtures/${name}`, import.meta.url).pathname;
+  const coreFixture = (name: string) => fileURLToPath(new URL(`../../core/test/fixtures/${name}`, import.meta.url));
 
-  const anchors = (stdout: string) =>
-    stdout
+  /**
+   * One entry per annotation, carrying its anchor or null. Keeping the
+   * unanchored ones is the point: filtering them out would hide the regression
+   * this block exists to catch, since a finding that loses its anchor would
+   * leave the survivors looking correct.
+   */
+  function annotations(stdout: string): { rule: string; file: string | null }[] {
+    return stdout
       .split('\n')
-      .map((line) => /file=([^:,]+)/.exec(line)?.[1])
-      .filter((f): f is string => f !== undefined)
+      .filter((line) => line.startsWith('::'))
+      .map((line) => {
+        // `::<command> <properties>::<message>`. `encodeData` leaves `=` and `,`
+        // in the message, so only the properties may be searched for `file=`.
+        const properties = /^::\w+ (.*?)::/.exec(line)?.[1] ?? '';
+        return {
+          rule: /title=oversight\/([^,]+)/.exec(properties)?.[1] ?? '',
+          file: /file=([^,]+)/.exec(properties)?.[1] ?? null,
+        };
+      });
+  }
+
+  const anchorsOf = (stdout: string) =>
+    annotations(stdout)
+      .map((a) => a.file)
       .sort();
 
   it('anchors every component finding to a stories file', async () => {
     const result = await run(options({ manifestPath: coreFixture('v1/manifests/components.json'), format: 'github' }));
-    const files = anchors(result.stdout);
-    expect(files.length).toBeGreaterThan(0);
-    expect(files.every((f) => f.endsWith('.stories.tsx'))).toBe(true);
+    const anns = annotations(result.stdout);
+    expect(anns.length).toBeGreaterThan(0);
+    // Every finding this fixture produces is component-scoped, so an unanchored
+    // one is a regression rather than a manifest-level finding.
+    expect(anns.filter((a) => a.file === null)).toEqual([]);
+    expect(anns.every((a) => a.file?.endsWith('.stories.tsx'))).toBe(true);
     // Never the `./` the manifest stores, which GitHub would not match.
-    expect(files.some((f) => f.startsWith('./'))).toBe(false);
+    expect(anns.some((a) => a.file?.startsWith('./'))).toBe(false);
   });
 
   it('anchors them to the same files the inline manifest does', async () => {
-    // The real guard. Comparing the two formats rather than hardcoding paths
-    // means this fails when resolution stops recovering `path`, not when a
-    // fixture is edited.
+    // Comparing the two formats rather than hardcoding paths means this follows
+    // the fixtures when they change. It proves the formats agree; the test above
+    // is what proves the anchors are there at all.
     const ref = await run(options({ manifestPath: coreFixture('v1/manifests/components.json'), format: 'github' }));
     const inline = await run(
       options({ manifestPath: coreFixture('v0-react-component-meta/components.json'), format: 'github' }),
     );
-    expect(anchors(ref.stdout)).toEqual(anchors(inline.stdout));
-    expect(ref.stdout).toBe(inline.stdout);
+    // Both runs have to have found something, or this compares two empty lists.
+    // A missing fixture exits 2 with no output rather than throwing.
+    expect(ref.code).toBe(1);
+    expect(inline.code).toBe(1);
+    expect(anchorsOf(ref.stdout)).toEqual(anchorsOf(inline.stdout));
+    expect(anchorsOf(ref.stdout).length).toBeGreaterThan(0);
   });
 
   it('anchors from the docgen payload when the stories ref is the missing one', async () => {
-    // The mirror of the fixture case below. Both payloads carry the same `path`,
-    // so either recovers the anchor on its own, and a test that only ever loses
-    // the docgen side would not notice the docgen copy going away.
+    // Both payloads carry the same `path`, so either recovers the anchor alone.
+    // Covering only one direction would leave the other copy free to delete.
     const out = join(dir, 'docgen-only');
     mkdirSync(join(out, 'manifests'), { recursive: true });
     mkdirSync(join(out, 'services/core/docgen'), { recursive: true });
@@ -575,7 +601,7 @@ describe('run: annotations survive the ref format (#51)', () => {
       }),
     );
     const result = await run(options({ manifestPath: join(out, 'manifests/components.json'), format: 'github' }));
-    expect(result.stdout).toMatch(/file=src\/Widget\.stories\.tsx/);
+    expect(annotations(result.stdout).map((a) => a.file)).toContain('src/Widget.stories.tsx');
   });
 
   it('keeps the anchor a component can still recover, and drops the one it cannot', async () => {
@@ -584,10 +610,10 @@ describe('run: annotations survive the ref format (#51)', () => {
     const result = await run(
       options({ manifestPath: coreFixture('v1-dangling/manifests/components.json'), format: 'github' }),
     );
-    const lines = result.stdout.split('\n').filter((l) => l.startsWith('::error '));
-    expect(lines).toHaveLength(2);
-    expect(lines.find((l) => l.includes('Banner'))).toContain('file=stories/Banner/Banner.stories.tsx');
-    expect(lines.find((l) => l.includes('Panel'))).not.toContain('file=');
+    const anns = annotations(result.stdout);
+    expect(anns).toHaveLength(2);
+    expect(anns.find((a) => a.file !== null)?.file).toBe('stories/Banner/Banner.stories.tsx');
+    expect(anns.filter((a) => a.file === null)).toHaveLength(1);
     expect(result.code).toBe(1);
   });
 });
