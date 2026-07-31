@@ -15,12 +15,13 @@
 
 Your coding agent reads your components from the manifest Storybook's MCP server generates. When a description never reaches that manifest (extraction failed, the wrong docgen extractor ran, or the JSDoc is missing), the agent sees a component with no docs, and nothing tells you. Oversight lints that manifest per component so the gap surfaces, either while you work or in CI.
 
-The rules live once, in a shared core, and run two ways: one interactive in Storybook, one headless in CI. Each package's own README has its full install, usage, and options:
+The rules live once, in a shared core, and run two ways: one interactive in Storybook, one headless in CI. Each README below has the full install, usage, and options:
 
 | Package | Use it for |
 | --- | --- |
 | [**storybook-addon-oversight**](./packages/storybook-addon-oversight/README.md) | Lints the manifest live in Storybook: an addon panel on every story and an inline Docs-page block, while you work. |
 | [**oversight-lint**](./packages/cli/README.md) | Lints the built manifest in CI. Fails the build when a change drops or breaks a component's docs. The command is `oversight`. |
+| [**oversight-lint-action**](https://github.com/rachelslurs/oversight-lint-action) | Runs the CI linter as a GitHub Action, reporting findings as annotations. Lives in its own repo. |
 
 <p>Blog post: <a href="https://rachel.fyi/posts/your-agent-is-reading-a-different-design-system"><em>Your Agent Is Reading a Different Design System</em></a></p>
 
