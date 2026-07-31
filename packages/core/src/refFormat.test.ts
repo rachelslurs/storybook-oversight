@@ -55,7 +55,7 @@ function comparable(diagnostics: Diagnostic[]): string[] {
 
 const rulesOf = (m: RawManifest) => lint(normalizeManifest(m)).map((d) => d.rule);
 const shapeIssueOf = (m: RawManifest) =>
-  lint(normalizeManifest(m)).find((d) => d.rule === 'manifest-shape-unrecognized');
+  lint(normalizeManifest(m)).find((d) => d.rule === 'prop-shape-unrecognized' || d.rule === 'ref-unresolved');
 
 describe('ref manifests reach the same verdict as inline ones', () => {
   it('produces diagnostics identical to the v:0 react-component-meta build', async () => {
@@ -102,7 +102,7 @@ describe('the prop shape guard', () => {
     expect(rulesOf(m)).not.toContain('required-prop-undocumented');
 
     const issue = shapeIssueOf(m);
-    expect(issue?.severity).toBe('warning');
+    expect(issue?.severity).toBe('error');
     expect(issue?.componentId).toBeNull();
     expect(issue?.message).toMatch(/description/);
     // The skip is named, so the silence is not left to be noticed.
@@ -286,8 +286,89 @@ describe('entry shapes the index can emit', () => {
         throw new Error('leaf unreachable');
       },
     );
-    const error = String(resolved.components?.x.error);
-    expect(error).toMatch(/pre-existing extraction problem/);
-    expect(error).toMatch(/failed to load/);
+    // The entry's own error stays intact; the ref failure rides alongside it.
+    expect(resolved.components?.x.error).toEqual({ message: 'pre-existing extraction problem' });
+    expect(String(resolved.components?.x.refErrors)).toMatch(/failed to load/);
+  });
+});
+
+describe('leaf shapes the resolver has to survive', () => {
+  const index = (entry: object) =>
+    ({
+      v: 1,
+      meta: { docgen: 'react-component-meta' },
+      components: { x: { id: 'x', name: 'X', ...entry } },
+    }) as unknown as RawManifest;
+  const leaf = (node: object) => () => JSON.stringify({ components: { x: node } });
+
+  it('survives a null story instead of losing every diagnostic', async () => {
+    const resolved = await resolveManifestRefs(
+      index({ stories: { $ref: 'l.json#/components/x' } }),
+      leaf({ path: './x.stories.tsx', stories: { 'x--a': null, 'x--b': { id: 'x--b', name: 'B' } } }),
+    );
+    expect(() => normalizeManifest(resolved)).not.toThrow();
+    expect(resolved.components?.x.stories).toEqual([{ id: 'x--b', name: 'B' }]);
+  });
+
+  it('reports a stories value it cannot read rather than dropping it', async () => {
+    const resolved = await resolveManifestRefs(
+      index({ stories: { $ref: 'l.json#/components/x' } }),
+      leaf({ path: './x.stories.tsx', stories: 'nonsense' }),
+    );
+    expect(String(resolved.components?.x.refErrors)).toMatch(/carries no stories/);
+  });
+
+  it('reads a payload under any of the three extractor keys', async () => {
+    for (const key of ['reactComponentMeta', 'reactDocgenTypescript', 'reactDocgen']) {
+      const resolved = await resolveManifestRefs(
+        index({ docgen: { $ref: 'l.json#/components/x' } }),
+        leaf({ path: './x.stories.tsx', [key]: { props: { a: { description: 'A', required: true } } } }),
+      );
+      const result = normalizeManifest(resolved);
+      expect(result.failures, `payload under ${key}`).toHaveLength(0);
+      expect(result.components[0].props.a.description).toBe('A');
+    }
+  });
+
+  it('says so when the payload is under no key it reads', async () => {
+    const resolved = await resolveManifestRefs(
+      index({ docgen: { $ref: 'l.json#/components/x' } }),
+      leaf({ path: './x.stories.tsx', someFutureExtractor: { props: {} } }),
+    );
+    expect(String(resolved.components?.x.refErrors)).toMatch(/none of reactComponentMeta/);
+  });
+
+  it('lifts a docgen node the index inlined rather than deferred', async () => {
+    const resolved = await resolveManifestRefs(
+      index({
+        docgen: { path: './x.stories.tsx', reactComponentMeta: { props: { a: { description: 'A', required: true } } } },
+        stories: { $ref: 'l.json#/components/x' },
+      }),
+      leaf({ stories: {} }),
+    );
+    const result = normalizeManifest(resolved);
+    expect(result.failures).toHaveLength(0);
+    expect(result.components[0].props.a.description).toBe('A');
+  });
+
+  it('does not invent props from an array-valued props payload', async () => {
+    const result = normalizeManifest(
+      index({ reactComponentMeta: { props: [{ name: 'variant', description: '', required: true }] } }),
+    );
+    expect(result.propShape).toBe('unrecognized');
+    expect(result.components[0]?.props).toEqual({});
+    expect(lint(result).map((d) => d.rule)).not.toContain('required-prop-undocumented');
+  });
+
+  it('keeps the entry error and the ref failure apart', async () => {
+    const resolved = await resolveManifestRefs(
+      index({ error: { name: 'no component docs', message: 'File: /repo/x.tsx' }, docgen: { $ref: 'l.json#/x' } }),
+      () => {
+        throw new Error('gone');
+      },
+    );
+    const failure = normalizeManifest(resolved).failures[0];
+    // The diagnosis lives in `name`; joining the ref failure in erased it.
+    expect(failure.errorName).toBe('no component docs');
   });
 });

@@ -44,7 +44,7 @@ describe('resolveManifestRefs (fixture: v1 ref index)', () => {
       expect(typeof entry.path).toBe('string');
       expect(entry.jsDocTags).toBeDefined();
       expect(Array.isArray(entry.stories)).toBe(true);
-      expect(entry.error).toBeUndefined();
+      expect(entry.refErrors).toBeUndefined();
     }
     const button = resolved.components?.['actions-button'];
     expect(button?.path).toBe('./stories/Button/Button.stories.tsx');
@@ -90,7 +90,7 @@ describe('resolveManifestRefs (fixture: v1-dangling)', () => {
     expect(banner?.reactComponentMeta).toBeUndefined();
     expect(banner?.path).toBe('./stories/Banner/Banner.stories.tsx');
     expect(Array.isArray(banner?.stories)).toBe(true);
-    expect(banner?.error).toBeDefined();
+    expect(banner?.refErrors).toBeDefined();
   });
 
   it('carries an error and no path when both leaves are missing', async () => {
@@ -99,19 +99,21 @@ describe('resolveManifestRefs (fixture: v1-dangling)', () => {
     expect(panel?.reactComponentMeta).toBeUndefined();
     expect(panel?.path).toBeUndefined();
     expect(panel?.stories).toBeUndefined();
-    expect(typeof panel?.error).toBe('string');
+    expect(Array.isArray(panel?.refErrors)).toBe(true);
   });
 
   it('normalizes to two extraction failures, anchored where a path is known', async () => {
     const result = normalizeManifest(await resolveManifestRefs(raw, fsLoader('v1-dangling')));
     expect(result.components).toHaveLength(0);
     expect(result.failures).toHaveLength(2);
+    // The entry carried no error of its own, so the ref failure becomes the
+    // reason the extraction is reported as failed.
     const banner = result.failures.find((f) => f.id === 'feedback-banner');
     expect(banner?.storiesFile).toBe('./stories/Banner/Banner.stories.tsx');
-    expect(banner?.error).toBeTruthy();
+    expect(banner?.error).toMatch(/failed to load/);
     const panel = result.failures.find((f) => f.id === 'layout-panel');
     expect(panel?.storiesFile).toBe('');
-    expect(panel?.error).toBeTruthy();
+    expect(panel?.error).toMatch(/failed to load/);
   });
 });
 
@@ -132,7 +134,7 @@ describe('resolveManifestRefs (synthetic: ref validation)', () => {
       expect(calls).toEqual([]);
       const entry = resolved.components?.['x-widget'];
       expect(entry?.reactComponentMeta).toBeUndefined();
-      expect(String(entry?.error)).toContain('refused');
+      expect(String(entry?.refErrors)).toContain('refused');
     }
   });
 
@@ -151,7 +153,7 @@ describe('resolveManifestRefs (synthetic: ref validation)', () => {
         return '{}';
       });
       expect(calls).toEqual([]);
-      expect(String(resolved.components?.['x-widget']?.error)).toContain('refused');
+      expect(String(resolved.components?.['x-widget']?.refErrors)).toContain('refused');
     }
   });
 
@@ -169,7 +171,7 @@ describe('resolveManifestRefs (synthetic: ref validation)', () => {
     );
     expect(calls).toEqual(['../services/core/docgen/x.json']);
     expect(resolved.components?.['x-widget']?.reactComponentMeta).toBeDefined();
-    expect(resolved.components?.['x-widget']?.error).toBeUndefined();
+    expect(resolved.components?.['x-widget']?.refErrors).toBeUndefined();
   });
 
   it('isolates a refused ref to its own entry', async () => {
@@ -183,9 +185,9 @@ describe('resolveManifestRefs (synthetic: ref validation)', () => {
       }),
       () => body,
     );
-    expect(resolved.components?.bad?.error).toBeDefined();
+    expect(resolved.components?.bad?.refErrors).toBeDefined();
     expect(resolved.components?.good?.reactComponentMeta).toBeDefined();
-    expect(resolved.components?.good?.error).toBeUndefined();
+    expect(resolved.components?.good?.refErrors).toBeUndefined();
   });
 });
 
@@ -220,7 +222,7 @@ describe('resolveManifestRefs (synthetic: loading and pointers)', () => {
         throw new Error('boom: leaf unreachable');
       },
     );
-    const error = String(resolved.components?.['x-widget']?.error);
+    const error = String(resolved.components?.['x-widget']?.refErrors);
     expect(error).toContain('failed to load');
     expect(error).toContain('boom: leaf unreachable');
   });
@@ -230,7 +232,7 @@ describe('resolveManifestRefs (synthetic: loading and pointers)', () => {
       v1Manifest(withDocgenRef('../services/core/docgen/x.json#/components/x')),
       () => 'not json',
     );
-    expect(String(resolved.components?.['x-widget']?.error)).toContain('failed to load');
+    expect(String(resolved.components?.['x-widget']?.refErrors)).toContain('failed to load');
   });
 
   it('keeps an HTML 404 body out of the error text', async () => {
@@ -246,7 +248,7 @@ describe('resolveManifestRefs (synthetic: loading and pointers)', () => {
         v1Manifest(withDocgenRef('../services/core/docgen/x.json#/components/x')),
         load,
       );
-      const error = String(resolved.components?.['x-widget']?.error);
+      const error = String(resolved.components?.['x-widget']?.refErrors);
       expect(error).not.toContain('<');
       expect(error).not.toContain('404');
       expect(error).toContain('../services/core/docgen/x.json');
@@ -260,7 +262,7 @@ describe('resolveManifestRefs (synthetic: loading and pointers)', () => {
     );
     const entry = resolved.components?.['x-widget'];
     expect(entry?.reactComponentMeta).toBeUndefined();
-    expect(String(entry?.error)).toContain('does not resolve');
+    expect(String(entry?.refErrors)).toContain('does not resolve');
   });
 
   it('unescapes ~1 before ~0 in pointer tokens', async () => {
@@ -295,7 +297,7 @@ describe('resolveManifestRefs (synthetic: loading and pointers)', () => {
       return '{}';
     });
     expect(calls).toEqual([]);
-    expect(resolved.components?.['inline-one']).toBe(entry);
+    expect(resolved.components?.['inline-one']).toEqual(entry);
   });
 
   it('resolves a stories-only entry without fabricating a docgen error', async () => {
@@ -312,7 +314,7 @@ describe('resolveManifestRefs (synthetic: loading and pointers)', () => {
       () => body,
     );
     const entry = resolved.components?.solo;
-    expect(entry?.error).toBeUndefined();
+    expect(entry?.refErrors).toBeUndefined();
     expect(entry?.reactComponentMeta).toBeUndefined();
     expect(entry?.path).toBe('./solo.stories.tsx');
     expect(entry?.stories?.map((s) => s.id)).toEqual(['solo--default']);

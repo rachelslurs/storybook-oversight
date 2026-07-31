@@ -1,5 +1,5 @@
 import { lstatSync, readFileSync, realpathSync } from 'node:fs';
-import { dirname, resolve, sep } from 'node:path';
+import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { detectManifestFormat, resolveManifestRefs } from 'oversight-core';
 import type { RawManifest } from 'oversight-core';
 
@@ -54,10 +54,15 @@ export async function hydrateManifest(raw: RawManifest, path: string): Promise<R
   }
   if (format.kind === 'inline') return raw;
 
-  const base = dirname(path);
-  // The index sits one level below the build output, and refs reach its
-  // siblings under `services/`.
-  const root = realpathSync(resolve(base, '..'));
+  const base = realpathSync(dirname(path));
+  // A ref may climb one level only because a build puts the index in
+  // `<out>/manifests/`. Granting that level unconditionally would widen the
+  // boundary by a directory for any other layout, and `parseRef` allows exactly
+  // the one `..` needed to walk through it. Without the directory the build
+  // output is the index's own, and a climbing ref is reaching outside it.
+  // Resolving `base` first keeps the root and the targets on the same side of
+  // any symlink, so a build output staged through links still resolves.
+  const root = basename(base) === 'manifests' ? dirname(base) : base;
   return resolveManifestRefs(raw, (target) => readLeafFile(resolve(base, target), root));
 }
 
@@ -73,9 +78,22 @@ const MAX_LEAF_BYTES = 8 * 1024 * 1024;
  * link to a device or FIFO would hang the run until CI timed it out. Resolving
  * the real path and requiring a regular file inside the root closes both.
  */
+/**
+ * Whether a resolved path sits under `root`.
+ *
+ * `relative` rather than a prefix compare: `root + sep` doubles the separator
+ * when root is a filesystem or drive root, and every legitimate ref is then
+ * refused. Exported for the test that covers that case, which needs a root no
+ * temporary directory can produce.
+ */
+export function containedIn(root: string, real: string): boolean {
+  const rel = relative(root, real);
+  return rel !== '' && !isAbsolute(rel) && rel.split(sep)[0] !== '..';
+}
+
 function readLeafFile(target: string, root: string): string {
   const real = realpathSync(target);
-  if (real !== root && !real.startsWith(root + sep)) {
+  if (!containedIn(root, real)) {
     throw new Error('resolves outside the build output');
   }
   const stat = lstatSync(real);

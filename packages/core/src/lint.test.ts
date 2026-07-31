@@ -560,7 +560,7 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
   });
 });
 
-describe('manifest-shape-unrecognized is wired like every other rule', () => {
+describe('the shape rules are wired like every other rule', () => {
   const shapeIssue = {
     extractor: null,
     format: 'ref' as const,
@@ -573,15 +573,16 @@ describe('manifest-shape-unrecognized is wired like every other rule', () => {
   };
 
   it('is in ALL_RULES, so --rule and @oversightIgnore accept it', () => {
-    expect(ALL_RULES).toContain('manifest-shape-unrecognized');
+    expect(ALL_RULES).toContain('prop-shape-unrecognized');
+    expect(ALL_RULES).toContain('ref-unresolved');
   });
 
   it('honours a severity override', () => {
-    const escalated = lint(shapeIssue, { rules: { 'manifest-shape-unrecognized': 'error' } });
-    expect(escalated[0].severity).toBe('error');
+    const escalated = lint(shapeIssue, { rules: { 'prop-shape-unrecognized': 'warning' } });
+    expect(escalated[0].severity).toBe('warning');
   });
 
   it('honours being turned off', () => {
-    expect(lint(shapeIssue, { rules: { 'manifest-shape-unrecognized': 'off' } })).toEqual([]);
+    expect(lint(shapeIssue, { rules: { 'prop-shape-unrecognized': 'off' } })).toEqual([]);
   });
 });
