@@ -712,6 +712,26 @@ describe('formatGithub', () => {
     expect(anchored).not.toContain('second line');
   });
 
+  it('emits a component finding without a file when its entry records none', () => {
+    // Reachable under the ref format when a component's payload files are both
+    // missing, so nothing recovers `path`. The annotation still has to carry its
+    // rule and message; GitHub attaches it to the run instead of a file.
+    const unanchored = formatGithub(
+      summaryOf(
+        [{ rule: 'docgen-missing', severity: 'error', componentId: 'layout-panel', message: 'Panel failed.' }],
+        {
+          entryCount: 1,
+          names: new Map([['layout-panel', 'Panel']]),
+          files: new Map([['layout-panel', '']]),
+        },
+      ),
+    );
+    expect(unanchored).toContain('::error ');
+    expect(unanchored).toContain('title=oversight/docgen-missing');
+    expect(unanchored).toContain('::Panel failed.');
+    expect(unanchored).not.toContain('file=');
+  });
+
   it('emits manifest-level findings without a file (job-level)', () => {
     const drift = lines.find((l) => l.includes('oversight/extractor-drift'));
     expect(drift).toBeDefined();
