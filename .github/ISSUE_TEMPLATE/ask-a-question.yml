@@ -14,4 +14,4 @@ body:
     id: context
     attributes:
       label: Context
-      description: Relevant config, versions, or a link — anything that helps answer.
+      description: Relevant config, versions, or a link. Anything that helps answer.

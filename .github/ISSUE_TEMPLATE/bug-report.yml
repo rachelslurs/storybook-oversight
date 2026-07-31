@@ -9,7 +9,7 @@ body:
         Thanks for filing! Please include enough detail to reproduce. If this is
         a `docgen-missing` finding, check the README's
         [Troubleshooting `docgen-missing`](https://github.com/rachelslurs/storybook-oversight#troubleshooting-docgen-missing)
-        section first — the usual cause is a solution-style root `tsconfig.json`.
+        section first. The usual cause is a solution-style root `tsconfig.json`.
   - type: textarea
     id: what-happened
     attributes:

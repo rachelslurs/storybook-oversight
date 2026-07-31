@@ -7,7 +7,7 @@ import { themes } from 'storybook/theming';
  * `addons.getConfig()['storybook-addon-oversight']`. Uncomment to try it.
  */
 addons.setConfig({
-  // Pin the demo to the light theme so it matches the README/branding.
+  // Hold the demo on the light theme so it matches the README/branding.
   theme: themes.light,
   'storybook-addon-oversight': {
     // expectedExtractor: 'react-docgen-typescript',
