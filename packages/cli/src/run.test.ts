@@ -510,3 +510,84 @@ describe('run: ref targets are confined to the build output', () => {
     expect(result.stdout).not.toMatch(/outside the build output/);
   });
 });
+
+describe('run: annotations survive the ref format (#51)', () => {
+  // The v:1 index carries no `path`, so every anchor here comes from a resolved
+  // payload. #51 exists because losing that is silent: annotations stop landing
+  // on files rather than erroring. These fixtures are core's, because the point
+  // is comparing the two formats of the same six components.
+  const coreFixture = (name: string) => new URL(`../../core/test/fixtures/${name}`, import.meta.url).pathname;
+
+  const anchors = (stdout: string) =>
+    stdout
+      .split('\n')
+      .map((line) => /file=([^:,]+)/.exec(line)?.[1])
+      .filter((f): f is string => f !== undefined)
+      .sort();
+
+  it('anchors every component finding to a stories file', async () => {
+    const result = await run(options({ manifestPath: coreFixture('v1/manifests/components.json'), format: 'github' }));
+    const files = anchors(result.stdout);
+    expect(files.length).toBeGreaterThan(0);
+    expect(files.every((f) => f.endsWith('.stories.tsx'))).toBe(true);
+    // Never the `./` the manifest stores, which GitHub would not match.
+    expect(files.some((f) => f.startsWith('./'))).toBe(false);
+  });
+
+  it('anchors them to the same files the inline manifest does', async () => {
+    // The real guard. Comparing the two formats rather than hardcoding paths
+    // means this fails when resolution stops recovering `path`, not when a
+    // fixture is edited.
+    const ref = await run(options({ manifestPath: coreFixture('v1/manifests/components.json'), format: 'github' }));
+    const inline = await run(
+      options({ manifestPath: coreFixture('v0-react-component-meta/components.json'), format: 'github' }),
+    );
+    expect(anchors(ref.stdout)).toEqual(anchors(inline.stdout));
+    expect(ref.stdout).toBe(inline.stdout);
+  });
+
+  it('anchors from the docgen payload when the stories ref is the missing one', async () => {
+    // The mirror of the fixture case below. Both payloads carry the same `path`,
+    // so either recovers the anchor on its own, and a test that only ever loses
+    // the docgen side would not notice the docgen copy going away.
+    const out = join(dir, 'docgen-only');
+    mkdirSync(join(out, 'manifests'), { recursive: true });
+    mkdirSync(join(out, 'services/core/docgen'), { recursive: true });
+    writeFileSync(
+      join(out, 'services/core/docgen/x.json'),
+      JSON.stringify({
+        components: { x: { path: './src/Widget.stories.tsx', reactComponentMeta: { props: {} } } },
+      }),
+    );
+    writeFileSync(
+      join(out, 'manifests/components.json'),
+      JSON.stringify({
+        v: 1,
+        meta: { docgen: 'react-component-meta' },
+        components: {
+          x: {
+            id: 'x',
+            name: 'Widget',
+            docgen: { $ref: '../services/core/docgen/x.json#/components/x' },
+            stories: { $ref: '../services/core/story-docs/x.json#/components/x' },
+          },
+        },
+      }),
+    );
+    const result = await run(options({ manifestPath: join(out, 'manifests/components.json'), format: 'github' }));
+    expect(result.stdout).toMatch(/file=src\/Widget\.stories\.tsx/);
+  });
+
+  it('keeps the anchor a component can still recover, and drops the one it cannot', async () => {
+    // feedback-banner keeps its story-docs payload, which carries the same
+    // `path`; layout-panel lost both, so nothing anchors it. Neither throws.
+    const result = await run(
+      options({ manifestPath: coreFixture('v1-dangling/manifests/components.json'), format: 'github' }),
+    );
+    const lines = result.stdout.split('\n').filter((l) => l.startsWith('::error '));
+    expect(lines).toHaveLength(2);
+    expect(lines.find((l) => l.includes('Banner'))).toContain('file=stories/Banner/Banner.stories.tsx');
+    expect(lines.find((l) => l.includes('Panel'))).not.toContain('file=');
+    expect(result.code).toBe(1);
+  });
+});
