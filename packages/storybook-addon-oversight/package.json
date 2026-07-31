@@ -46,7 +46,8 @@
     "build:watch": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint --cache ."
+    "lint": "eslint --cache .",
+    "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {
     "oversight-core": "workspace:*"

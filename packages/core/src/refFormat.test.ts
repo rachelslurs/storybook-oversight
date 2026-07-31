@@ -63,13 +63,20 @@ describe('ref manifests reach the same verdict as inline ones', () => {
     // inline and one behind refs, so any difference is a resolver defect. The
     // prop rules are included: holding them here would have made this assertion
     // weaker than the bug it exists to catch.
+    //
+    // The expectation is stated so `extractor-drift` runs too, and stated to a
+    // value neither fixture records so the rule fires rather than staying
+    // silent. Gating that rule on the manifest format breaks this assertion,
+    // which is what makes a per-rule format matrix unnecessary.
+    const options = { expectedExtractor: 'react-docgen-typescript' };
     const inline = normalizeManifest(await load(V0_RCM));
     const ref = normalizeManifest(await load(V1));
 
     expect(ref.format).toBe('ref');
     expect(inline.format).toBe('inline');
-    expect(comparable(lint(ref))).toEqual(comparable(lint(inline)));
-    expect(comparable(lint(ref))).not.toHaveLength(0);
+    expect(comparable(lint(ref, options))).toEqual(comparable(lint(inline, options)));
+    expect(comparable(lint(ref, options))).not.toHaveLength(0);
+    expect(lint(ref, options).filter((d) => d.rule === 'extractor-drift')).toHaveLength(1);
   });
 
   it('recovers sourceFile and storiesFile through the refs', async () => {
