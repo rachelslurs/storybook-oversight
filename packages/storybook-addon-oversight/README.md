@@ -42,7 +42,7 @@ const config = {
 export default config;
 ```
 
-Pin the extractor so JSDoc on components and props is actually extracted:
+Set the extractor so JSDoc on components and props is actually extracted:
 
 ```ts
 // .storybook/main.ts

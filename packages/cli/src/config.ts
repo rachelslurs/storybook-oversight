@@ -54,7 +54,7 @@ function resolveColor(ctx: Context): boolean {
   return ctx.isTTY;
 }
 
-export const HELP = `oversight — lint a Storybook MCP components manifest
+export const HELP = `oversight: lint a Storybook MCP components manifest
 
 Usage:
   oversight [manifest] [options]

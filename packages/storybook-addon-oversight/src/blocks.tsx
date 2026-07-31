@@ -38,7 +38,7 @@ function manifestUrl(name: string): string {
 }
 
 // The fetched manifest is cached across block instances (one fetch per page),
-// but the per-component analysis is NOT — each block runs `buildReport` with its
+// but the per-component analysis is NOT. Each block runs `buildReport` with its
 // OWN page's lint options. A failed fetch is not cached, so a later Docs page
 // retries instead of being wedged in the `unavailable` state for the session.
 let manifestPromise: Promise<RawManifest | null> | undefined;
@@ -80,8 +80,8 @@ type MetaOf = {
 };
 
 /**
- * A documentation-coverage panel for the current component's Docs page —
- * the same diagnostics the Oversight manager panel shows, surfaced inline.
+ * A documentation-coverage panel for the current component's Docs page,
+ * showing the same diagnostics the Oversight manager panel shows, surfaced inline.
  * Reads which component it documents from `useOf("meta")`. Requires the
  * components-manifest feature (e.g. `@storybook/addon-mcp`).
  */
@@ -115,7 +115,7 @@ export function Oversight() {
   } else {
     // `buildReport` runs normalize/analyze synchronously in render, so a
     // malformed/unsupported manifest would throw here and crash the Docs page.
-    // Degrade to the error state instead — the same guarantee the manager panel
+    // Degrade to the error state instead, the same guarantee the manager panel
     // makes (never hang or crash on a bad manifest).
     try {
       report = buildReport(manifest, componentId, options);
@@ -148,7 +148,7 @@ export function Oversight() {
 /**
  * Re-provides a Storybook theme on THIS bundle's emotion instance. The block is
  * a separate Vite-optimized dep, so addon-docs' ThemeProvider context does not
- * reach our `styled` components — without this, `theme` is empty and every
+ * reach our `styled` components. Without this, `theme` is empty and every
  * `theme.*` interpolation throws. Inherit the surrounding theme when the context
  * does resolve; otherwise fall back to Storybook's light theme.
  */
@@ -161,14 +161,14 @@ function ThemedRoot({ children }: { children: ReactNode }) {
 /**
  * Docs-page container: renders Storybook's standard DocsContainer and, on
  * component pages, appends the Oversight coverage block. This is the GLOBAL
- * opt-in — a consumer enables it for every Docs page with one line in
+ * opt-in: a consumer enables it for every Docs page with one line in
  * `.storybook/preview.ts`:
  *
  *   import { OversightDocsContainer } from "storybook-addon-oversight/blocks";
  *   const preview = { parameters: { docs: { container: OversightDocsContainer } } };
  *
  * Delete that line to remove it from every page. Unattached MDX pages (an
- * Overview with no `of`) get the plain container — there's no component to
+ * Overview with no `of`) get the plain container, since there's no component to
  * diagnose, so no block. (For per-page control instead, place `<Oversight/>`
  * in an individual MDX rather than using this container.)
  */
@@ -178,7 +178,7 @@ export function OversightDocsContainer({ context, children }: PropsWithChildren<
     context.resolveOf('meta', ['meta']);
     hasComponent = true;
   } catch {
-    // Unattached docs page — no component meta to resolve.
+    // Unattached docs page, so no component meta to resolve.
   }
   return (
     <DocsContainer context={context}>

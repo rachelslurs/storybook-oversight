@@ -4,7 +4,7 @@ import type { Diagnostic, DiagnosticRule, DiagnosticSeverity, NormalizeResult, R
 
 export type LintOptions = {
   /**
-   * The extractor the project pins in `.storybook/main.ts`. Unset, the
+   * The extractor the project sets in `.storybook/main.ts`. Unset, the
    * `extractor-drift` rule does not run: there is nothing to compare against.
    */
   expectedExtractor?: string;
@@ -41,7 +41,7 @@ export const ALL_RULES = Object.keys(RULE_SET) as DiagnosticRule[];
 export const VALID_SETTINGS: ReadonlySet<string> = new Set<RuleSetting>(['off', 'error', 'warning', 'info']);
 
 function splitTokens(value: string): string[] {
-  // Split on whitespace as well as commas/newlines — `@oversightIgnore a b`
+  // Split on whitespace as well as commas/newlines, so `@oversightIgnore a b`
   // (the natural JSDoc form) must parse the same as the comma-separated form.
   return value
     .split(/[\s,]+/)
@@ -125,7 +125,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
     });
   }
 
-  // Manifest ids of every entry (including failed ones) — the resolvable
+  // Manifest ids of every entry, including failed ones. These are the resolvable
   // targets for the `?path=` links inside description prose.
   const knownIds = new Set<string>();
   const nameById = new Map<string, string>();
@@ -155,7 +155,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
   }
 
   // Redirect links in the component description hardcode manifest ids, so a
-  // renamed story title leaves them dead — this rule catches them. Only the
+  // renamed story title leaves them dead, and this rule catches them. Only the
   // description is scanned: that's the sanctioned redirect channel, and
   // scanning arbitrary tag values (e.g. an @example) would false-positive.
   function lintPathLinks(id: string, name: string, description: string | null) {
@@ -184,7 +184,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
         rule: 'component-description-missing',
         severity: 'warning',
         componentId: component.id,
-        message: `${component.name} has no component description — the MCP and Docs tab describe it as nothing.`,
+        message: `${component.name} has no component description, so the MCP and Docs tab describe it as nothing.`,
       });
     }
 
@@ -240,7 +240,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
     lintPathLinks(component.id, component.name, component.description);
   }
 
-  // Unknown-@oversightIgnore-token check — spans failure entries too, whose
+  // Unknown-@oversightIgnore-token check. It spans failure entries too, whose
   // tags come from the story-meta JSDoc (they have no normalized description).
   for (const [id, componentTags] of Object.entries(result.tags)) {
     if (componentTags.oversightIgnore === undefined) continue;
@@ -252,7 +252,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
         rule: 'unknown-ignore-rule',
         severity: 'warning',
         componentId: id,
-        message: `${nameById.get(id) ?? id}'s @oversightIgnore lists unknown rule${unknown.length === 1 ? '' : 's'}: ${unknown.join(', ')} — nothing is exempted by them.`,
+        message: `${nameById.get(id) ?? id}'s @oversightIgnore lists unknown rule${unknown.length === 1 ? '' : 's'}: ${unknown.join(', ')}. Nothing is exempted by them.`,
       });
     }
   }

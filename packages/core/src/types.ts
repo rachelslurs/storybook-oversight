@@ -1,5 +1,5 @@
 /**
- * The normalization contract (see CLAUDE.md — keep in sync). Everything the
+ * The normalization contract. Everything the
  * panel renders derives from these types; nothing here may import from
  * `storybook/*` or `@storybook/*`.
  */
@@ -13,7 +13,7 @@ export type NormalizedComponent = {
 };
 
 /**
- * Loose input types for the raw manifest. The schema is unstable (`v: 0`) —
+ * Loose input types for the raw manifest. The schema is unstable (`v: 0`), so
  * every field is optional and `error` is deliberately `unknown` (observed as
  * an object `{name, message}` in the wild, but nothing guarantees that).
  */
@@ -120,7 +120,7 @@ export type RawLeafFile<Node = RawDocgenNode | RawStoryDocsNode> = {
 export type ExtractionFailure = {
   id: string;
   name: string;
-  storiesFile: string; // entry.path — lets the panel match the current story
+  storiesFile: string; // entry.path, which lets the panel match the current story
   error: string | null;
   /** The manifest error's `name` field, when the entry carried one. */
   errorName: string | null;

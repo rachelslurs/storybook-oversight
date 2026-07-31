@@ -10,7 +10,7 @@ import type {
   StoryFailure,
 } from './types';
 
-/** The manifest-wide analysis — computed once per page load, shared by all
+/** The manifest-wide analysis, computed once per page load and shared by all
  *  components' reports. */
 export type ManifestAnalysis = {
   result: NormalizeResult;
@@ -26,8 +26,8 @@ export type ComponentReport = {
   storyFailures: StoryFailure[];
   /** Diagnostics scoped to this component. */
   diagnostics: Diagnostic[];
-  /** Manifest-level diagnostics (`componentId: null`, e.g. extractor-drift) —
-   *  the same list on every component's report, rendered in their own section
+  /** Manifest-level diagnostics (`componentId: null`, e.g. extractor-drift).
+   *  The same list on every component's report, rendered in their own section
    *  and deliberately kept out of the per-component count. */
   manifestDiagnostics: Diagnostic[];
   /** `unrecognized` means the prop payload was not in a shape this build reads,

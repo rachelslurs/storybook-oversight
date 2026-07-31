@@ -3,7 +3,7 @@
  * home of manifest-serving logic.
  *
  * Prefer named exports for Storybook preset hooks (`viteFinal`,
- * `experimental_serverChannel`, …) — that is the documented shape. A default
+ * `experimental_serverChannel`, …), which is the documented shape. A default
  * export also works: root `preset.js` forwards both (`export { default }` +
  * `export *`), because `export *` alone would silently drop `default`.
  *

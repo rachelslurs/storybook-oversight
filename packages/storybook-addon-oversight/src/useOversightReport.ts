@@ -20,7 +20,7 @@ export type ManagerReport = {
 
 /**
  * Manifest URLs must resolve against the page URL (document base), not this
- * bundle's URL — the manager script is served from /sb-addons/. Works in dev
+ * bundle's URL, since the manager script is served from /sb-addons/. Works in dev
  * (/) and deployed under a subpath (e.g. /my-storybook/).
  */
 function manifestsBaseUrl(): string {
@@ -31,13 +31,13 @@ function manifestsBaseUrl(): string {
 // The raw manifest is static per page load. Kick the network fetch off the
 // instant the manager bundle evaluates (see the `void loadManifest()` below),
 // so the panel/badge don't wait for the first hook mount. Only the manifest is
-// fetched here — no config is read — so it's safe to run before
+// fetched here and no config is read, so it's safe to run before
 // `.storybook/manager.ts` calls `addons.setConfig`.
 let manifestPromise: Promise<RawManifest | null> | undefined;
 
 // The server's own explanation for a failed load (e.g. the experimentalDocgenServer
 // dev-404 body), surfaced in the `unavailable` state so the panel states the real
-// cause instead of guessing. Set on every fetch; read at render time — by the time
+// cause instead of guessing. Set on every fetch, read at render time: by the time
 // status is `unavailable`, the fetch that set it has resolved.
 let unavailableReason: string | undefined;
 
@@ -67,7 +67,7 @@ function loadManifest(): Promise<RawManifest | null> {
   return manifestPromise;
 }
 
-// Analysis (normalize → lint) runs once, the first time a hook mounts — by then
+// Analysis (normalize → lint) runs once, the first time a hook mounts. By then
 // `.storybook/manager.ts` has applied `addons.setConfig`, so the consumer's
 // `rules`/`expectedExtractor` are read. Cached for the session, shared across
 // story changes.
@@ -76,7 +76,7 @@ let analysisPromise: Promise<ManifestAnalysis | null> | undefined;
 function loadAnalysis(): Promise<ManifestAnalysis | null> {
   analysisPromise ??= loadManifest().then((manifest) => {
     if (manifest === null) {
-      analysisPromise = undefined; // don't cache failures — retry on next mount
+      analysisPromise = undefined; // don't cache failures, retry on next mount
       return null;
     }
     // Config channel: consumers tune rules via
@@ -113,7 +113,7 @@ export function useOversightReport(): ManagerReport {
       },
       (err) => {
         // A malformed/unsupported manifest (normalize/analyze throws) must surface
-        // as an error state, never an infinite spinner — the same principle the
+        // as an error state, never an infinite spinner, the same principle the
         // 404 → `unavailable` path already honors. Log the underlying throw, since
         // handling it here means it is no longer an uncaught exception.
         console.error('[storybook-addon-oversight] could not analyze the components manifest', err);
@@ -132,7 +132,7 @@ export function useOversightReport(): ManagerReport {
   if (analysis === 'error') return { status: 'error', ...base };
   if (analysis === null) return { status: 'unavailable', ...base };
   // Manifest is loaded but Storybook hasn't selected a story yet (initial mount
-  // / root URL) — distinct from a still-loading manifest, so don't show a spinner.
+  // / root URL), distinct from a still-loading manifest, so don't show a spinner.
   if (!storyId) return { status: 'no-story', ...base };
 
   // Match by manifest key = story-id component prefix

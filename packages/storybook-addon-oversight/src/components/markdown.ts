@@ -1,5 +1,5 @@
 /**
- * A deliberately small inline-markdown parser — just what component
+ * A deliberately small inline-markdown parser, covering just what component
  * descriptions use: `**bold**`, `*italic*`, `` `code` ``, and
  * `[label](?path=…)` links. Pure string logic (no React), so it runs under the
  * node test environment. Not a general markdown implementation.
