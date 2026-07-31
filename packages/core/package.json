@@ -1,6 +1,6 @@
 {
   "name": "oversight-core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Pure, Storybook-free diagnostic engine for the components manifest. Bundled into the addon and the CLI; never published.",
   "private": true,
   "type": "module",
