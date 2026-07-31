@@ -1,54 +1,40 @@
 # storybook-addon-oversight
 
+## 0.3.1
+
+### Patch Changes
+
+- 88e8873: A JSDoc tag whose value is `null` now reads as a bare tag rather than the token `"null"`. `@oversightIgnore: null` exempted nothing and reported `null` as an unknown rule, and `@deprecated: null` rendered as `marked @deprecated: null`.
+
+  Three strings lost an em dash. The `oversight` help header now opens `oversight: lint a Storybook MCP components manifest`, `component-description-missing` reads `...has no component description, so the MCP and Docs tab describe it as nothing.`, and `unknown-ignore-rule` ends `...: <rules>. Nothing is exempted by them.` Anything matching on those message strings needs updating.
+
+  Docs only: Prettier reflows markdown to one line per paragraph, both READMEs link `oversight-lint-action`, and the repo's prose drops its em dashes.
+
+- f2c1a2f: The `extractor-drift` mismatch message states which extractor the manifest records and which one the project expects, and stops there. Earlier releases appended "prop docs may be incomplete", an outcome the rule cannot establish, since one message serves every pairing of recorded and expected extractor in both directions. Measured on 245 components built both ways, react-component-meta extracts 1539 props against react-docgen's 877, and 693 documented against 379, so the warning told a migrating project the opposite of what happens.
+
+  Both sides of the comparison are trimmed. An `expectedExtractor` or a `meta.docgen` carrying a trailing newline, which is how a value read from a file or an unquoted shell variable arrives, passed the emptiness check and then compared unequal against a manifest recording the same extractor, naming both sides identically in the warning.
+
+  Projects on `features.experimentalDocgenServer` should state `react-component-meta`, as with `features.experimentalReactComponentMeta`. Both flags pick the extractor themselves and leave `typescript.reactDocgen` unread.
+
 ## 0.3.0
 
 ### Minor Changes
 
-- 740165c: `oversight-lint` reads the ref-based (`v: 1`) components manifest that
-  `experimentalDocgenServer` emits. Its entries defer their payloads to
-  per-component files under `services/core/`, and the normalizer threw on that
-  shape, so the manifest was refused at exit 2. Refs now resolve relative to the
-  manifest: on the same six components built inline and behind refs, the
-  diagnostics are identical.
+- 740165c: `oversight-lint` reads the ref-based (`v: 1`) components manifest that `experimentalDocgenServer` emits. Its entries defer their payloads to per-component files under `services/core/`, and the normalizer threw on that shape, so the manifest was refused at exit 2. Refs now resolve relative to the manifest: on the same six components built inline and behind refs, the diagnostics are identical.
 
-  The panel and the docs block still read the inline manifest only. That flag
-  disables the dev manifest by design, so giving those surfaces a data source is
-  separate work. What they gain here is the shared diagnostic core: the new rule
-  below, and prop coverage that stays quiet when the payload behind it is not
-  trustworthy.
+  The panel and the docs block still read the inline manifest only. That flag disables the dev manifest by design, so giving those surfaces a data source is separate work. What they gain here is the shared diagnostic core: the new rule below, and prop coverage that stays quiet when the payload behind it is not trustworthy.
 
-  Format detection branches on the manifest's `v` field. `meta.docgen` cannot do it:
-  `experimentalDocgenServer` and `experimentalReactComponentMeta` both report
-  `react-component-meta` while producing different shapes. A version this build does
-  not know is refused by version number instead of reaching the normalizer.
+  Format detection branches on the manifest's `v` field. `meta.docgen` cannot do it: `experimentalDocgenServer` and `experimentalReactComponentMeta` both report `react-component-meta` while producing different shapes. A version this build does not know is refused by version number instead of reaching the normalizer.
 
-  Two new rules. `prop-shape-unrecognized` (error) fires when the prop payload is
-  missing the fields the prop rules read: `prop-descriptions-missing` and
-  `required-prop-undocumented` then do not run, and the panel says prop coverage is
-  unavailable rather than showing a figure drawn from the same fields. A build
-  where those fields moved would otherwise report every prop in the library as
-  undocumented. It is an error because it stands in for `required-prop-undocumented`,
-  which is an error, and reporting it as a warning would let `--max-warnings`,
-  unlimited by default, pass a build that had been failing. Set
-  `--rule prop-shape-unrecognized=warning` to keep building through one.
+  Two new rules. `prop-shape-unrecognized` (error) fires when the prop payload is missing the fields the prop rules read: `prop-descriptions-missing` and `required-prop-undocumented` then do not run, and the panel says prop coverage is unavailable rather than showing a figure drawn from the same fields. A build where those fields moved would otherwise report every prop in the library as undocumented. It is an error because it stands in for `required-prop-undocumented`, which is an error, and reporting it as a warning would let `--max-warnings`, unlimited by default, pass a build that had been failing. Set `--rule prop-shape-unrecognized=warning` to keep building through one.
 
-  `ref-unresolved` (warning) fires per component when a `$ref` on an otherwise
-  readable entry does not resolve. It collapses like the other repo-wide rules, so
-  a layout change upstream reports once rather than once per component.
+  `ref-unresolved` (warning) fires per component when a `$ref` on an otherwise readable entry does not resolve. It collapses like the other repo-wide rules, so a layout change upstream reports once rather than once per component.
 
-  Both prop fields are checked by type across the whole manifest, so a prop carrying
-  an empty description still counts as undocumented and is still reported.
+  Both prop fields are checked by type across the whole manifest, so a prop carrying an empty description still counts as undocumented and is still reported.
 
-  Ref targets are confined to the build output. The ref grammar refuses absolute
-  paths, URL schemes, and any path climbing more than one level. The filesystem
-  loader resolves symlinks before reading, requires a regular file, and caps the
-  size, so a link cannot carry a legal-looking path outside the tree or hang the run
-  on a device file. A ref climbs one level only when the index sits in `manifests/`,
-  since that directory is the only reason the level exists.
+  Ref targets are confined to the build output. The ref grammar refuses absolute paths, URL schemes, and any path climbing more than one level. The filesystem loader resolves symlinks before reading, requires a regular file, and caps the size, so a link cannot carry a legal-looking path outside the tree or hang the run on a device file. A ref climbs one level only when the index sits in `manifests/`, since that directory is the only reason the level exists.
 
-  A v:1 manifest no longer leads its CLI output with the raw normalizer error. That
-  message is kept for shapes nothing can describe, where it is the only information
-  available.
+  A v:1 manifest no longer leads its CLI output with the raw normalizer error. That message is kept for shapes nothing can describe, where it is the only information available.
 
 ## 0.2.3
 
