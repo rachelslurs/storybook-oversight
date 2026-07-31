@@ -49,10 +49,10 @@ function errorNameOf(error: unknown): string | null {
 /** Tag values are newline-joined strings or arrays depending on the extractor. */
 function stringifyTag(value: unknown): string {
   // A value-less JSDoc tag (bare `@oversightIgnore` / `@deprecated`) arrives as
-  // `true`, `[true]`, `null` or `""` depending on the extractor. All of those
-  // become "" so a bare tag reads as "no value". Passing them to `String` made
-  // `@oversightIgnore: null` exempt nothing and report `null` as an unknown
-  // rule, since "null" is a token like any other once it reaches `splitTokens`.
+  // `true`, `[true]`, or `""` depending on the extractor. `null` is treated the
+  // same way: `String(null)` is "null", and that token exempted nothing and then
+  // got reported as an unknown rule, since `splitTokens` has no way to tell a
+  // fabricated token from one the author wrote.
   if (value === true || value == null) return '';
   if (Array.isArray(value)) {
     return value.map((v) => (v === true || v == null ? '' : String(v))).join('\n');
