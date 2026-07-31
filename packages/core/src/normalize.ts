@@ -7,6 +7,7 @@ import type {
   RawEntry,
   RawManifest,
   RawPayload,
+  RawProp,
   ShapeIssue,
   StoryFailure,
 } from './types';
@@ -117,6 +118,14 @@ function recordedExtractor(raw: RawManifest): string | null {
 }
 
 /**
+ * An array passes `typeof x === 'object'` while `Object.entries` turns it into
+ * props named "0" and "1", which were then reported as undocumented.
+ */
+function isPropRecord(props: unknown): props is Record<string, RawProp> {
+  return props !== null && typeof props === 'object' && !Array.isArray(props);
+}
+
+/**
  * Whether the prop payload still carries the keys `prop-descriptions-missing`
  * and `required-prop-undocumented` read.
  *
@@ -149,8 +158,8 @@ function inspectPropShape(raw: RawManifest): { propShape: 'known' | 'unrecognize
     const payload = payloadOf(entry);
     if (!payload) continue;
     sawPayload = true;
-    if (payload.props !== null && typeof payload.props === 'object') sawPropsContainer = true;
-    for (const prop of Object.values(payload.props ?? {})) {
+    if (isPropRecord(payload.props)) sawPropsContainer = true;
+    for (const prop of Object.values(isPropRecord(payload.props) ? payload.props : {})) {
       if (prop === null || typeof prop !== 'object') continue;
       total += 1;
       if (total === 1) sample = Object.keys(prop);
@@ -206,6 +215,7 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
     const name = firstNonEmptyLine(entry.name) ?? id;
     const storiesFile = entry.path ?? '';
     const payload = payloadOf(entry);
+    const refError = entry.refErrors?.length ? entry.refErrors.join('\n') : null;
 
     // Scan story errors and entry-level jsDocTags before the payload check:
     // payload-less entries carry both (the story-meta JSDoc is the only place
@@ -225,12 +235,20 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
 
     if (!payload) {
       if (Object.keys(entryTags).length > 0) tags[id] = entryTags;
-      failures.push({ id, name, storiesFile, error: stringifyError(entry.error), errorName: errorNameOf(entry.error) });
+      // The entry's own error wins: it carries the diagnosis, sometimes only in
+      // `name`. A ref failure speaks only when nothing else does.
+      failures.push({
+        id,
+        name,
+        storiesFile,
+        error: stringifyError(entry.error) ?? refError,
+        errorName: errorNameOf(entry.error),
+      });
       continue;
     }
 
     const props: NormalizedComponent['props'] = {};
-    for (const [propName, prop] of Object.entries(payload.props ?? {})) {
+    for (const [propName, prop] of Object.entries(isPropRecord(payload.props) ? payload.props : {})) {
       // A null or non-object prop used to throw out of the whole normalizer,
       // which cost every diagnostic in the manifest for one malformed entry.
       // Skipping it also keeps a string-valued `props` map from inventing props
@@ -258,17 +276,18 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
       props,
     });
 
-    // A resolved entry can still carry an error: a v:1 component whose docgen
-    // ref loaded while its stories ref did not keeps its payload, so the
-    // failure would otherwise be recorded and reported nowhere. Gated on the
-    // ref format because an inline entry's error has no refs to blame, and
-    // clamped to one line because the message reaches a step-summary table row.
-    const entryError = format === 'ref' ? firstNonEmptyLine(stringifyError(entry.error)) : null;
-    if (entryError) {
+    // A resolved entry can still carry a ref failure: a v:1 component whose
+    // docgen ref loaded while its stories ref did not keeps its payload, so the
+    // failure would otherwise be recorded and reported nowhere. Reads
+    // `refErrors` rather than `error`, so the message names the ref that failed
+    // instead of whatever diagnosis the entry already carried. Clamped to one
+    // line because it reaches a step-summary table row.
+    const refIssue = firstNonEmptyLine(refError);
+    if (refIssue) {
       shapeIssues.push({
         componentId: id,
         expected: 'every $ref on this entry to resolve',
-        got: entryError.replace(/\.$/, ''),
+        got: refIssue.replace(/\.$/, ''),
       });
     }
 

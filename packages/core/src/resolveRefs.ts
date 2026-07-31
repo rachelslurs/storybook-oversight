@@ -140,49 +140,78 @@ async function resolveRef(ref: string | undefined, loadFile: LoadFile): Promise<
   return { node: node as Record<string, unknown> };
 }
 
-/** The leaf keys `stories` by story id; the normalizer iterates it. */
-function storiesToArray(value: unknown): RawStory[] | undefined {
-  if (Array.isArray(value)) return value as RawStory[];
-  if (value === null || typeof value !== 'object') return undefined;
-  return Object.values(value) as RawStory[];
+/**
+ * The leaf keys `stories` by story id and the normalizer iterates it, so the
+ * keyed object becomes an array. Non-object members are dropped: the normalizer
+ * reads `story.error` off each one, and a null member threw out of the whole
+ * manifest.
+ */
+function storiesToArray(value: unknown): RawStory[] {
+  const members = Array.isArray(value) ? value : Object.values(value as object);
+  return members.filter((story) => story !== null && typeof story === 'object') as RawStory[];
 }
 
 /**
- * The normalizer iterates `stories`, so no entry may leave here with the keyed
- * object a leaf carries. An index that defers `docgen` while inlining `stories`
- * reaches this with the leaf's shape and no ref to convert it.
+ * The normalizer iterates `stories`, so no entry may leave here holding the
+ * keyed object a leaf carries. An index that defers `docgen` while inlining
+ * `stories` reaches this with the leaf's shape and no ref to convert it.
+ *
+ * A `stories` that is neither array nor object cannot be read at all. Reporting
+ * it beats dropping it, which left the component looking clean while every
+ * story it documents was missing from the analysis.
  */
-function withIterableStories(entry: RawEntry): RawEntry {
-  if (entry.stories === undefined || Array.isArray(entry.stories)) return entry;
-  return { ...entry, stories: storiesToArray(entry.stories) };
+function readStories(stories: unknown, errors: string[]): RawStory[] {
+  if (stories === null || typeof stories !== 'object') {
+    errors.push(`Entry "stories" is ${stories === null ? 'null' : typeof stories}, which carries no stories.`);
+    return [];
+  }
+  return storiesToArray(stories);
 }
 
-/** The entry's own error, in the loose shapes the manifest uses for it. */
-function existingErrorText(error: unknown): string {
-  if (error == null) return '';
-  if (typeof error === 'string') return error;
-  const message = (error as { message?: unknown }).message;
-  return typeof message === 'string' ? message : '';
+function withIterableStories(entry: RawEntry, errors: string[]): RawEntry {
+  const stories: unknown = entry.stories;
+  if (stories === undefined || Array.isArray(stories)) return entry;
+  return { ...entry, stories: readStories(stories, errors) };
+}
+
+/** Copy the payload and side-band fields a docgen node carries onto the entry. */
+function liftDocgenNode(next: RawEntry, node: RawDocgenNode, errors: string[]): void {
+  if (node.path !== undefined) next.path = node.path;
+  if (node.description !== undefined && next.description === undefined) next.description = node.description;
+  if (node.jsDocTags !== undefined) next.jsDocTags = node.jsDocTags;
+  // Whichever extractor produced the payload. Reading only one key left a leaf
+  // from either other extractor resolving into an entry with no payload, no
+  // error, and nothing said.
+  let found = false;
+  for (const key of ['reactComponentMeta', 'reactDocgenTypescript', 'reactDocgen'] as const) {
+    if (node[key] !== undefined) {
+      next[key] = node[key];
+      found = true;
+    }
+  }
+  if (!found) {
+    errors.push(`Docgen payload carries none of reactComponentMeta, reactDocgenTypescript or reactDocgen.`);
+  }
 }
 
 async function resolveEntry(entry: RawEntry, loadFile: LoadFile): Promise<RawEntry> {
-  const docgen = refOf((entry as { docgen?: unknown }).docgen);
+  const inlineDocgen = (entry as { docgen?: unknown }).docgen;
+  const docgen = refOf(inlineDocgen);
   const stories = refOf(entry.stories);
-  if (!docgen.isRef && !stories.isRef) return withIterableStories(entry);
+  const errors: string[] = [];
 
   const next = { ...entry } as RawEntry & { docgen?: unknown };
   delete next.docgen;
-  const errors: string[] = [];
 
   if (docgen.isRef) {
     const { node, error } = await resolveRef(docgen.ref, loadFile);
     if (error) errors.push(error);
-    if (node) {
-      const leaf = node as RawDocgenNode;
-      if (leaf.path !== undefined) next.path = leaf.path;
-      if (leaf.jsDocTags !== undefined) next.jsDocTags = leaf.jsDocTags;
-      if (leaf.reactComponentMeta !== undefined) next.reactComponentMeta = leaf.reactComponentMeta;
-    }
+    if (node) liftDocgenNode(next, node as RawDocgenNode, errors);
+  } else if (inlineDocgen !== null && typeof inlineDocgen === 'object' && !Array.isArray(inlineDocgen)) {
+    // An index that inlines the node rather than deferring it. `payloadOf` never
+    // looks under `docgen`, so without lifting it the entry reads as a failed
+    // extraction while its props sit in the manifest.
+    liftDocgenNode(next, inlineDocgen as RawDocgenNode, errors);
   }
 
   if (stories.isRef) {
@@ -193,7 +222,7 @@ async function resolveEntry(entry: RawEntry, loadFile: LoadFile): Promise<RawEnt
     if (error) errors.push(error);
     if (node) {
       const leaf = node as RawStoryDocsNode;
-      if (leaf.stories !== undefined) next.stories = storiesToArray(leaf.stories);
+      if (leaf.stories !== undefined) next.stories = readStories(leaf.stories, errors);
       // Both leaves carry an identical `path`. When the docgen leaf is the one
       // missing, the story-docs copy keeps `ExtractionFailure.storiesFile`
       // usable: it lets the panel match the current story and anchors CI
@@ -202,13 +231,11 @@ async function resolveEntry(entry: RawEntry, loadFile: LoadFile): Promise<RawEnt
     }
   }
 
-  // Append rather than replace. Overwriting only when the entry had no error
-  // dropped every resolution failure on an entry that arrived carrying one, and
-  // `docgen-missing` then reported the stale error as the reason docgen failed.
-  if (errors.length > 0) {
-    next.error = [existingErrorText(next.error), ...errors].filter(Boolean).join('\n');
-  }
-  return withIterableStories(next);
+  // Kept apart from the entry's own `error` rather than joined into it. Joining
+  // flattened a structured error to a string, dropping the `name` that carries
+  // the diagnosis, and put the stale text where every one-line clamp reads.
+  if (errors.length > 0) next.refErrors = errors;
+  return withIterableStories(next, errors);
 }
 
 /**

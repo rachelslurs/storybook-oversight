@@ -21,20 +21,29 @@ Format detection branches on the manifest's `v` field. `meta.docgen` cannot do i
 `react-component-meta` while producing different shapes. A version this build does
 not know is refused by version number instead of reaching the normalizer.
 
-New rule `manifest-shape-unrecognized` (warning) reports a part of the manifest
-that did not arrive in the expected shape: a `$ref` that did not resolve, or a
-prop payload missing the fields the prop rules read. In the second case
-`prop-descriptions-missing` and `required-prop-undocumented` do not run, and the
-panel says prop coverage is unavailable rather than showing a figure drawn from
-the same fields. A build where those fields moved would otherwise report every
-prop in the library as undocumented, or stop gating CI without saying so. Both
-fields are checked by type across the whole manifest, so a prop carrying an empty
-description still counts as undocumented and is still reported.
+Two new rules. `prop-shape-unrecognized` (error) fires when the prop payload is
+missing the fields the prop rules read: `prop-descriptions-missing` and
+`required-prop-undocumented` then do not run, and the panel says prop coverage is
+unavailable rather than showing a figure drawn from the same fields. A build
+where those fields moved would otherwise report every prop in the library as
+undocumented. It is an error because it stands in for `required-prop-undocumented`,
+which is an error, and reporting it as a warning would let `--max-warnings`,
+unlimited by default, pass a build that had been failing. Set
+`--rule prop-shape-unrecognized=warning` to keep building through one.
+
+`ref-unresolved` (warning) fires per component when a `$ref` on an otherwise
+readable entry does not resolve. It collapses like the other repo-wide rules, so
+a layout change upstream reports once rather than once per component.
+
+Both prop fields are checked by type across the whole manifest, so a prop carrying
+an empty description still counts as undocumented and is still reported.
 
 Ref targets are confined to the build output. The ref grammar refuses absolute
-paths, URL schemes, and any path climbing more than one level, and the filesystem
-loader resolves symlinks before reading so a link cannot carry a legal-looking
-path outside that tree, or hang the run on a device file.
+paths, URL schemes, and any path climbing more than one level. The filesystem
+loader resolves symlinks before reading, requires a regular file, and caps the
+size, so a link cannot carry a legal-looking path outside the tree or hang the run
+on a device file. A ref climbs one level only when the index sits in `manifests/`,
+since that directory is the only reason the level exists.
 
 A v:1 manifest no longer leads its CLI output with the raw normalizer error. That
 message is kept for shapes nothing can describe, where it is the only information

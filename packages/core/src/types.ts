@@ -57,6 +57,10 @@ export type RawEntry = {
   reactComponentMeta?: RawPayload;
   stories?: RawStory[];
   error?: unknown;
+  /** Ref resolution failures, recorded by `resolveManifestRefs`. Kept apart
+   *  from `error` so neither overwrites the other: `error` is the manifest's
+   *  own diagnosis and may carry a `name` the message depends on. */
+  refErrors?: string[];
 };
 
 export type RawManifest = {
@@ -90,7 +94,11 @@ export type RawDocgenNode = {
   path?: string;
   description?: string;
   jsDocTags?: Record<string, unknown>;
+  // Whichever extractor produced the payload. Declaring only one key let a leaf
+  // from either other extractor resolve into an entry with no payload.
   reactComponentMeta?: RawPayload;
+  reactDocgenTypescript?: RawPayload;
+  reactDocgen?: RawPayload;
 };
 
 /** The story-docs leaf's per-component node. Stories arrive keyed by story id;
@@ -169,7 +177,8 @@ export type DiagnosticRule =
   | 'docs-link-dangling'
   | 'unknown-ignore-rule'
   | 'deprecated-tag'
-  | 'manifest-shape-unrecognized';
+  | 'prop-shape-unrecognized'
+  | 'ref-unresolved';
 
 export type DiagnosticSeverity = 'error' | 'warning' | 'info';
 

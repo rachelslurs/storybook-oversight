@@ -30,7 +30,8 @@ const RULE_SET = {
   'docs-link-dangling': true,
   'unknown-ignore-rule': true,
   'deprecated-tag': true,
-  'manifest-shape-unrecognized': true,
+  'prop-shape-unrecognized': true,
+  'ref-unresolved': true,
 } satisfies Record<DiagnosticRule, true>;
 /** Every diagnostic rule name. Exported so other surfaces (the CLI) can validate
  *  rule names against the single source of truth instead of hardcoding them. */
@@ -125,14 +126,21 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
     nameById.set(entry.id, entry.name);
   }
 
-  // Warning rather than error: a manifest arriving in a shape this version does
-  // not read is upstream's change, and failing the build for it would charge
-  // the user for someone else's release.
+  // Two conditions, two rules. Sharing one name meant turning off a false
+  // prop-shape flag also silenced every unresolved ref, whose only channel this
+  // is.
+  //
+  // `prop-shape-unrecognized` is an error because it stands in for
+  // `required-prop-undocumented`, which is an error. Reporting it as a warning
+  // let `--max-warnings`, unlimited by default, pass a build that had been
+  // failing: CI went green on the day the payload stopped being readable.
+  // A project that would rather keep building can set it to `warning`.
   for (const shapeIssue of result.shapeIssues) {
     const scope = shapeIssue.componentId ? `${nameById.get(shapeIssue.componentId) ?? shapeIssue.componentId}: ` : '';
+    const rule = shapeIssue.componentId === null ? 'prop-shape-unrecognized' : 'ref-unresolved';
     diagnostics.push({
-      rule: 'manifest-shape-unrecognized',
-      severity: 'warning',
+      rule,
+      severity: rule === 'prop-shape-unrecognized' ? 'error' : 'warning',
       componentId: shapeIssue.componentId,
       message: `${scope}expected ${shapeIssue.expected}, got ${shapeIssue.got}.`,
     });
@@ -175,7 +183,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
     // Both prop rules read fields the manifest no longer recognizably carries
     // when the shape check failed. Reporting off a renamed field would mark
     // every prop undocumented; staying silent about the silence would hide it,
-    // so `manifest-shape-unrecognized` says so once above.
+    // so `prop-shape-unrecognized` says so once above.
     const undocumented =
       result.propShape === 'known'
         ? Object.entries(component.props)

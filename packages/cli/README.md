@@ -203,14 +203,20 @@ rules from `oversight-core`, at these default severities:
 | `docs-link-dangling`            | error            | a prose `?path=/docs\|story/…` link targets an id whose component prefix isn't in the manifest     |
 | `unknown-ignore-rule`           | warning          | `@oversightIgnore` lists a token that is not a rule name                                           |
 | `deprecated-tag`                | info             | a `@deprecated` tag is present                                                                     |
-| `manifest-shape-unrecognized`   | warning          | part of the manifest did not arrive in the shape this build reads: a prop payload missing the fields the prop rules need, or a `$ref` that did not resolve |
+| `prop-shape-unrecognized`       | error            | the prop payload is missing the fields the prop rules read                                         |
+| `ref-unresolved`                | warning          | a `$ref` on an otherwise-readable component did not resolve                                        |
 
-When `manifest-shape-unrecognized` fires against the prop payload,
-`prop-descriptions-missing` and `required-prop-undocumented` do not run. Both read
-`props[n].description` and `props[n].required`, and a build where those fields
-have moved would otherwise report every prop in the library as undocumented. The
-check asks whether the field names still exist anywhere in the manifest, so a prop
-carrying an empty description still counts as undocumented and is still reported.
+When `prop-shape-unrecognized` fires, `prop-descriptions-missing` and
+`required-prop-undocumented` do not run. Both read `props[n].description` and
+`props[n].required`, and a build where those fields have moved would otherwise
+report every prop in the library as undocumented. The check asks whether the
+field names still exist anywhere in the manifest, so a prop carrying an empty
+description still counts as undocumented and is still reported.
+
+It is an error rather than a warning because it stands in for
+`required-prop-undocumented`, which is an error. Reporting it as a warning would
+let `--max-warnings`, unlimited by default, pass a build that had been failing.
+Set `--rule prop-shape-unrecognized=warning` to keep building through one.
 
 ## Why these are lint rules
 

@@ -65,7 +65,14 @@ function groupByComponent(diagnostics: Diagnostic[]): Map<string | null, Diagnos
 
 /** The rules that fire once per entry or story off a manifest `error` payload,
  *  the only ones that carry an error signature to collapse on. */
-const COLLAPSIBLE_RULES: ReadonlySet<DiagnosticRule> = new Set(['docgen-missing', 'story-extraction-error']);
+// `ref-unresolved` fires once per component, so a layout change upstream makes
+// every entry fail the same way and floods the output the collapse exists to
+// keep readable (#34).
+const COLLAPSIBLE_RULES: ReadonlySet<DiagnosticRule> = new Set([
+  'docgen-missing',
+  'story-extraction-error',
+  'ref-unresolved',
+]);
 
 /** Entry floor for the rule-level trigger and for a signature's own row.
  *  Below 10 entries, per-entry lines stay readable and carry more detail

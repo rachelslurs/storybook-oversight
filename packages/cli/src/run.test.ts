@@ -1,10 +1,11 @@
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { RawManifest } from 'oversight-core';
 import type { RunOptions } from './config';
 import { run } from './run';
+import { containedIn } from './manifest';
 
 let dir: string;
 beforeEach(() => {
@@ -400,6 +401,21 @@ describe('run: ref targets are confined to the build output', () => {
   // The ref grammar is checked as a string, which cannot see symlinks.
   // readFileSync follows them on every path component, so the boundary has to
   // be enforced after the path resolves.
+  const REF_INDEX = {
+    v: 1,
+    meta: { docgen: 'react-component-meta' },
+    components: {
+      x: { id: 'x', name: 'X', docgen: { $ref: '../services/core/docgen/x.json#/components/x' } },
+    },
+  };
+
+  /** Write a well-formed index into `<out>/manifests/`, leaving the target alone. */
+  function refIndex(out: string): string {
+    mkdirSync(join(out, 'manifests'), { recursive: true });
+    writeFileSync(join(out, 'manifests/components.json'), JSON.stringify(REF_INDEX));
+    return join(out, 'manifests/components.json');
+  }
+
   function refTree(target: string): string {
     const out = join(dir, 'out');
     mkdirSync(join(out, 'manifests'), { recursive: true });
@@ -429,10 +445,68 @@ describe('run: ref targets are confined to the build output', () => {
   });
 
   it('refuses a ref that does not name a regular file', async () => {
-    // A symlink to a device or FIFO would otherwise hang the run until CI
-    // timed the job out.
-    const result = await run(options({ manifestPath: refTree('/dev/null') }));
-    expect(result.stdout).toMatch(/not a regular file|outside the build output/);
+    // A device or FIFO would otherwise hang the run until CI timed the job out.
+    // The target sits inside the build output, so containment passes and the
+    // file-type guard is the one under test.
+    const out = join(dir, 'out');
+    mkdirSync(join(out, 'services/core/docgen'), { recursive: true });
+    mkdirSync(join(out, 'services/core/docgen/x.json'));
+    const result = await run(options({ manifestPath: refIndex(out) }));
+    expect(result.stdout).toMatch(/not a regular file/);
     expect(result.code).toBe(1);
+  });
+
+  it('refuses a ref target larger than the cap', async () => {
+    const out = join(dir, 'out');
+    mkdirSync(join(out, 'services/core/docgen'), { recursive: true });
+    writeFileSync(join(out, 'services/core/docgen/x.json'), 'a'.repeat(8 * 1024 * 1024 + 1));
+    const result = await run(options({ manifestPath: refIndex(out) }));
+    expect(result.stdout).toMatch(/larger than/);
+    expect(result.code).toBe(1);
+  });
+
+  it('reads a ref when the index has no manifests/ directory above it', async () => {
+    // The build output is then the index's own directory, so a climbing ref is
+    // reaching outside it even though `parseRef` allows one level.
+    const out = join(dir, 'flat');
+    mkdirSync(out, { recursive: true });
+    writeFileSync(join(dir, 'secret.json'), JSON.stringify({ components: { x: { reactComponentMeta: {} } } }));
+    writeFileSync(
+      join(out, 'components.json'),
+      JSON.stringify({
+        v: 1,
+        meta: { docgen: 'react-component-meta' },
+        components: { x: { id: 'x', name: 'X', docgen: { $ref: '../secret.json#/components/x' } } },
+      }),
+    );
+    const result = await run(options({ manifestPath: join(out, 'components.json') }));
+    expect(result.stdout).toMatch(/outside the build output/);
+    expect(result.stdout).not.toMatch(/reactComponentMeta/);
+  });
+
+  it('accepts a target under a filesystem-root build output', () => {
+    // `root + sep` would be `//` here, which no legitimate target is prefixed
+    // by, so a prefix compare refuses every ref. Not reachable through `run`:
+    // it needs the index's directory to be a direct child of the root.
+    expect(containedIn(sep, join(sep, 'out', 'services', 'core', 'x.json'))).toBe(true);
+    expect(containedIn(join(sep, 'out'), join(sep, 'etc', 'passwd'))).toBe(false);
+    expect(containedIn(join(sep, 'out'), join(sep, 'out'))).toBe(false);
+  });
+
+  it('reads a build output staged through symlinked directories', async () => {
+    const real = join(dir, 'real-out');
+    mkdirSync(join(real, 'manifests'), { recursive: true });
+    mkdirSync(join(real, 'services/core/docgen'), { recursive: true });
+    writeFileSync(
+      join(real, 'services/core/docgen/x.json'),
+      JSON.stringify({ components: { x: { path: './x.stories.tsx', reactComponentMeta: { props: {} } } } }),
+    );
+    writeFileSync(join(real, 'manifests/components.json'), JSON.stringify(REF_INDEX));
+    const staged = join(dir, 'staged');
+    mkdirSync(staged);
+    symlinkSync(join(real, 'manifests'), join(staged, 'manifests'));
+    symlinkSync(join(real, 'services'), join(staged, 'services'));
+    const result = await run(options({ manifestPath: join(staged, 'manifests/components.json') }));
+    expect(result.stdout).not.toMatch(/outside the build output/);
   });
 });
