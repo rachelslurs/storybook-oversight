@@ -60,9 +60,11 @@ jobs:
       - name: Build packages
         run: pnpm build
 
-      # `pnpm build` typechecks the addon and CLI via their own tsc pass; this
-      # covers the demo stories, whose tsconfig lives at the repo root.
-      - name: Typecheck demo stories
+      # `pnpm build` typechecks the addon and CLI through their own tsc pass, and
+      # skips oversight-core entirely because it has no build. This covers the
+      # demo stories from the root tsconfig and then every package, including the
+      # test files, which nothing else reads.
+      - name: Typecheck
         run: pnpm typecheck
 
       - name: Run unit tests
