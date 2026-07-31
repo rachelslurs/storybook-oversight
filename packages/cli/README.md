@@ -96,8 +96,8 @@ entry shares (`reactDocgenTypescript`, `reactDocgen` or `reactComponentMeta`).
 It matters because the same path can hold a different artifact per build: a
 config like `reactDocgen: isCI ? 'react-docgen-typescript' : 'react-docgen'`
 writes one manifest in CI and another locally, and toggling
-`features.experimentalReactComponentMeta` changes it without touching
-`reactDocgen` at all.
+`features.experimentalReactComponentMeta` or `features.experimentalDocgenServer`
+changes it without touching `reactDocgen` at all.
 
 Counts are per manifest entry. One entry exists per stories file, so a component
 with several stories files produces several entries, and every count is inflated
