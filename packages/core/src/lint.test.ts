@@ -128,6 +128,14 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     expect(ignored.filter((d) => d.rule === 'unknown-ignore-rule')).toHaveLength(0);
     // A bare tag exempts every rule, so the undocumented required prop is quiet.
     expect(ignored.filter((d) => d.rule === 'required-prop-undocumented')).toHaveLength(0);
+
+    // The array form reaches a different branch, and scalar cases never enter it.
+    const inArray = lint(withTags({ oversightIgnore: [null] }));
+    expect(inArray.filter((d) => d.rule === 'unknown-ignore-rule')).toHaveLength(0);
+    expect(inArray.filter((d) => d.rule === 'required-prop-undocumented')).toHaveLength(0);
+    expect(lint(withTags({ deprecated: [null] })).find((d) => d.rule === 'deprecated-tag')?.message).toBe(
+      'Old is marked @deprecated.',
+    );
   });
 
   it('clamps a multi-line @deprecated body to its first line (#30)', () => {
