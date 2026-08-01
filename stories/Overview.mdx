@@ -19,6 +19,8 @@ This Storybook **dogfoods the addon**. `@storybook/addon-mcp` serves the compone
 
 Everything below is a real, live diagnosis: the panel and block react to what each component actually documents.
 
+The rules, a fix for each one, and how to write docs that satisfy them live in [`docs/`](https://github.com/rachelslurs/storybook-oversight/tree/main/docs).
+
 ## Two places to look
 
 ### 1 · The panel
@@ -62,11 +64,13 @@ Open each component and watch the Oversight tab (Story view) or scroll to the bl
 
 ## Why these are rules
 
-`@storybook/addon-mcp` already lets you _view_ the raw manifest. These three checks need judgment that reading it can't give you:
+`@storybook/addon-mcp` already lets you _view_ the raw manifest. Three of the checks that need judgment reading it can't give you show up in this demo:
 
 - **`extractor-drift`** is a comparison. The manifest looks fine on its own; it's only wrong relative to the extractor you expected.
 - **`docs-link-dangling`** takes every id in the manifest to know a `?path=` redirect points at nothing. One component's entry can't tell (the panel strikes the dead link through where it appears in the description).
 - **`required-prop-undocumented` vs `prop-descriptions-missing`**: every blank prop reads the same in a raw view. Oversight calls the required one an `error`, because that's the gap an agent is most likely to guess through.
+
+A fourth, `prop-shape-unrecognized`, needs a manifest whose prop payload has moved, which this demo can't stage. [Why these are lint rules](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/why-lint-rules.md) makes the whole argument.
 
 ## The manifest-level rule
 
@@ -83,3 +87,11 @@ This demo ships on `react-docgen-typescript`, so drift can't fire live. The stil
 ## Not shown here
 
 `docgen-missing` and `story-extraction-error` fire only on extraction **failures**, which can't be staged with well-formed components. They're covered by the addon's unit tests instead.
+
+## Where to read more
+
+- [Rules](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/rules.md): what each one fires on, its default severity, and how to change it
+- [Troubleshooting](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/troubleshooting.md): a fix for every rule, including the two above that can't be staged here
+- [Authoring MCP-legible docs](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/authoring.md): writing component docs an agent can act on
+
+Run it yourself with [`storybook-addon-oversight`](https://github.com/rachelslurs/storybook-oversight/blob/main/packages/storybook-addon-oversight/README.md) for the panel, or [`oversight-lint`](https://github.com/rachelslurs/storybook-oversight/blob/main/packages/cli/README.md) to fail CI when a component's docs regress.
