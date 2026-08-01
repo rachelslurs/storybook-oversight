@@ -18,6 +18,11 @@ export const figureStyle = {
   overflow: 'hidden',
 };
 
+export const captionLinkStyle = {
+  display: 'block',
+  marginTop: '0.35rem',
+};
+
 export const captionStyle = {
   margin: 0,
   padding: '0.625rem 0.875rem',
@@ -56,7 +61,10 @@ Pick a component in the sidebar, open its story, then click the Oversight tab in
   />
   <figcaption style={captionStyle}>
     An Oversight tab in the addons drawer, on every component's Story view, with a count badge of how many issues it
-    found · Pictured above: <StoryLink path="/story/data-display-card--default">Card</StoryLink>
+    found
+    <span style={captionLinkStyle}>
+      Pictured above: <StoryLink path="/story/data-display-card--default">Card</StoryLink>
+    </span>
   </figcaption>
 </figure>
 
@@ -71,14 +79,16 @@ Scroll to the end of any component's Docs to find it. The block is optional. Fol
     style={{ width: '100%', display: 'block' }}
   />
   <figcaption style={captionStyle}>
-    The same report, rendered inline at the bottom of every Docs page · Pictured above:{' '}
-    <StoryLink path="/docs/data-display-card--docs">Card</StoryLink>
+    The same report, rendered inline at the bottom of every Docs page
+    <span style={captionLinkStyle}>
+      Pictured above: <StoryLink path="/docs/data-display-card--docs">Card</StoryLink>
+    </span>
   </figcaption>
 </figure>
 
 ## The examples
 
-Each component is built around one rule. Two of them come out clean on purpose.
+Each component is built to demonstrate one rule. Four trip a finding, two pass.
 
 <figure style={{ ...figureStyle, maxWidth: 600 }}>
   <img
@@ -87,8 +97,10 @@ Each component is built around one rule. Two of them come out clean on purpose.
     style={{ width: '100%', display: 'block' }}
   />
   <figcaption style={captionStyle}>
-    A failing rule renders as a severity chip, the rule name, and a one-line message · Pictured above:{' '}
-    <StoryLink path="/story/data-display-card--default">Card</StoryLink>
+    A failing rule renders as a severity chip, the rule name, and a one-line message
+    <span style={captionLinkStyle}>
+      Pictured above: <StoryLink path="/story/data-display-card--default">Card</StoryLink>
+    </span>
   </figcaption>
 </figure>
 
@@ -127,8 +139,10 @@ A fourth, `prop-shape-unrecognized`, needs a manifest whose prop payload has mov
     style={{ width: '100%', display: 'block' }}
   />
   <figcaption style={captionStyle}>
-    `extractor-drift` in its own Manifest section, above the per-component findings · Pictured above:{' '}
-    <StoryLink path="/story/data-display-card--default">Card</StoryLink>
+    `extractor-drift` in its own Manifest section, above the per-component findings
+    <span style={captionLinkStyle}>
+      Pictured above: <StoryLink path="/story/data-display-card--default">Card</StoryLink>
+    </span>
   </figcaption>
 </figure>
 
