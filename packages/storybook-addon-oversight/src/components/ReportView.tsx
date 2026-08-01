@@ -72,6 +72,49 @@ const DanglingLink = styled.span(({ theme }) => ({
   '& s': { textDecorationColor: theme.color.negativeText },
 }));
 
+/**
+ * A manifest id that resolves to nothing, struck through in the same negative
+ * as the dead links the description strikes, so the finding and the prose it
+ * is about agree about what is broken.
+ */
+const DanglingId = styled.code(({ theme }) => ({
+  // doubled, because the Docs page styles bare `code` and would otherwise win
+  // the colour and leave a struck id looking like any other id
+  '&&': {
+    fontFamily: theme.typography.fonts.mono,
+    fontSize: '0.92em',
+    color: theme.color.negativeText,
+    textDecoration: 'line-through',
+    textDecorationColor: theme.color.negativeText,
+  },
+}));
+
+/** A strikethrough says nothing to a screen reader, so the mark is what carries
+ *  the reason the id is struck. */
+const MissingMark = styled.span(({ theme }) => ({
+  color: theme.color.negativeText,
+  marginLeft: 3,
+  cursor: 'help',
+}));
+
+/** Sets each id the finding names as a struck-through id inside its message. */
+function markDanglingIds(message: string, targets?: string[]): ReactNode {
+  if (!targets?.length) return message;
+  const escaped = targets.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return message.split(new RegExp(`(${escaped.join('|')})`, 'g')).map((part, index) =>
+    targets.includes(part) ? (
+      <Fragment key={index}>
+        <DanglingId>{part}</DanglingId>
+        <MissingMark role="img" aria-label="not in the manifest" title="not in the manifest">
+          &#9888;
+        </MissingMark>
+      </Fragment>
+    ) : (
+      part
+    ),
+  );
+}
+
 const PropList = styled.ul({
   margin: '6px 0 0',
   paddingLeft: 18,
@@ -196,7 +239,7 @@ function FindingsList({ diagnostics }: { diagnostics: Diagnostic[] }) {
             {diagnostic.severity}
           </Badge>
           <FindingBody>
-            <RuleName>{diagnostic.rule}</RuleName> {diagnostic.message}
+            <RuleName>{diagnostic.rule}</RuleName> {markDanglingIds(diagnostic.message, diagnostic.targets)}
           </FindingBody>
         </FindingItem>
       ))}
