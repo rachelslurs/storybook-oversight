@@ -6,7 +6,9 @@ import driftShot from './assets/manifest-drift.png';
 import findingsShot from './assets/findings.png';
 
 export const StoryLink = ({ path, children }) => (
-  <a href={`./?path=${path}`} target="_top">
+  // Storybook's own link blue is 4.26:1 on the figure tint, under the 4.5:1 AA
+  // floor for this size, so the caption states its own.
+  <a href={`./?path=${path}`} target="_top" style={{ color: '#0056bd' }}>
     {children}
   </a>
 );
@@ -30,14 +32,11 @@ export const shotStyle = {
 
 export const captionLinkStyle = {
   display: 'block',
-  // shrink to the text and centre it, so the rule is exactly as wide as the line
-  // it divides rather than spanning the whole tinted strip
+  // shrink to the text so the auto margins centre it under the caption. The
+  // negative top cancels the 16px bottom margin MDX's paragraph collapses into
+  // this one, which is the only space between the two lines.
   width: 'fit-content',
-  // MDX wraps the caption text in a paragraph whose 16px bottom margin
-  // collapses into this one, so the padding below the rule matches it
-  margin: '0 auto',
-  paddingTop: 16,
-  borderTop: '1px solid #e5e7eb',
+  margin: '-16px auto 0',
   fontWeight: 400,
 };
 
@@ -48,7 +47,7 @@ export const captionStyle = {
   fontSize: 13,
   lineHeight: 1.5,
   fontWeight: 600,
-  color: '#64748b',
+  color: '#475569',
 };
 
 <Meta title="Overview" />
