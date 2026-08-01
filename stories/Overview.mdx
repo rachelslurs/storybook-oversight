@@ -36,8 +36,6 @@ This Storybook dogfoods the addon. `@storybook/addon-mcp` serves the components 
 
 Open any component below and watch the panel and the block react to what it actually documents.
 
-The rules, a fix for each one, and how to write docs that satisfy them live in [`docs/`](https://github.com/rachelslurs/storybook-oversight/tree/main/docs).
-
 ## Two places to look
 
 ### 1 · The panel
@@ -52,7 +50,7 @@ Pick a component in the sidebar, open its story, then click the Oversight tab in
   />
   <figcaption style={captionStyle}>
     An Oversight tab in the addons drawer, on every component's Story view, with a count badge of how many issues it
-    found
+    found · <a href="?path=/story/data-display-card--default">Example: Card</a>
   </figcaption>
 </figure>
 
@@ -66,7 +64,10 @@ Scroll to the end of any component's Docs to find it. The block is optional. Fol
     alt="The Oversight coverage block at the bottom of the Card Docs page"
     style={{ width: '100%', display: 'block' }}
   />
-  <figcaption style={captionStyle}>The same report, rendered inline at the bottom of every Docs page</figcaption>
+  <figcaption style={captionStyle}>
+    The same report, rendered inline at the bottom of every Docs page ·{' '}
+    <a href="?path=/docs/data-display-card--docs">Example: Card</a>
+  </figcaption>
 </figure>
 
 ## The examples
@@ -80,7 +81,8 @@ Each component is built around one rule. Two of them come out clean on purpose.
     style={{ width: '100%', display: 'block' }}
   />
   <figcaption style={captionStyle}>
-    A failing rule renders as a severity chip, the rule name, and a one-line message
+    A failing rule renders as a severity chip, the rule name, and a one-line message ·{' '}
+    <a href="?path=/story/data-display-card--default">Example: Card</a>
   </figcaption>
 </figure>
 
@@ -114,7 +116,8 @@ A fourth, `prop-shape-unrecognized`, needs a manifest whose prop payload has mov
     style={{ width: '100%', display: 'block' }}
   />
   <figcaption style={captionStyle}>
-    extractor-drift in its own Manifest section, above the per-component findings
+    extractor-drift in its own Manifest section, above the per-component findings ·{' '}
+    <a href="?path=/story/data-display-card--default">Example: Card</a>
   </figcaption>
 </figure>
 
