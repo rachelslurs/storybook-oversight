@@ -32,23 +32,17 @@ export const shotStyle = {
 
 export const captionLinkStyle = {
   display: 'block',
-  // shrink to the text so the auto margins centre it under the caption. The
-  // negative top cancels the 16px bottom margin MDX's paragraph collapses into
-  // this one, which is the only space between the two lines.
+  // shrink to the text so the auto margins centre it under the caption
   width: 'fit-content',
-  margin: '-16px auto 0',
+  margin: '0 auto',
   fontWeight: 400,
 };
 
 export const captionStyle = {
-  // the bottom cancels the paragraph margin MDX's caption text leaks past the
-  // figcaption, which otherwise doubles the space above the figure's edge
-  margin: '0.75rem 0 -16px',
   padding: 0,
   textAlign: 'center',
-  fontSize: 13,
-  lineHeight: 1.5,
   fontWeight: 600,
+  // #64748b is 4.23:1 on the figure tint, under the 4.5:1 AA floor
   color: '#475569',
 };
 
