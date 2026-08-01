@@ -15,7 +15,7 @@ import findingsShot from './assets/findings.png';
   </p>
 </div>
 
-This Storybook **dogfoods the addon**. `@storybook/addon-mcp` serves the components manifest, and **Oversight** lints it, flagging the documentation an AI agent can and can't read, per component, while you work.
+This Storybook dogfoods the addon. `@storybook/addon-mcp` serves the components manifest, and Oversight lints it, flagging the documentation an AI agent can and can't read, per component, while you work.
 
 Everything below is a real, live diagnosis: the panel and block react to what each component actually documents.
 
@@ -25,27 +25,38 @@ The rules, a fix for each one, and how to write docs that satisfy them live in [
 
 ### 1 · The panel
 
-An **Oversight** tab in the addons drawer, on every component's **Story** view, with a count badge of how many issues it found. Pick a component in the sidebar, open its story, then click the **Oversight** tab:
+Pick a component in the sidebar, open its story, then click the Oversight tab in the addon drawer.
 
-<img
-  src={panelShot}
-  alt="The Oversight panel on the Card story, flagging an undocumented required prop"
-  style={{ width: '100%', borderRadius: 8, border: '1px solid #e5e7eb', margin: '1rem 0' }}
-/>
+<figure style={{ margin: '1rem 0' }}>
+  <img
+    src={panelShot}
+    alt="The Oversight panel on the Card story, flagging an undocumented required prop"
+    style={{ width: '100%', borderRadius: 8, border: '1px solid #e5e7eb', display: 'block' }}
+  />
+  <figcaption style={{ fontSize: 14, color: '#64748b', marginTop: '0.5rem' }}>
+    An Oversight tab in the addons drawer, on every component's Story view, with a count badge of how many issues it
+    found
+  </figcaption>
+</figure>
 
 ### 2 · The Docs block
 
-The same report, rendered inline at the **bottom of every Docs page**. Scroll to the end of any component's Docs to find it. The block is optional. Follow the [global or per-page setup instructions](https://github.com/rachelslurs/storybook-oversight/blob/main/packages/storybook-addon-oversight/README.md#optional-enable-the-docs-page-block) to add it to your Storybook:
+Scroll to the end of any component's Docs to find it. The block is optional. Follow the [global or per-page setup instructions](https://github.com/rachelslurs/storybook-oversight/blob/main/packages/storybook-addon-oversight/README.md#optional-enable-the-docs-page-block) to add it to your Storybook:
 
-<img
-  src={blockShot}
-  alt="The Oversight coverage block at the bottom of the Card Docs page"
-  style={{ width: '100%', borderRadius: 8, border: '1px solid #e5e7eb', margin: '1rem 0' }}
-/>
+<figure style={{ margin: '1rem 0' }}>
+  <img
+    src={blockShot}
+    alt="The Oversight coverage block at the bottom of the Card Docs page"
+    style={{ width: '100%', borderRadius: 8, border: '1px solid #e5e7eb', display: 'block' }}
+  />
+  <figcaption style={{ fontSize: 14, color: '#64748b', marginTop: '0.5rem' }}>
+    The same report, rendered inline at the bottom of every Docs page
+  </figcaption>
+</figure>
 
 ## The examples
 
-Each component is deliberately built to trip **one rule**. A failing rule renders as a severity chip, the rule name, and a one-line message:
+Each component is deliberately built to trip one rule. A failing rule renders as a severity chip, the rule name, and a one-line message:
 
 <img
   src={findingsShot}
@@ -55,26 +66,26 @@ Each component is deliberately built to trip **one rule**. A failing rule render
 
 Open each component and watch the Oversight tab (Story view) or scroll to the block (Docs view):
 
-- **[Button](?path=/docs/actions-button--docs)**: fully documented, and its description ends with a valid `?path=` redirect to Card → **clean**, and the link renders clickable in the panel.
-- **[Card](?path=/docs/data-display-card--docs)**: an undocumented **required** prop → `required-prop-undocumented` (error) plus `prop-descriptions-missing` (warning). _(pictured above)_
-- **[Badge](?path=/docs/data-display-badge--docs)**: no component description → `component-description-missing` (warning).
-- **[Tile](?path=/docs/data-display-tile--docs)**: a `?path=` link pointing at a component that isn't in the manifest → `docs-link-dangling` (error).
-- **[Banner](?path=/docs/feedback-banner--docs)**: a `@deprecated` tag → `deprecated-tag` (info).
-- **[Panel](?path=/docs/layout-panel--docs)**: an undocumented `slot` prop that would trip `prop-descriptions-missing`, but `@oversightIgnore` exempts this component from that rule → **clean**.
+- [Button](?path=/docs/actions-button--docs): fully documented, and its description ends with a valid `?path=` redirect to Card → clean, and the link renders clickable in the panel.
+- [Card](?path=/docs/data-display-card--docs): an undocumented required prop → `required-prop-undocumented` (error) plus `prop-descriptions-missing` (warning). _(pictured above)_
+- [Badge](?path=/docs/data-display-badge--docs): no component description → `component-description-missing` (warning).
+- [Tile](?path=/docs/data-display-tile--docs): a `?path=` link pointing at a component that isn't in the manifest → `docs-link-dangling` (error).
+- [Banner](?path=/docs/feedback-banner--docs): a `@deprecated` tag → `deprecated-tag` (info).
+- [Panel](?path=/docs/layout-panel--docs): an undocumented `slot` prop that would trip `prop-descriptions-missing`, but `@oversightIgnore` exempts this component from that rule → clean.
 
 ## Why these are rules
 
 `@storybook/addon-mcp` already lets you _view_ the raw manifest. Three of the checks that need judgment reading it can't give you show up in this demo:
 
-- **`extractor-drift`** is a comparison. The manifest looks fine on its own; it's only wrong relative to the extractor you expected.
-- **`docs-link-dangling`** takes every id in the manifest to know a `?path=` redirect points at nothing. One component's entry can't tell (the panel strikes the dead link through where it appears in the description).
-- **`required-prop-undocumented` vs `prop-descriptions-missing`**: every blank prop reads the same in a raw view. Oversight calls the required one an `error`, because that's the gap an agent is most likely to guess through.
+- `extractor-drift` is a comparison. The manifest looks fine on its own; it's only wrong relative to the extractor you expected.
+- `docs-link-dangling` takes every id in the manifest to know a `?path=` redirect points at nothing. One component's entry can't tell (the panel strikes the dead link through where it appears in the description).
+- `required-prop-undocumented` vs `prop-descriptions-missing`: every blank prop reads the same in a raw view. Oversight calls the required one an `error`, because that's the gap an agent is most likely to guess through.
 
 A fourth, `prop-shape-unrecognized`, needs a manifest whose prop payload has moved, which this demo can't stage. [Why these are lint rules](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/why-lint-rules.md) makes the whole argument.
 
 ## The manifest-level rule
 
-`extractor-drift` isn't tied to one component. It fires when the manifest was built with a different docgen extractor than the one you state as `expectedExtractor` (addon config, or `--expected-extractor` in the CLI); with no expectation stated, the rule does not run. The shallow `react-docgen` parser silently drops complex prop types, so descriptions come back empty across the board. Because it's a property of the whole manifest, the panel gives it its own **Manifest** section, above the per-component findings:
+`extractor-drift` isn't tied to one component. It fires when the manifest was built with a different docgen extractor than the one you state as `expectedExtractor` (addon config, or `--expected-extractor` in the CLI); with no expectation stated, the rule does not run. The shallow `react-docgen` parser silently drops complex prop types, so descriptions come back empty across the board. Because it's a property of the whole manifest, the panel gives it its own Manifest section, above the per-component findings:
 
 <img
   src={driftShot}
@@ -86,7 +97,7 @@ This demo ships on `react-docgen-typescript`, so drift can't fire live. The stil
 
 ## Not shown here
 
-`docgen-missing` and `story-extraction-error` fire only on extraction **failures**, which can't be staged with well-formed components. They're covered by the addon's unit tests instead.
+`docgen-missing` and `story-extraction-error` fire only on extraction failures, which can't be staged with well-formed components. They're covered by the addon's unit tests instead.
 
 ## Where to read more
 
