@@ -123,11 +123,9 @@ Exit `2` is distinct from `1` so a broken setup does not read as a passing lint.
 | `prop-shape-unrecognized` | error | the prop payload is missing the fields the prop rules read |
 | `ref-unresolved` | warning | a `$ref` on an otherwise-readable component did not resolve |
 
-When `prop-shape-unrecognized` fires, `prop-descriptions-missing` and `required-prop-undocumented` do not run. Both read `props[n].description` and `props[n].required`, and a build where those fields have moved would otherwise report every prop in the library as undocumented. The check asks whether the field names still exist anywhere in the manifest, so a prop carrying an empty description still counts as undocumented and is still reported.
+When `prop-shape-unrecognized` fires, `prop-descriptions-missing` and `required-prop-undocumented` do not run. Both read `props[n].description` and `props[n].required`, and a build where those fields have moved would otherwise report every prop in the library as undocumented. The check asks whether the field names still exist anywhere in the manifest, so a prop carrying an empty description still counts as undocumented and is still reported. Set `--rule prop-shape-unrecognized=warning` to keep building through one.
 
-It is an error rather than a warning because it stands in for `required-prop-undocumented`, which is an error. Reporting it as a warning would let `--max-warnings`, unlimited by default, pass a build that had been failing. Set `--rule prop-shape-unrecognized=warning` to keep building through one.
-
-The repo README covers [why these are lint rules](../../README.md#why-these-are-lint-rules).
+The repo README covers [why these are lint rules](../../README.md#why-these-are-lint-rules), including why this one is an `error`.
 
 ## Troubleshooting
 
