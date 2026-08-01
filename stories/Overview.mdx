@@ -34,7 +34,7 @@ export const captionStyle = {
 
 This Storybook dogfoods the addon. `@storybook/addon-mcp` serves the components manifest, and Oversight lints it, flagging the documentation an AI agent can and can't read, per component, while you work.
 
-Open any component below and the panel and the block react to what it actually documents.
+Open any component below and watch the panel and the block react to what it actually documents.
 
 The rules, a fix for each one, and how to write docs that satisfy them live in [`docs/`](https://github.com/rachelslurs/storybook-oversight/tree/main/docs).
 
@@ -95,7 +95,7 @@ Open each component and watch the Oversight tab (Story view) or scroll to the bl
 
 ## Why these are rules
 
-`@storybook/addon-mcp` already lets you _view_ the raw manifest. Three of the checks that need judgment reading it can't give you show up in this demo:
+`@storybook/addon-mcp` already lets you _view_ the raw manifest. Three checks in this demo need judgment that reading it can't give you:
 
 - `extractor-drift` is a comparison. The manifest looks fine on its own; it's only wrong relative to the extractor you expected.
 - `docs-link-dangling` takes every id in the manifest to know a `?path=` redirect points at nothing. One component's entry can't tell (the panel strikes the dead link through where it appears in the description).
