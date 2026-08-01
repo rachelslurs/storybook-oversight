@@ -20,7 +20,13 @@ export const figureStyle = {
 
 export const captionLinkStyle = {
   display: 'block',
-  marginTop: '0.35rem',
+  // shrink to the text and centre it, so the rule is exactly as wide as the line
+  // it divides rather than spanning the whole tinted strip
+  width: 'fit-content',
+  margin: '0.55rem auto 0',
+  paddingTop: '0.55rem',
+  borderTop: '1px solid #e5e7eb',
+  fontStyle: 'italic',
 };
 
 export const captionStyle = {
