@@ -5,6 +5,23 @@ import blockShot from './assets/block.png';
 import driftShot from './assets/manifest-drift.png';
 import findingsShot from './assets/findings.png';
 
+export const figureStyle = {
+  margin: '1.5rem 0',
+  border: '1px solid #e5e7eb',
+  borderRadius: 8,
+  overflow: 'hidden',
+};
+
+export const captionStyle = {
+  margin: 0,
+  padding: '0.625rem 0.875rem',
+  fontSize: 13,
+  lineHeight: 1.5,
+  color: '#64748b',
+  background: '#f8fafc',
+  borderTop: '1px solid #e5e7eb',
+};
+
 <Meta title="Overview" />
 
 <div style={{ textAlign: 'center', margin: '2.5rem 0 3rem' }}>
@@ -17,7 +34,7 @@ import findingsShot from './assets/findings.png';
 
 This Storybook dogfoods the addon. `@storybook/addon-mcp` serves the components manifest, and Oversight lints it, flagging the documentation an AI agent can and can't read, per component, while you work.
 
-Everything below is a real, live diagnosis: the panel and block react to what each component actually documents.
+Open any component below and the panel and the block react to what it actually documents.
 
 The rules, a fix for each one, and how to write docs that satisfy them live in [`docs/`](https://github.com/rachelslurs/storybook-oversight/tree/main/docs).
 
@@ -27,13 +44,13 @@ The rules, a fix for each one, and how to write docs that satisfy them live in [
 
 Pick a component in the sidebar, open its story, then click the Oversight tab in the addon drawer.
 
-<figure style={{ margin: '1rem 0' }}>
+<figure style={figureStyle}>
   <img
     src={panelShot}
     alt="The Oversight panel on the Card story, flagging an undocumented required prop"
-    style={{ width: '100%', borderRadius: 8, border: '1px solid #e5e7eb', display: 'block' }}
+    style={{ width: '100%', display: 'block' }}
   />
-  <figcaption style={{ fontSize: 14, color: '#64748b', marginTop: '0.5rem' }}>
+  <figcaption style={captionStyle}>
     An Oversight tab in the addons drawer, on every component's Story view, with a count badge of how many issues it
     found
   </figcaption>
@@ -43,26 +60,29 @@ Pick a component in the sidebar, open its story, then click the Oversight tab in
 
 Scroll to the end of any component's Docs to find it. The block is optional. Follow the [global or per-page setup instructions](https://github.com/rachelslurs/storybook-oversight/blob/main/packages/storybook-addon-oversight/README.md#optional-enable-the-docs-page-block) to add it to your Storybook:
 
-<figure style={{ margin: '1rem 0' }}>
+<figure style={figureStyle}>
   <img
     src={blockShot}
     alt="The Oversight coverage block at the bottom of the Card Docs page"
-    style={{ width: '100%', borderRadius: 8, border: '1px solid #e5e7eb', display: 'block' }}
+    style={{ width: '100%', display: 'block' }}
   />
-  <figcaption style={{ fontSize: 14, color: '#64748b', marginTop: '0.5rem' }}>
-    The same report, rendered inline at the bottom of every Docs page
-  </figcaption>
+  <figcaption style={captionStyle}>The same report, rendered inline at the bottom of every Docs page</figcaption>
 </figure>
 
 ## The examples
 
-Each component is deliberately built to trip one rule. A failing rule renders as a severity chip, the rule name, and a one-line message:
+Each component is deliberately built to trip one rule.
 
-<img
-  src={findingsShot}
-  alt="The Findings section showing an error and a warning: a severity chip, the rule name, and a message for each"
-  style={{ width: '100%', maxWidth: 600, borderRadius: 8, border: '1px solid #e5e7eb', margin: '1rem 0' }}
-/>
+<figure style={{ ...figureStyle, maxWidth: 600 }}>
+  <img
+    src={findingsShot}
+    alt="The Findings section showing an error and a warning: a severity chip, the rule name, and a message for each"
+    style={{ width: '100%', display: 'block' }}
+  />
+  <figcaption style={captionStyle}>
+    A failing rule renders as a severity chip, the rule name, and a one-line message
+  </figcaption>
+</figure>
 
 Open each component and watch the Oversight tab (Story view) or scroll to the block (Docs view):
 
@@ -85,13 +105,18 @@ A fourth, `prop-shape-unrecognized`, needs a manifest whose prop payload has mov
 
 ## The manifest-level rule
 
-`extractor-drift` isn't tied to one component. It fires when the manifest was built with a different docgen extractor than the one you state as `expectedExtractor` (addon config, or `--expected-extractor` in the CLI); with no expectation stated, the rule does not run. The shallow `react-docgen` parser silently drops complex prop types, so descriptions come back empty across the board. Because it's a property of the whole manifest, the panel gives it its own Manifest section, above the per-component findings:
+`extractor-drift` isn't tied to one component. It fires when the manifest was built with a different docgen extractor than the one you state as `expectedExtractor` (addon config, or `--expected-extractor` in the CLI); with no expectation stated, the rule does not run. The shallow `react-docgen` parser silently drops complex prop types, so descriptions come back empty across the board. Because it's a property of the whole manifest, the panel reports it separately:
 
-<img
-  src={driftShot}
-  alt="The Oversight panel's Manifest section flagging extractor-drift, above the component's findings"
-  style={{ width: '100%', borderRadius: 8, border: '1px solid #e5e7eb', margin: '1rem 0' }}
-/>
+<figure style={figureStyle}>
+  <img
+    src={driftShot}
+    alt="The Oversight panel's Manifest section flagging extractor-drift, above the component's findings"
+    style={{ width: '100%', display: 'block' }}
+  />
+  <figcaption style={captionStyle}>
+    extractor-drift in its own Manifest section, above the per-component findings
+  </figcaption>
+</figure>
 
 This demo ships on `react-docgen-typescript`, so drift can't fire live. The still above is a build with the shallow extractor; in a project that states its expectation, the warning appears the moment the manifest drifts.
 
