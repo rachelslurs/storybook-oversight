@@ -30,17 +30,17 @@ describe('normalizeManifest (fixture: react-docgen-typescript flavor)', () => {
 
   it('keeps sourceFile repo-relative and storiesFile verbatim', () => {
     const button = result.components.find((c) => c.id === 'actions-button');
-    expect(button?.sourceFile).toBe('storybook/src/Button/Button.tsx');
+    expect(button?.sourceFile).toBe('src/Button/Button.tsx');
     expect(button?.storiesFile).toBe('./src/Button/Button.stories.tsx');
     const spinner = result.components.find((c) => c.id === 'feedback-spinner');
-    expect(spinner?.sourceFile).toBe('storybook/src/Spinner/Spinner.tsx');
+    expect(spinner?.sourceFile).toBe('src/Spinner/Spinner.tsx');
     expect(spinner?.storiesFile).toBe('./src/Spinner/Spinner.stories.tsx');
   });
 
   it('handles zero-prop components via the manifest-wide repo root', () => {
     const spinner = result.components.find((c) => c.id === 'feedback-spinner');
     expect(spinner?.props).toEqual({});
-    expect(spinner?.sourceFile).toBe('storybook/src/Spinner/Spinner.tsx');
+    expect(spinner?.sourceFile).toBe('src/Spinner/Spinner.tsx');
     const button = result.components.find((c) => c.id === 'actions-button');
     expect(button?.props.variant?.required).toBe(true);
   });
@@ -101,7 +101,7 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
     const result = normalizeManifest(raw);
     const [widget] = result.components;
     expect(result.extractor).toBe('react-docgen');
-    expect(widget.sourceFile).toBe('storybook/src/Widget/Widget.tsx');
+    expect(widget.sourceFile).toBe('src/Widget/Widget.tsx');
     expect(widget.props.size).toEqual({ description: null, required: true });
     expect(result.tags['data-display-widget'].deprecated).toBe('use Gadget instead\nsince 2.0');
   });
