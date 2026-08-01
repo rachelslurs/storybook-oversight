@@ -41,7 +41,9 @@ export const captionLinkStyle = {
 };
 
 export const captionStyle = {
-  margin: '0.75rem 0 0',
+  // the bottom cancels the paragraph margin MDX's caption text leaks past the
+  // figcaption, which otherwise doubles the space above the figure's edge
+  margin: '0.75rem 0 -16px',
   padding: 0,
   textAlign: 'center',
   fontSize: 13,
