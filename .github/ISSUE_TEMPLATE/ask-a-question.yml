@@ -1,7 +1,7 @@
 name: Ask a question
 description: Request information or a recipe for using Oversight
-title: "[QUESTION] "
-labels: ["question"]
+title: '[QUESTION] '
+labels: ['question']
 body:
   - type: textarea
     id: question
