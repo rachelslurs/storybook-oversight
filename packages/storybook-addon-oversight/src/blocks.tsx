@@ -10,25 +10,35 @@ import type { OversightConfig } from './config';
 import { ReportView } from './components/ReportView';
 import type { ReportViewStatus } from './components/ReportView';
 
+/**
+ * The section heading Storybook's own Docs blocks use for "Stories", built from
+ * the same theme tokens. Their styled component is internal to addon-docs and
+ * its class names are emotion hashes, so tokens are the stable surface: this
+ * follows whatever theme the Docs page is rendered with.
+ *
+ * The id is set explicitly rather than slugged, so `#oversight` is a stable deep
+ * link into any component's Docs page.
+ */
+const SectionHeading = styled.h2(({ theme }) => ({
+  fontSize: `${theme.typography.size.s2 - 1}px`,
+  fontWeight: theme.typography.weight.bold,
+  lineHeight: '16px',
+  letterSpacing: '0.35em',
+  textTransform: 'uppercase',
+  color: theme.textMutedColor,
+  border: 0,
+  margin: '56px 0 12px',
+}));
+
+// `SectionHeading` supplies the heading above, including its bottom margin.
 const Container = styled.div(({ theme }) => ({
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: theme.appBorderRadius,
   overflow: 'hidden',
-  margin: '2rem 0',
+  margin: '0 0 2rem',
   fontSize: theme.typography.size.s2,
   // The last section's border-bottom is redundant with the container border.
   '& > :last-child': { borderBottom: 'none' },
-}));
-
-const CaptionBar = styled.div(({ theme }) => ({
-  padding: '8px 16px',
-  borderBottom: `1px solid ${theme.appBorderColor}`,
-  background: theme.background.hoverable,
-  fontSize: theme.typography.size.s1,
-  fontWeight: theme.typography.weight.bold,
-  color: theme.textMutedColor,
-  letterSpacing: '0.35em',
-  textTransform: 'uppercase',
 }));
 
 /** Manifest + debugger URLs relative to the iframe document (drops
@@ -128,10 +138,10 @@ export function Oversight() {
 
   return (
     <ThemedRoot>
+      <SectionHeading id="oversight">Oversight</SectionHeading>
       <Container>
-        <CaptionBar>Oversight</CaptionBar>
         {/* compact: autodocs renders the description prose right below us, so
-            we show a documented/missing verdict, not the full text. */}
+              we show a documented/missing verdict, not the full text. */}
         <ReportView
           status={status}
           report={report}
