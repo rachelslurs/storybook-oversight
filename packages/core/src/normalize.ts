@@ -199,6 +199,27 @@ function inspectPropShape(raw: RawManifest): { propShape: 'known' | 'unrecognize
   );
 }
 
+/**
+ * `react-docgen-typescript` prefixes its declaration paths with the project
+ * directory's own name, so a repo-root detected from them keeps that segment:
+ * "storybook-addon-oversight/stories/Badge/Badge.tsx" for a file the repo knows
+ * as "stories/Badge/Badge.tsx".
+ *
+ * The entry's own `path` is recorded repo-relative and without that prefix, so
+ * it is the evidence: when the stories file's directory appears later in the
+ * source path, everything before it is the extractor's addition. Anything the
+ * stories path cannot vouch for is left alone, so a consumer whose sources
+ * genuinely live under "packages/ui/src" keeps that prefix.
+ */
+export function trimExtractorPrefix(sourceFile: string, storiesPath: string): string {
+  const stories = storiesPath.replace(/^\.\//, '');
+  const cut = stories.lastIndexOf('/');
+  if (cut < 0) return sourceFile;
+  const dir = stories.slice(0, cut + 1);
+  const at = sourceFile.indexOf(dir);
+  return at > 0 ? sourceFile.slice(at) : sourceFile;
+}
+
 export function normalizeManifest(raw: RawManifest): NormalizeResult {
   const rawExtractor = recordedExtractor(raw);
   const repoRoot = detectRepoRoot(raw);
@@ -266,11 +287,12 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
     }
 
     const sourcePath = sourcePathOf(payload);
-    const sourceFile = sourcePath
+    const relativeSource = sourcePath
       ? repoRoot && sourcePath.startsWith(repoRoot)
         ? sourcePath.slice(repoRoot.length)
         : sourcePath
       : null;
+    const sourceFile = relativeSource ? trimExtractorPrefix(relativeSource, storiesFile) : null;
 
     components.push({
       id,
