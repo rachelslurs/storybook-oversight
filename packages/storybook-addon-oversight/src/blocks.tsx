@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 import { DocsContainer, useOf } from '@storybook/addon-docs/blocks';
 import type { DocsContainerProps } from '@storybook/addon-docs/blocks';
-import { ThemeProvider, ensure, styled, themes, useTheme } from 'storybook/theming';
+import { ThemeProvider, ensure, getPreferredColorScheme, styled, themes, useTheme } from 'storybook/theming';
 import { buildReport, describeManifestUnavailable } from 'oversight-core';
 import type { RawManifest } from 'oversight-core';
 import { DEFAULT_DEBUGGER_LINK } from './config';
@@ -159,12 +159,18 @@ export function Oversight() {
  * Re-provides a Storybook theme on THIS bundle's emotion instance. The block is
  * a separate Vite-optimized dep, so addon-docs' ThemeProvider context does not
  * reach our `styled` components. Without this, `theme` is empty and every
- * `theme.*` interpolation throws. Inherit the surrounding theme when the context
- * does resolve; otherwise fall back to Storybook's light theme.
+ * `theme.*` interpolation throws.
+ *
+ * The surrounding theme is inherited whenever the context resolves, which is
+ * the case on a Docs page, so a project that themes its Storybook gets a block
+ * themed with it. The fallback is only for a context that does not resolve, and
+ * it reads the browser's colour preference rather than assuming light, so the
+ * block does not come out white on a dark page.
  */
 function ThemedRoot({ children }: { children: ReactNode }) {
   const inherited = useTheme();
-  const theme = inherited?.typography ? inherited : ensure(themes.light);
+  const fallback = getPreferredColorScheme() === 'dark' ? themes.dark : themes.light;
+  const theme = inherited?.typography ? inherited : ensure(fallback);
   return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
 }
 
