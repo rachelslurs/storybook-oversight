@@ -62,7 +62,7 @@ The header names the manifest that was linted and its recorded extractor: `meta.
 
 Counts are per manifest entry. One entry exists per stories file, so a component with several stories files produces several entries, and every count is inflated relative to components. The CLI does not deduplicate by component name: names collide across packages, and the manifest offers no stronger component identity than the entry id.
 
-Findings are grouped by entry, headed with the entry's component name. When another entry in the manifest shares that name, the heading adds the stories file, because the name alone cannot say which file a finding came from: `Features (src/Dialog/Dialog.features.stories.tsx)`. An entry is labelled with its entry id instead when it records no stories file, or when a same-named entry records the same one; that choice is made per entry, so one entry never changes how its siblings read. Entries named `Manifest` are always labelled, since manifest-level findings own that heading. The Actions step summary labels its Component column the same way.
+Findings are grouped by entry, headed with the entry's component name. When another entry in the manifest shares that name, the heading adds the stories file, because the name alone cannot say which file a finding came from: `Features (src/Dialog/Dialog.features.stories.tsx)`. An entry is labeled with its entry id instead when it records no stories file, or when a same-named entry records the same one; that choice is made per entry, so one entry never changes how its siblings read. Entries named `Manifest` are always labeled, since manifest-level findings own that heading. The Actions step summary labels its Component column the same way.
 
 `--format json` (alias `--json`) emits the same findings keyed by component id, with the summary counts and the manifest's `path`, `docgen`, and `entries` count under `summary.manifest`, for programmatic use. `docgen-missing` and `story-extraction-error` findings carry the full extraction error on an `error` field and, when the manifest error carries one, its `name` on `errorName`; their messages lead with the name and append the message's diagnosis line when it adds information. In the audited manifests, react-docgen-typescript failures open the message with a `File: <path>` line and react-docgen adds a bare `Error:` label; the summary skips those lines and leads with the line after them, while the full text stays on the JSON `error` field.
 
@@ -103,7 +103,7 @@ Exit `2` is distinct from `1` so a broken setup does not read as a passing lint.
 | `-h`, `--help` | Show help. |
 | `--version` | Print the version. |
 
-`@oversightIgnore` on a component's JSDoc exempts it here too; write the directive where the addon documents it, under [Exempting a component](../storybook-addon-oversight/README.md#exempting-a-component).
+`@oversightIgnore` on a component's JSDoc exempts it; the directive is documented under [Exempting a component](#exempting-a-component).
 
 ## Diagnostics
 
@@ -127,13 +127,78 @@ When `prop-shape-unrecognized` fires, `prop-descriptions-missing` and `required-
 
 It is an error rather than a warning because it stands in for `required-prop-undocumented`, which is an error. Reporting it as a warning would let `--max-warnings`, unlimited by default, pass a build that had been failing. Set `--rule prop-shape-unrecognized=warning` to keep building through one.
 
-## Why these are lint rules
+The repo README covers [why these are lint rules](../../README.md#why-these-are-lint-rules).
 
-The raw manifest is already viewable: `@storybook/addon-mcp` serves a debugger at `components.html`. Three of the rules need judgment that reading it can't give you:
+## Troubleshooting
 
-- **`extractor-drift` is a comparison.** The manifest looks fine on its own; it's only wrong _relative to_ the extractor you expected, so a raw view has nothing to flag against. Oversight holds the expectation (`expectedExtractor`) and checks the manifest against it. Without a configured expectation the rule does not run. A manifest records its extractor in `meta.docgen` or in the payload key its entries share; when neither says anything, the check fails rather than passing as a match. It's a property of the whole manifest, so it's reported on its own rather than against any one component.
-- **`docs-link-dangling` needs every other entry.** One component's entry can't tell you its `?path=` redirect points at nothing; that takes cross-referencing every id in the manifest. A per-component view can't see it; Oversight can. The rule validates one convention: selection guidance written into component descriptions as `?path=/docs|story/…` redirect links. In a repo that does not write those links it has nothing to check, and it stays silent. In such a repo the rule's silence reports the convention's absence and says nothing about link validity.
-- **`required-prop-undocumented` vs `prop-descriptions-missing` is a severity call.** Every blank prop description renders the same in a raw view. Oversight decides that an undocumented _required_ prop is the one an agent is most likely to guess at, so it's an `error`, while a missing optional description is a `warning`.
+### `docgen-missing`
+
+`docgen-missing` means the extractor returned no docs for the component's file, so its props and JSDoc never reach the manifest. An agent sees the component with no documented props. In order of likelihood:
+
+1. **`reactDocgen` isn't `react-docgen-typescript`.** Set `typescript.reactDocgen: 'react-docgen-typescript'` in `.storybook/main.ts` so JSDoc on components and props is extracted. This one does not apply if `features.experimentalReactComponentMeta` or `features.experimentalDocgenServer` is on. Either flag selects the extractor on its own and `typescript.reactDocgen` is never read, so changing it has no effect. Check `meta.docgen` in the manifest for which extractor actually ran.
+2. **Your root `tsconfig.json` is solution-style.** The default `npm create vite` (react-ts) scaffold ships a root that only delegates to project references and owns no files:
+
+   ```jsonc
+   // tsconfig.json
+   { "files": [], "references": [{ "path": "./tsconfig.app.json" } /* , … */] }
+   ```
+
+   Storybook's manifest docgen (`@storybook/react`) resolves the nearest tsconfig at your project root and builds its TypeScript program from it. A solution-style root contributes no files of its own, so the program is empty and extraction returns nothing, even for a fully-typed, fully-documented component. Give that root config your sources:
+
+   ```jsonc
+   // tsconfig.json
+   { "extends": "./tsconfig.app.json", "include": ["src"] }
+   ```
+
+3. **`reactDocgenTypescriptOptions.tsconfigPath` won't fix this.** There are two docgen paths and they don't share a tsconfig: Storybook's Docs UI honors `typescript.reactDocgenTypescriptOptions.tsconfigPath`, but the manifest docgen that Oversight reads uses `findTsconfigPath(cwd)` and ignores it. So that override can make your Docs prop tables render while this finding still fires. Fix the tsconfig your project _root_ resolves to (point 2).
+4. **Your component's default export is an expression.** `export default Checkbox as WithSlotMarker<typeof Checkbox>` and `export default Object.assign(TabNav, {Link})` both break the link between the export and the declaration your JSDoc sits on. `react-docgen-typescript` then reports `found no component docs` for that file and extracts nothing, so props go with the description. Give the documented thing a name and export that:
+
+   ```ts
+   import CheckboxImpl from './Checkbox';
+
+   /** An accessible, native checkbox component */
+   const Checkbox = CheckboxImpl;
+   export default Checkbox;
+   ```
+
+   Moving the JSDoc onto the barrel's `export {default} from './Checkbox'`, or onto a bare `export default Checkbox` re-export, does not work. The doc comment has to sit on a declaration.
+
+   `react-component-meta` has the same blind spot with a quieter symptom: props extract normally and only the description comes out empty, so you get `component-description-missing` instead of this rule. `react-docgen` resolves both forms and is unaffected.
+
+### `component-description-missing` on a documented component
+
+Most `component-description-missing` findings mean no description was written. When the JSDoc is there and the extractor is `react-component-meta`, check [item 4 under `docgen-missing`](#docgen-missing): an expression default export loses only the description under that extractor, so the failure lands on this rule instead. The fix there applies.
+
+## Authoring MCP-legible docs
+
+Put a JSDoc block above the component and on each prop; no addon-specific tags. Where two components are confusable, end the description with a redirect the MCP passes through verbatim:
+
+```ts
+/**
+ * A committed-selection box: tick one or more items and submit them together,
+ * rather than applying each change the moment it flips.
+ * For a setting that applies the moment it flips, use
+ * [Toggle](?path=/docs/forms-toggle--docs) instead.
+ */
+```
+
+The `[Toggle](?path=…)` link is validated by `docs-link-dangling` and is made clickable in the addon's panel.
+
+### Exempting a component
+
+`@oversightIgnore` keeps a component in the manifest (agents still see its docs) but exempts it from lint rules (bare for all rules, or scoped):
+
+```ts
+/**
+ * An internal token catalog; coverage rules don't apply.
+ *
+ * @oversightIgnore docgen-missing, story-extraction-error
+ */
+```
+
+This is deliberately different from Storybook's `!manifest` tag, which removes the component from the manifest, and therefore from agents, entirely. Use `!manifest` to hide, `@oversightIgnore` to exempt.
+
+Unrecognized rule names in the list are themselves flagged (`unknown-ignore-rule`) rather than silently exempting nothing. For an entry whose docgen extraction failed (no component JSDoc reaches the manifest), put `@oversightIgnore` on the JSDoc above the stories file's `meta`, the one case where story-meta JSDoc is sanctioned.
 
 ## Configuration file
 
