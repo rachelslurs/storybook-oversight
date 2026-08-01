@@ -73,11 +73,7 @@
             "required": false,
             "raw": "\"neutral\" | \"success\" | \"danger\"",
             "name": "enum",
-            "value": [
-              "neutral",
-              "success",
-              "danger"
-            ]
+            "value": ["neutral", "success", "danger"]
           },
           "table": {
             "type": {

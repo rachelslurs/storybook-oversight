@@ -5,9 +5,7 @@
       "name": "Banner",
       "path": "./stories/Banner/Banner.stories.tsx",
       "jsDocTags": {
-        "deprecated": [
-          "Use Toast for transient messages, or Card for persistent ones."
-        ]
+        "deprecated": ["Use Toast for transient messages, or Card for persistent ones."]
       },
       "description": "A full-width inline message.",
       "reactComponentMeta": {
@@ -16,9 +14,7 @@
         "filePath": "/repo/stories/Banner/Banner.tsx",
         "description": "A full-width inline message.",
         "jsDocTags": {
-          "deprecated": [
-            "Use Toast for transient messages, or Card for persistent ones."
-          ]
+          "deprecated": ["Use Toast for transient messages, or Card for persistent ones."]
         },
         "props": {
           "children": {
