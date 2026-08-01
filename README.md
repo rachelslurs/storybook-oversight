@@ -34,6 +34,7 @@ The rules are shared, so they are documented in [`docs/`](./docs) rather than in
 | Looking for | Where |
 | --- | --- |
 | What a rule fires on, and its default severity | [Rules](./docs/rules.md) |
+| Turning a rule off, or changing its severity | [Changing a severity](./docs/rules.md#changing-a-severity) |
 | A fix for any finding, `docgen-missing` through `deprecated-tag` | [Troubleshooting](./docs/troubleshooting.md) |
 | Writing component docs an agent can act on | [Authoring MCP-legible docs](./docs/authoring.md) |
 | Keeping a component but exempting it from a rule | [`@oversightIgnore`](./docs/authoring.md#exempting-a-component) |

@@ -18,6 +18,30 @@
 
 When `prop-shape-unrecognized` fires, `prop-descriptions-missing` and `required-prop-undocumented` do not run. Both read `props[n].description` and `props[n].required`, and a build where those fields have moved would otherwise report every prop in the library as undocumented. The check asks whether the field names still exist anywhere in the manifest, so a prop carrying an empty description still counts as undocumented and is still reported. To keep building through one, set it to `warning`: `--rule prop-shape-unrecognized=warning` on the CLI, or the `rules` map in `.storybook/manager.ts` for the panel.
 
+## Changing a severity
+
+Every rule takes an override, and the table above is what runs when you configure nothing. The accepted values are `error`, `warning`, `info`, and `off`.
+
+The panel reads them from `.storybook/manager.ts`:
+
+```ts
+addons.setConfig({
+  'storybook-addon-oversight': {
+    rules: { 'deprecated-tag': 'off', 'prop-descriptions-missing': 'error' },
+  },
+});
+```
+
+`oversight-lint` reads them from `oversight.config.json`, or from `--rule <name>=<severity>`, which is repeatable and takes precedence over the file:
+
+```json
+{ "rules": { "deprecated-tag": "off", "prop-descriptions-missing": "error" } }
+```
+
+A value outside those four is ignored and the rule keeps its default, so an ESLint-style `"warn"` reads as no override rather than as a mistake.
+
+`off` stops a rule across the whole manifest. To keep a rule running and exempt one component from it, use [`@oversightIgnore`](./authoring.md#exempting-a-component).
+
 [Why these are lint rules](./why-lint-rules.md) covers the four that need judgment a raw view can't give you, including why this one is an `error`.
 
 [Troubleshooting](./troubleshooting.md) has a fix for every rule above. [Authoring MCP-legible docs](./authoring.md) covers writing the docs that keep most of them from firing.
