@@ -107,10 +107,27 @@ const RuleName = styled.code(({ theme }) => ({
   fontSize: '0.92em',
   color: theme.textMutedColor,
 }));
-/** A file path in prose, so it reads as something to open rather than as words. */
+/**
+ * A file path in prose, chipped so it reads as something to open and select
+ * rather than as words.
+ *
+ * Storybook styles inline code with an internal `codeCommon` mixin that neither
+ * `storybook/theming` nor `storybook/internal/components` exports: `TT` applies
+ * it to a `<title>` element and `Code` is a syntax-highlighted block, so
+ * neither is usable here. These are its values, read from the same public
+ * tokens it reads, so the chip matches the ones the Docs page renders. It drops
+ * only `whiteSpace: nowrap`, which would send a long path off the edge.
+ */
 const FilePath = styled.code(({ theme }) => ({
+  lineHeight: 1,
+  margin: '0 2px',
+  padding: '3px 5px',
+  borderRadius: 3,
   fontFamily: theme.typography.fonts.mono,
-  fontSize: '0.92em',
+  fontSize: theme.typography.size.s2 - 1,
+  border: theme.base === 'light' ? '1px solid hsl(0 0 0 / 0.05)' : '1px solid hsl(0 0 100 / 0.05)',
+  color: theme.color.defaultText,
+  backgroundColor: theme.base === 'light' ? 'hsl(0 0 0 / 0.01)' : 'hsl(0 0 100 / 0.02)',
   wordBreak: 'break-all',
 }));
 const Note = styled.div(({ theme }) => ({
