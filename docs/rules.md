@@ -1,0 +1,23 @@
+# Rules
+
+`oversight-lint` and `storybook-addon-oversight` run the same rules from `oversight-core`, at these default severities:
+
+| Rule | Default severity | Fires when |
+| --- | --- | --- |
+| `docgen-missing` | error | an entry has no docgen payload (extraction failed) |
+| `story-extraction-error` | warning | a story's snippet/docgen extraction failed (`stories[].error`) |
+| `extractor-drift` | warning | `meta.docgen` ≠ the expected extractor, or unrecorded; runs only when an expectation is configured |
+| `component-description-missing` | warning | no component description |
+| `prop-descriptions-missing` | warning | props without JSDoc descriptions |
+| `required-prop-undocumented` | error | required props without JSDoc descriptions |
+| `docs-link-dangling` | error | a prose `?path=/docs\|story/…` link targets an id whose component prefix isn't in the manifest |
+| `unknown-ignore-rule` | warning | `@oversightIgnore` lists a token that is not a rule name |
+| `deprecated-tag` | info | a `@deprecated` tag is present |
+| `prop-shape-unrecognized` | error | the prop payload is missing the fields the prop rules read |
+| `ref-unresolved` | warning | a `$ref` on an otherwise-readable component did not resolve |
+
+When `prop-shape-unrecognized` fires, `prop-descriptions-missing` and `required-prop-undocumented` do not run. Both read `props[n].description` and `props[n].required`, and a build where those fields have moved would otherwise report every prop in the library as undocumented. The check asks whether the field names still exist anywhere in the manifest, so a prop carrying an empty description still counts as undocumented and is still reported. To keep building through one, set it to `warning`: `--rule prop-shape-unrecognized=warning` on the CLI, or the `rules` map in `.storybook/manager.ts` for the panel.
+
+[Why these are lint rules](./why-lint-rules.md) covers the four that need judgment a raw view can't give you, including why this one is an `error`.
+
+For fixes: [Troubleshooting](./troubleshooting.md) covers the rules that mean extraction broke, and [Authoring MCP-legible docs](./authoring.md) covers the ones that mean the prose was never written.

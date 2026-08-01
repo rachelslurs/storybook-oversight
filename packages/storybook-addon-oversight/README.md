@@ -103,13 +103,14 @@ See [`oversight-lint`](../cli/README.md) for options, config, and exit codes.
 
 ## Diagnostics
 
-The panel and the CLI run the same rules from `oversight-core`, and everything about those rules lives in `oversight-lint`'s README:
+The panel and the CLI run the same rules from `oversight-core`, so they are documented outside both packages:
 
-- [Diagnostics](../cli/README.md#diagnostics), what each rule fires on and its default severity
-- [Troubleshooting](../cli/README.md#troubleshooting), for `docgen-missing` and for the `component-description-missing` findings where the JSDoc is written but dropped
-- [Authoring MCP-legible docs](../cli/README.md#authoring-mcp-legible-docs), for the JSDoc the manifest carries and for [exempting a component](../cli/README.md#exempting-a-component) with `@oversightIgnore`
+- [Rules](../../docs/rules.md), what each one fires on and its default severity
+- [Troubleshooting](../../docs/troubleshooting.md), for `docgen-missing` and for `component-description-missing` where the JSDoc is written but dropped
+- [Authoring MCP-legible docs](../../docs/authoring.md), for the JSDoc the manifest carries and for [exempting a component](../../docs/authoring.md#exempting-a-component) with `@oversightIgnore`
+- [Why these are lint rules](../../docs/why-lint-rules.md), the four that need judgment a raw view can't give you
 
-In the panel, `extractor-drift` shows in its own **Manifest** section, since it's a property of the whole manifest rather than any one component. The repo README covers [why these are lint rules](../../README.md#why-these-are-lint-rules).
+In the panel, `extractor-drift` shows in its own **Manifest** section, since it's a property of the whole manifest rather than any one component.
 
 ## Configuration
 

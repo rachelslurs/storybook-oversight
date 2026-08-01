@@ -29,27 +29,20 @@ The rules live once, in a shared core, and run two ways: one interactive in Stor
 
 ## Where to look
 
-The rules are shared, so the reference for them lives in one place. These sections are in `oversight-lint`'s README and apply whether you run the CLI or the addon:
+The rules are shared, so they are documented in [`docs/`](./docs) rather than in either package. This applies whether you run the CLI or the addon:
 
 | Looking for | Where |
 | --- | --- |
-| What a rule fires on, and its default severity | [Diagnostics](./packages/cli/README.md#diagnostics) |
-| A fix for `docgen-missing` or `component-description-missing` | [Troubleshooting](./packages/cli/README.md#troubleshooting) |
-| A fix for `prop-descriptions-missing` or `required-prop-undocumented` | [Authoring MCP-legible docs](./packages/cli/README.md#authoring-mcp-legible-docs) |
-| Keeping a component but exempting it from a rule | [`@oversightIgnore`](./packages/cli/README.md#exempting-a-component) |
-
-## Why these are lint rules
-
-The raw manifest is already viewable: `@storybook/addon-mcp` serves a debugger at `components.html`. Four of the rules need judgment that reading it can't give you:
-
-- **`extractor-drift` is a comparison.** The manifest looks fine on its own; it's only wrong _relative to_ the extractor you expected, so a raw view has nothing to flag against. Oversight holds the expectation (`expectedExtractor`) and checks the manifest against it. Without a configured expectation the rule does not run. A manifest records its extractor in `meta.docgen` or in the payload key its entries share; when neither says anything, the check fails rather than passing as a match. It's a property of the whole manifest, so it's reported on its own rather than against any one component.
-- **`docs-link-dangling` needs every other entry.** One component's entry can't tell you its `?path=` redirect points at nothing; that takes cross-referencing every id in the manifest. A per-component view can't see it; Oversight can. The rule validates one convention: selection guidance written into component descriptions as `?path=/docs|story/…` redirect links. In a repo that does not write those links it has nothing to check, and it stays silent. In such a repo the rule's silence reports the convention's absence and says nothing about link validity.
-- **`required-prop-undocumented` vs `prop-descriptions-missing` is a severity call.** Every blank prop description renders the same in a raw view. Oversight decides that an undocumented _required_ prop is the one an agent is most likely to guess at, so it's an `error`, while a missing optional description is a `warning`.
-- **`prop-shape-unrecognized` is an error because it stands in for one.** It fires when a build moves the fields the prop rules read, and `required-prop-undocumented` cannot run at all. Reporting the substitute as a warning would let `--max-warnings`, unlimited by default, pass a build that had been failing.
+| What a rule fires on, and its default severity | [Rules](./docs/rules.md) |
+| A fix for `docgen-missing` or `component-description-missing` | [Troubleshooting](./docs/troubleshooting.md) |
+| A fix for `prop-descriptions-missing` or `required-prop-undocumented` | [Authoring MCP-legible docs](./docs/authoring.md) |
+| Keeping a component but exempting it from a rule | [`@oversightIgnore`](./docs/authoring.md#exempting-a-component) |
+| Why these are lint rules and not a manifest viewer | [Why these are lint rules](./docs/why-lint-rules.md) |
 
 ## Layout
 
 ```
+docs/                          the rules, and how to satisfy them, shared by both packages
 packages/
   core/                        oversight-core, the diagnostic engine (pure, private, bundled into the addon and the CLI)
   storybook-addon-oversight/   the Storybook addon (panel + Docs block)

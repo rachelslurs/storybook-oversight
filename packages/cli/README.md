@@ -4,9 +4,9 @@ Lint your Storybook MCP components manifest in CI.
 
 Your coding agent reads your components from the manifest Storybook's MCP server generates. When a description never reaches that manifest (extraction failed, the wrong docgen extractor ran, or the JSDoc is missing), the agent sees a component with no docs. `oversight-lint` runs over the built manifest and fails the build when that happens, so a regression stops at CI instead of reaching the agent.
 
-It runs the same rules as [`storybook-addon-oversight`](../storybook-addon-oversight/README.md), which surfaces them live in Storybook while you work. The rule reference, the fixes, and the authoring guide below apply to both.
+It runs the same rules as [`storybook-addon-oversight`](../storybook-addon-oversight/README.md), which surfaces them live in Storybook while you work.
 
-[Install](#install) · [Prerequisite](#prerequisite-a-built-manifest) · [Usage](#usage) · [Output](#output) · [Exit codes](#exit-codes) · [Options](#options) · [Diagnostics](#diagnostics) · [Troubleshooting](#troubleshooting) · [Authoring MCP-legible docs](#authoring-mcp-legible-docs) · [Configuration file](#configuration-file)
+[Install](#install) · [Prerequisite](#prerequisite-a-built-manifest) · [Usage](#usage) · [Output](#output) · [Exit codes](#exit-codes) · [Options](#options) · [Diagnostics](#diagnostics) · [Configuration file](#configuration-file)
 
 ## Install
 
@@ -105,100 +105,16 @@ Exit `2` is distinct from `1` so a broken setup does not read as a passing lint.
 | `-h`, `--help` | Show help. |
 | `--version` | Print the version. |
 
-`@oversightIgnore` on a component's JSDoc exempts it; the directive is documented under [Exempting a component](#exempting-a-component).
+`@oversightIgnore` on a component's JSDoc exempts it; the directive is documented under [Exempting a component](../../docs/authoring.md#exempting-a-component).
 
 ## Diagnostics
 
-`oversight-lint` and [`storybook-addon-oversight`](../storybook-addon-oversight/README.md) run the same rules from `oversight-core`, at these default severities:
+Findings name a rule id. The rules are shared with the addon, so they are documented outside both packages:
 
-| Rule | Default severity | Fires when |
-| --- | --- | --- |
-| `docgen-missing` | error | an entry has no docgen payload (extraction failed) |
-| `story-extraction-error` | warning | a story's snippet/docgen extraction failed (`stories[].error`) |
-| `extractor-drift` | warning | `meta.docgen` ≠ the expected extractor, or unrecorded; runs only when an expectation is configured |
-| `component-description-missing` | warning | no component description |
-| `prop-descriptions-missing` | warning | props without JSDoc descriptions |
-| `required-prop-undocumented` | error | required props without JSDoc descriptions |
-| `docs-link-dangling` | error | a prose `?path=/docs\|story/…` link targets an id whose component prefix isn't in the manifest |
-| `unknown-ignore-rule` | warning | `@oversightIgnore` lists a token that is not a rule name |
-| `deprecated-tag` | info | a `@deprecated` tag is present |
-| `prop-shape-unrecognized` | error | the prop payload is missing the fields the prop rules read |
-| `ref-unresolved` | warning | a `$ref` on an otherwise-readable component did not resolve |
-
-When `prop-shape-unrecognized` fires, `prop-descriptions-missing` and `required-prop-undocumented` do not run. Both read `props[n].description` and `props[n].required`, and a build where those fields have moved would otherwise report every prop in the library as undocumented. The check asks whether the field names still exist anywhere in the manifest, so a prop carrying an empty description still counts as undocumented and is still reported. Set `--rule prop-shape-unrecognized=warning` to keep building through one.
-
-The repo README covers [why these are lint rules](../../README.md#why-these-are-lint-rules), including why this one is an `error`.
-
-## Troubleshooting
-
-### `docgen-missing`
-
-`docgen-missing` means the extractor returned no docs for the component's file, so its props and JSDoc never reach the manifest. An agent sees the component with no documented props. In order of likelihood:
-
-1. **`reactDocgen` isn't `react-docgen-typescript`.** Set `typescript.reactDocgen: 'react-docgen-typescript'` in `.storybook/main.ts` so JSDoc on components and props is extracted. This one does not apply if `features.experimentalReactComponentMeta` or `features.experimentalDocgenServer` is on. Either flag selects the extractor on its own and `typescript.reactDocgen` is never read, so changing it has no effect. Check `meta.docgen` in the manifest for which extractor actually ran.
-2. **Your root `tsconfig.json` is solution-style.** The default `npm create vite` (react-ts) scaffold ships a root that only delegates to project references and owns no files:
-
-   ```jsonc
-   // tsconfig.json
-   { "files": [], "references": [{ "path": "./tsconfig.app.json" } /* , … */] }
-   ```
-
-   Storybook's manifest docgen (`@storybook/react`) resolves the nearest tsconfig at your project root and builds its TypeScript program from it. A solution-style root contributes no files of its own, so the program is empty and extraction returns nothing, even for a fully-typed, fully-documented component. Give that root config your sources:
-
-   ```jsonc
-   // tsconfig.json
-   { "extends": "./tsconfig.app.json", "include": ["src"] }
-   ```
-
-3. **`reactDocgenTypescriptOptions.tsconfigPath` won't fix this.** There are two docgen paths and they don't share a tsconfig: Storybook's Docs UI honors `typescript.reactDocgenTypescriptOptions.tsconfigPath`, but the manifest docgen that Oversight reads uses `findTsconfigPath(cwd)` and ignores it. So that override can make your Docs prop tables render while this finding still fires. Fix the tsconfig your project _root_ resolves to (point 2).
-4. **Your component's default export is an expression.** `export default Checkbox as WithSlotMarker<typeof Checkbox>` and `export default Object.assign(TabNav, {Link})` both break the link between the export and the declaration your JSDoc sits on. `react-docgen-typescript` then reports `found no component docs` for that file and extracts nothing, so props go with the description. Give the documented thing a name and export that:
-
-   ```ts
-   import CheckboxImpl from './Checkbox';
-
-   /** An accessible, native checkbox component */
-   const Checkbox = CheckboxImpl;
-   export default Checkbox;
-   ```
-
-   Moving the JSDoc onto the barrel's `export {default} from './Checkbox'`, or onto a bare `export default Checkbox` re-export, does not work. The doc comment has to sit on a declaration.
-
-   `react-component-meta` has the same blind spot with a quieter symptom: props extract normally and only the description comes out empty, so you get `component-description-missing` instead of this rule. `react-docgen` resolves both forms and is unaffected.
-
-### `component-description-missing` on a documented component
-
-Most `component-description-missing` findings mean no description was written. When the JSDoc is there and the extractor is `react-component-meta`, check [item 4 under `docgen-missing`](#docgen-missing): an expression default export loses only the description under that extractor, so the failure lands on this rule instead. The fix there applies.
-
-## Authoring MCP-legible docs
-
-Put a JSDoc block above the component and on each prop; no addon-specific tags. Where two components are confusable, end the description with a redirect the MCP passes through verbatim:
-
-```ts
-/**
- * A committed-selection box: tick one or more items and submit them together,
- * rather than applying each change the moment it flips.
- * For a setting that applies the moment it flips, use
- * [Toggle](?path=/docs/forms-toggle--docs) instead.
- */
-```
-
-The `[Toggle](?path=…)` link is validated by `docs-link-dangling` and is made clickable in the addon's panel.
-
-### Exempting a component
-
-`@oversightIgnore` keeps a component in the manifest (agents still see its docs) but exempts it from lint rules (bare for all rules, or scoped):
-
-```ts
-/**
- * An internal token catalog; coverage rules don't apply.
- *
- * @oversightIgnore docgen-missing, story-extraction-error
- */
-```
-
-This is deliberately different from Storybook's `!manifest` tag, which removes the component from the manifest, and therefore from agents, entirely. Use `!manifest` to hide, `@oversightIgnore` to exempt.
-
-Unrecognized rule names in the list are themselves flagged (`unknown-ignore-rule`) rather than silently exempting nothing. For an entry whose docgen extraction failed (no component JSDoc reaches the manifest), put `@oversightIgnore` on the JSDoc above the stories file's `meta`, the one case where story-meta JSDoc is sanctioned.
+- [Rules](../../docs/rules.md), what each one fires on and its default severity
+- [Troubleshooting](../../docs/troubleshooting.md), for `docgen-missing` and for `component-description-missing` where the JSDoc is written but dropped
+- [Authoring MCP-legible docs](../../docs/authoring.md), for the JSDoc the manifest carries and for [exempting a component](../../docs/authoring.md#exempting-a-component) with `@oversightIgnore`
+- [Why these are lint rules](../../docs/why-lint-rules.md), the four that need judgment a raw view can't give you
 
 ## Configuration file
 
