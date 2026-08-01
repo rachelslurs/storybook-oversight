@@ -15,7 +15,17 @@ export const figureStyle = {
   margin: '1.5rem 0',
   border: '1px solid #e5e7eb',
   borderRadius: 8,
-  overflow: 'hidden',
+  background: '#eef2f7',
+  padding: 16,
+};
+
+export const shotStyle = {
+  width: '100%',
+  display: 'block',
+  // the screenshots are mostly white and the tint behind them is near-white, so
+  // without an edge of its own an image bleeds into the figure
+  border: '1px solid #e5e7eb',
+  borderRadius: 4,
 };
 
 export const captionLinkStyle = {
@@ -23,22 +33,22 @@ export const captionLinkStyle = {
   // shrink to the text and centre it, so the rule is exactly as wide as the line
   // it divides rather than spanning the whole tinted strip
   width: 'fit-content',
-  margin: '0.55rem auto 0',
-  paddingTop: '0.55rem',
+  // MDX wraps the caption text in a paragraph whose 16px bottom margin
+  // collapses into this one, so the padding below the rule matches it
+  margin: '0 auto',
+  paddingTop: 16,
   borderTop: '1px solid #e5e7eb',
   fontWeight: 400,
 };
 
 export const captionStyle = {
-  margin: 0,
+  margin: '0.75rem 0 0',
+  padding: 0,
   textAlign: 'center',
-  padding: '0.625rem 0.875rem',
   fontSize: 13,
   lineHeight: 1.5,
   fontWeight: 600,
   color: '#64748b',
-  background: '#f8fafc',
-  borderTop: '1px solid #e5e7eb',
 };
 
 <Meta title="Overview" />
@@ -51,7 +61,7 @@ export const captionStyle = {
   </p>
 </div>
 
-This Storybook dogfoods the addon. `@storybook/addon-mcp` serves the components manifest, and Oversight lints it, flagging the documentation an AI agent can and can't read, per component, while you work.
+This Storybook dogfoods the addon: `@storybook/addon-mcp` serves the <a href="./manifests/components.html" target="_blank" rel="noreferrer">components manifest</a>, and Oversight lints it.
 
 Open any component below and watch the panel and the block react to what it actually documents.
 
@@ -65,7 +75,7 @@ Pick a component in the sidebar, open its story, then click the Oversight tab in
   <img
     src={panelShot}
     alt="The Oversight panel on the Card story, flagging an undocumented required prop"
-    style={{ width: '100%', display: 'block' }}
+    style={shotStyle}
   />
   <figcaption style={captionStyle}>
     An Oversight tab in the addons drawer, on every component's Story view, with a count badge of how many issues it
@@ -81,15 +91,11 @@ Pick a component in the sidebar, open its story, then click the Oversight tab in
 Scroll to the end of any component's Docs to find it. The block is optional. Follow the [global or per-page setup instructions](https://github.com/rachelslurs/storybook-oversight/blob/main/packages/storybook-addon-oversight/README.md#optional-enable-the-docs-page-block) to add it to your Storybook:
 
 <figure style={figureStyle}>
-  <img
-    src={blockShot}
-    alt="The Oversight coverage block at the bottom of the Card Docs page"
-    style={{ width: '100%', display: 'block' }}
-  />
+  <img src={blockShot} alt="The Oversight coverage block at the bottom of the Card Docs page" style={shotStyle} />
   <figcaption style={captionStyle}>
     The same report, rendered inline at the bottom of every Docs page
     <span style={captionLinkStyle}>
-      Pictured above: <StoryLink path="/docs/data-display-card--docs">Card</StoryLink>
+      Pictured above: <StoryLink path="/docs/data-display-card--docs#oversight">Card</StoryLink>
     </span>
   </figcaption>
 </figure>
@@ -98,11 +104,11 @@ Scroll to the end of any component's Docs to find it. The block is optional. Fol
 
 Each component is built to demonstrate one rule. Four trip a finding, two pass.
 
-<figure style={{ ...figureStyle, maxWidth: 600 }}>
+<figure style={{ ...figureStyle, maxWidth: 600, marginInline: 'auto' }}>
   <img
     src={findingsShot}
     alt="The Findings section showing an error and a warning: a severity chip, the rule name, and a message for each"
-    style={{ width: '100%', display: 'block' }}
+    style={shotStyle}
   />
   <figcaption style={captionStyle}>
     A failing rule renders as a severity chip, the rule name, and a one-line message
@@ -144,7 +150,7 @@ A fourth, `prop-shape-unrecognized`, needs a manifest whose prop payload has mov
   <img
     src={driftShot}
     alt="The Oversight panel's Manifest section flagging extractor-drift, above the component's findings"
-    style={{ width: '100%', display: 'block' }}
+    style={shotStyle}
   />
   <figcaption style={captionStyle}>
     `extractor-drift` in its own Manifest section, above the per-component findings

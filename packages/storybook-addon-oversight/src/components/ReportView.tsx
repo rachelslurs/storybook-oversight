@@ -107,6 +107,12 @@ const RuleName = styled.code(({ theme }) => ({
   fontSize: '0.92em',
   color: theme.textMutedColor,
 }));
+/** A file path in prose, so it reads as something to open rather than as words. */
+const FilePath = styled.code(({ theme }) => ({
+  fontFamily: theme.typography.fonts.mono,
+  fontSize: '0.92em',
+  wordBreak: 'break-all',
+}));
 const Note = styled.div(({ theme }) => ({
   color: theme.textMutedColor,
   fontSize: theme.typography.size.s1,
@@ -306,7 +312,12 @@ function DescriptionSection({
       {description === null ? (
         <Warning>
           Missing. The MCP and Docs tab describe {name} as nothing
-          {sourceFile ? `. Add JSDoc in ${sourceFile}` : ''}.
+          {sourceFile ? (
+            <>
+              . Add JSDoc in <FilePath>{sourceFile}</FilePath>
+            </>
+          ) : null}
+          .
         </Warning>
       ) : variant === 'compact' ? (
         <span>
