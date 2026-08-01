@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Every rule and its default severity is in [Rules](./rules.md).
+What to do about each finding. Every rule and its default severity is in [Rules](./rules.md), and [Authoring MCP-legible docs](./authoring.md) covers writing the JSDoc that keeps most of these from firing.
 
 ## `docgen-missing`
 
@@ -36,6 +36,44 @@ Every rule and its default severity is in [Rules](./rules.md).
 
    `react-component-meta` has the same blind spot with a quieter symptom: props extract normally and only the description comes out empty, so you get `component-description-missing` instead of this rule. `react-docgen` resolves both forms and is unaffected.
 
-## `component-description-missing` on a documented component
+## `component-description-missing`
 
-Most `component-description-missing` findings mean no description was written. When the JSDoc is there and the extractor is `react-component-meta`, check [item 4 under `docgen-missing`](#docgen-missing): an expression default export loses only the description under that extractor, so the failure lands on this rule instead. The fix there applies.
+Most of the time no description was written. Put a JSDoc block above the component.
+
+When the JSDoc is there and the extractor is `react-component-meta`, check [item 4 under `docgen-missing`](#docgen-missing): an expression default export loses only the description under that extractor, so the failure lands on this rule instead.
+
+## `prop-descriptions-missing` and `required-prop-undocumented`
+
+The props reached the manifest, without descriptions. Put a JSDoc comment on each one. `required-prop-undocumented` is the error of the two because an agent has to supply a required prop and will guess at an undocumented one.
+
+Both rules stop running when `prop-shape-unrecognized` fires, so fix that first if you see it.
+
+## `extractor-drift`
+
+The manifest records an extractor other than the one you expected, or records none at all. It runs only when an expectation is configured, so the finding means the configured value and the built manifest disagree.
+
+Check `meta.docgen` in the manifest for what actually ran, then set the expectation to match: `expectedExtractor` in `.storybook/manager.ts` for the panel, `--expected-extractor` or the config file for the CLI. With `features.experimentalReactComponentMeta` or `features.experimentalDocgenServer` enabled the value is `react-component-meta`, because either flag picks the extractor itself.
+
+## `docs-link-dangling`
+
+A `?path=` redirect in a component description points at an id that is not in the manifest. Renaming a story title leaves every link to it dead, which is the usual cause. Point the link at a current id, or drop it.
+
+Only the description is scanned. A `?path=` link in an `@example` or another tag is not checked and does not fire this.
+
+## `story-extraction-error`
+
+One story's snippet or docgen extraction failed, and the manifest records it on `stories[].error`. `--format json` carries the full text on the finding's `error` field, which says more than the summary line does.
+
+## `prop-shape-unrecognized` and `ref-unresolved`
+
+Both mean the payload is not the shape the prop rules read, and both report what they expected against what they got. `prop-shape-unrecognized` is manifest-wide, so a build has moved the fields every entry shares. `ref-unresolved` is one component, so a `$ref` on an otherwise-readable entry did not resolve.
+
+A manifest version this build does not know is refused outright rather than guessed at, so a finding here means the shape changed inside a version that is still recognized.
+
+## `unknown-ignore-rule`
+
+An `@oversightIgnore` list contains a token that is not a rule name, usually a typo. Nothing is exempted by that token. Check it against [Rules](./rules.md).
+
+## `deprecated-tag`
+
+A component carries `@deprecated`. Nothing is broken; the rule reports it at `info` so a deprecated component is visible in the same place as everything else.

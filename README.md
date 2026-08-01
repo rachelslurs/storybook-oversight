@@ -34,8 +34,8 @@ The rules are shared, so they are documented in [`docs/`](./docs) rather than in
 | Looking for | Where |
 | --- | --- |
 | What a rule fires on, and its default severity | [Rules](./docs/rules.md) |
-| A fix for `docgen-missing` or `component-description-missing` | [Troubleshooting](./docs/troubleshooting.md) |
-| A fix for `prop-descriptions-missing` or `required-prop-undocumented` | [Authoring MCP-legible docs](./docs/authoring.md) |
+| A fix for any finding, `docgen-missing` through `deprecated-tag` | [Troubleshooting](./docs/troubleshooting.md) |
+| Writing component docs an agent can act on | [Authoring MCP-legible docs](./docs/authoring.md) |
 | Keeping a component but exempting it from a rule | [`@oversightIgnore`](./docs/authoring.md#exempting-a-component) |
 | Why these are lint rules and not a manifest viewer | [Why these are lint rules](./docs/why-lint-rules.md) |
 
