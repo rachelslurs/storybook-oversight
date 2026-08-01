@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
-import type { ComponentType } from 'react';
-import { Badge } from 'storybook/internal/components';
+import type { ComponentType, ReactNode } from 'react';
+import { Badge, EmptyTabContent } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 import type { ComponentReport, Diagnostic, DiagnosticSeverity } from 'oversight-core';
 import { summarizeError } from 'oversight-core';
@@ -128,6 +128,38 @@ const StatusHeading = styled.div(({ theme }) => ({
   color: theme.color.defaultText,
   marginBottom: 4,
 }));
+
+/**
+ * Nothing-to-show states. The panel uses Storybook's own `EmptyTabContent`, the
+ * treatment its Interactions and a11y panels use, so an empty Oversight tab
+ * reads like every other empty tab. The docs block keeps the inline message: a
+ * full-height centered empty state would dwarf the page it sits under.
+ */
+function EmptyState({
+  variant,
+  title,
+  description,
+}: {
+  variant: ReportViewVariant;
+  title: string;
+  description?: ReactNode;
+}) {
+  if (variant === 'full') {
+    return <EmptyTabContent title={title} description={description} />;
+  }
+  return (
+    <StatusMessage>
+      {description === undefined ? (
+        title
+      ) : (
+        <>
+          <StatusHeading>{title}</StatusHeading>
+          {description}
+        </>
+      )}
+    </StatusMessage>
+  );
+}
 
 /** A severity-badged list of diagnostics, errors first. Shared by the
  *  per-component "Findings" section and the manifest-level "Manifest" section. */
@@ -324,11 +356,11 @@ export function ReportView({
   }
   if (status === 'error') {
     return (
-      <StatusMessage>
-        <StatusHeading>Manifest could not be parsed</StatusHeading>
-        The components manifest loaded but its format could not be parsed. It may be unsupported or malformed. See the
-        browser console for details.
-      </StatusMessage>
+      <EmptyState
+        variant={variant}
+        title="Manifest could not be parsed"
+        description="The components manifest loaded but its format could not be parsed. It may be unsupported or malformed. See the browser console for details."
+      />
     );
   }
   if (status === 'unavailable') {
@@ -336,18 +368,21 @@ export function ReportView({
     // experimentalDocgenServer). Only guess "enable @storybook/addon-mcp" when
     // the server gave no explanation, so we never assert a cause we haven't verified.
     return (
-      <StatusMessage>
-        <StatusHeading>Components manifest unavailable</StatusHeading>
-        {unavailableReason ??
-          '/manifests/components.json did not load. Enable the manifest feature (e.g. @storybook/addon-mcp).'}
-      </StatusMessage>
+      <EmptyState
+        variant={variant}
+        title="Components manifest unavailable"
+        description={
+          unavailableReason ??
+          '/manifests/components.json did not load. Enable the manifest feature (e.g. @storybook/addon-mcp).'
+        }
+      />
     );
   }
   if (status === 'no-story') {
-    return <StatusMessage>Select a story to see its coverage.</StatusMessage>;
+    return <EmptyState variant={variant} title="Select a story to see its coverage." />;
   }
   if (status === 'no-entry' || !report) {
-    return <StatusMessage>No manifest entry for this component.</StatusMessage>;
+    return <EmptyState variant={variant} title="No manifest entry for this component." />;
   }
 
   const { component, failure, storyFailures, diagnostics, manifestDiagnostics, propShape } = report;

@@ -55,6 +55,19 @@ describe('ReportView status states', () => {
     const noEntry = renderView(<ReportView status="no-entry" debuggerUrl={DEBUGGER_URL} />);
     expect(noEntry.container.textContent).toContain('No manifest entry');
   });
+
+  // The panel gets Storybook's centered EmptyTabContent; the docs block keeps
+  // the inline message, which would otherwise dwarf the page it sits under.
+  it('says the same thing in both variants, but not with the same markup', () => {
+    const full = renderView(<ReportView status="no-entry" debuggerUrl={DEBUGGER_URL} variant="full" />);
+    const fullHtml = full.container.innerHTML;
+    expect(full.container.textContent).toContain('No manifest entry');
+    cleanup();
+
+    const compact = renderView(<ReportView status="no-entry" debuggerUrl={DEBUGGER_URL} variant="compact" />);
+    expect(compact.container.textContent).toContain('No manifest entry');
+    expect(compact.container.innerHTML).not.toBe(fullHtml);
+  });
 });
 
 describe('ReportView report rendering', () => {
