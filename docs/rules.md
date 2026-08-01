@@ -20,4 +20,4 @@ When `prop-shape-unrecognized` fires, `prop-descriptions-missing` and `required-
 
 [Why these are lint rules](./why-lint-rules.md) covers the four that need judgment a raw view can't give you, including why this one is an `error`.
 
-For fixes: [Troubleshooting](./troubleshooting.md) covers the rules that mean extraction broke, and [Authoring MCP-legible docs](./authoring.md) covers the ones that mean the prose was never written.
+[Troubleshooting](./troubleshooting.md) has a fix for every rule above. [Authoring MCP-legible docs](./authoring.md) covers writing the docs that keep most of them from firing.
