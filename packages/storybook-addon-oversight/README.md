@@ -82,7 +82,7 @@ import { Oversight } from 'storybook-addon-oversight/blocks';
 
 ## What Oversight checks
 
-The manifest Oversight lints is the _upstream_ artifact: Storybook's MCP `get-documentation` reads from it, reformats it, and drops what it won't serve (component-level JSDoc tags among them). So Oversight checks two things: that the doc content the MCP will serve is present and good (component/prop descriptions), and that the pipeline building the manifest is healthy enough to deliver it (extraction succeeded and, when you configure `expectedExtractor`, the expected docgen extractor ran). It adds no documentation vocabulary of its own: selection guidance ("use X instead") lives as a plain redirect sentence in the component description, typical Storybook practice and passed through verbatim by `get-documentation`. Its one tag, [`@oversightIgnore`](../cli/README.md#exempting-a-component), is a lint-suppression directive.
+The manifest Oversight lints is the _upstream_ artifact: Storybook's MCP `get-documentation` reads from it, reformats it, and drops what it won't serve (component-level JSDoc tags among them). So Oversight checks two things: that the doc content the MCP will serve is present and good (component/prop descriptions), and that the pipeline building the manifest is healthy enough to deliver it (extraction succeeded and, when you configure `expectedExtractor`, the expected docgen extractor ran). It adds no documentation vocabulary of its own: selection guidance ("use X instead") lives as a plain redirect sentence in the component description, typical Storybook practice and passed through verbatim by `get-documentation`. Its one tag, `@oversightIgnore`, is a lint-suppression directive.
 
 ## Surfaces
 
@@ -103,9 +103,13 @@ See [`oversight-lint`](../cli/README.md) for options, config, and exit codes.
 
 ## Diagnostics
 
-The rules, their default severities, and what each fires on live in [`oversight-lint`'s Diagnostics table](../cli/README.md#diagnostics). The panel and the CLI run the same rules from `oversight-core`. In the panel, `extractor-drift` shows in its own **Manifest** section, since it's a property of the whole manifest rather than any one component. The repo README covers [why these are lint rules](../../README.md#why-these-are-lint-rules).
+The panel and the CLI run the same rules from `oversight-core`, and everything about those rules lives in `oversight-lint`'s README:
 
-Fixes live beside the table. [Troubleshooting](../cli/README.md#troubleshooting) covers `docgen-missing`, and the `component-description-missing` findings where the JSDoc is written but dropped. [Authoring MCP-legible docs](../cli/README.md#authoring-mcp-legible-docs) covers the JSDoc the manifest carries, and [exempting a component](../cli/README.md#exempting-a-component) with `@oversightIgnore`.
+- [Diagnostics](../cli/README.md#diagnostics), what each rule fires on and its default severity
+- [Troubleshooting](../cli/README.md#troubleshooting), for `docgen-missing` and for the `component-description-missing` findings where the JSDoc is written but dropped
+- [Authoring MCP-legible docs](../cli/README.md#authoring-mcp-legible-docs), for the JSDoc the manifest carries and for [exempting a component](../cli/README.md#exempting-a-component) with `@oversightIgnore`
+
+In the panel, `extractor-drift` shows in its own **Manifest** section, since it's a property of the whole manifest rather than any one component. The repo README covers [why these are lint rules](../../README.md#why-these-are-lint-rules).
 
 ## Configuration
 

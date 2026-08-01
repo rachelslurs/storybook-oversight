@@ -4,7 +4,9 @@ Lint your Storybook MCP components manifest in CI.
 
 Your coding agent reads your components from the manifest Storybook's MCP server generates. When a description never reaches that manifest (extraction failed, the wrong docgen extractor ran, or the JSDoc is missing), the agent sees a component with no docs. `oversight-lint` runs over the built manifest and fails the build when that happens, so a regression stops at CI instead of reaching the agent.
 
-It runs the same rules as [`storybook-addon-oversight`](../storybook-addon-oversight/README.md), which surfaces them live in Storybook while you work.
+It runs the same rules as [`storybook-addon-oversight`](../storybook-addon-oversight/README.md), which surfaces them live in Storybook while you work. The rule reference, the fixes, and the authoring guide below apply to both.
+
+[Install](#install) · [Prerequisite](#prerequisite-a-built-manifest) · [Usage](#usage) · [Output](#output) · [Exit codes](#exit-codes) · [Options](#options) · [Diagnostics](#diagnostics) · [Troubleshooting](#troubleshooting) · [Authoring MCP-legible docs](#authoring-mcp-legible-docs) · [Configuration file](#configuration-file)
 
 ## Install
 

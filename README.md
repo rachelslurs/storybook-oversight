@@ -27,6 +27,17 @@ The rules live once, in a shared core, and run two ways: one interactive in Stor
 
 <p>Blog post: <a href="https://rachel.fyi/posts/your-agent-is-reading-a-different-design-system"><em>Your Agent Is Reading a Different Design System</em></a></p>
 
+## Where to look
+
+The rules are shared, so the reference for them lives in one place. These sections are in `oversight-lint`'s README and apply whether you run the CLI or the addon:
+
+| Looking for | Where |
+| --- | --- |
+| What a rule fires on, and its default severity | [Diagnostics](./packages/cli/README.md#diagnostics) |
+| A fix for `docgen-missing` or `component-description-missing` | [Troubleshooting](./packages/cli/README.md#troubleshooting) |
+| A fix for `prop-descriptions-missing` or `required-prop-undocumented` | [Authoring MCP-legible docs](./packages/cli/README.md#authoring-mcp-legible-docs) |
+| Keeping a component but exempting it from a rule | [`@oversightIgnore`](./packages/cli/README.md#exempting-a-component) |
+
 ## Why these are lint rules
 
 The raw manifest is already viewable: `@storybook/addon-mcp` serves a debugger at `components.html`. Four of the rules need judgment that reading it can't give you:
