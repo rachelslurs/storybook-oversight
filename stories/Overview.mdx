@@ -25,6 +25,10 @@ export const Shot = styled.img(({ theme }) => ({
 
 export const Caption = styled.figcaption(({ theme }) => ({
   padding: 0,
+  // zeroing the paragraph's margins below also closed the gap above it, leaving
+  // the caption against the image while the pointer kept the figure's padding
+  // under it. This matches that padding, so the caption sits evenly in the box
+  marginTop: 16,
   textAlign: 'center',
   // every value is a theme token, not a hex literal: hardcoding the light
   // palette put this at 1.43:1 on a dark Docs page, because the text follows
