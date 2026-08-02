@@ -5,7 +5,7 @@ import { detectManifestFormat } from './format';
 import { lint } from './lint';
 import { normalizeManifest } from './normalize';
 import { resolveManifestRefs } from './resolveRefs';
-import type { Diagnostic, RawManifest, RawPayload, RawProp } from './types';
+import type { Finding, RawManifest, RawPayload, RawProp } from './types';
 
 const V1 = 'v1/manifests/components.json';
 const V1_DANGLING = 'v1-dangling/manifests/components.json';
@@ -49,16 +49,16 @@ const eachProp = (fn: (prop: RawProp) => void) => (payload: RawPayload) => {
   for (const prop of Object.values(payload.props ?? {})) fn(prop);
 };
 
-function comparable(diagnostics: Diagnostic[]): string[] {
-  return diagnostics.map((d) => `${d.severity} ${d.rule} ${d.componentId ?? '(manifest)'} :: ${d.message}`).sort();
+function comparable(findings: Finding[]): string[] {
+  return findings.map((d) => `${d.severity} ${d.rule} ${d.componentId ?? '(manifest)'} :: ${d.message}`).sort();
 }
 
 const rulesOf = (m: RawManifest) => lint(normalizeManifest(m)).map((d) => d.rule);
-const shapeIssueOf = (m: RawManifest) =>
+const shapeFindingOf = (m: RawManifest) =>
   lint(normalizeManifest(m)).find((d) => d.rule === 'prop-shape-unrecognized' || d.rule === 'ref-unresolved');
 
 describe('ref manifests reach the same verdict as inline ones', () => {
-  it('produces diagnostics identical to the v:0 react-component-meta build', async () => {
+  it('produces findings identical to the v:0 react-component-meta build', async () => {
     // Both fixtures describe the same six components from the same build, one
     // inline and one behind refs, so any difference is a resolver defect. The
     // prop rules are included: holding them here would have made this assertion
@@ -108,12 +108,12 @@ describe('the prop shape guard', () => {
     expect(rulesOf(m)).not.toContain('prop-descriptions-missing');
     expect(rulesOf(m)).not.toContain('required-prop-undocumented');
 
-    const issue = shapeIssueOf(m);
-    expect(issue?.severity).toBe('error');
-    expect(issue?.componentId).toBeNull();
-    expect(issue?.message).toMatch(/description/);
+    const finding = shapeFindingOf(m);
+    expect(finding?.severity).toBe('error');
+    expect(finding?.componentId).toBeNull();
+    expect(finding?.message).toMatch(/description/);
     // The skip is named, so the silence is not left to be noticed.
-    expect(issue?.message).toMatch(/prop-descriptions-missing and required-prop-undocumented did not run/);
+    expect(finding?.message).toMatch(/prop-descriptions-missing and required-prop-undocumented did not run/);
   });
 
   it('holds both rules when description is present but retyped', async () => {
@@ -127,7 +127,7 @@ describe('the prop shape guard', () => {
     );
     expect(normalizeManifest(m).propShape).toBe('unrecognized');
     expect(rulesOf(m)).not.toContain('prop-descriptions-missing');
-    expect(shapeIssueOf(m)?.message).toMatch(/description/);
+    expect(shapeFindingOf(m)?.message).toMatch(/description/);
   });
 
   it('holds both rules when required is present but retyped', async () => {
@@ -141,7 +141,7 @@ describe('the prop shape guard', () => {
     );
     expect(normalizeManifest(m).propShape).toBe('unrecognized');
     expect(rulesOf(m)).not.toContain('required-prop-undocumented');
-    expect(shapeIssueOf(m)?.message).toMatch(/required/);
+    expect(shapeFindingOf(m)?.message).toMatch(/required/);
   });
 
   it('holds both rules when the props container itself is renamed', async () => {
@@ -153,7 +153,7 @@ describe('the prop shape guard', () => {
     });
     expect(normalizeManifest(m).propShape).toBe('unrecognized');
     expect(rulesOf(m)).not.toContain('prop-descriptions-missing');
-    expect(shapeIssueOf(m)?.message).toMatch(/props/);
+    expect(shapeFindingOf(m)?.message).toMatch(/props/);
   });
 
   it('keeps reporting when only some props lack the field: that is undocumented, not renamed', async () => {
@@ -199,7 +199,7 @@ describe('the prop shape guard', () => {
     expect(rulesOf(m)).toContain('prop-descriptions-missing');
   });
 
-  it('survives a malformed prop instead of losing every diagnostic', async () => {
+  it('survives a malformed prop instead of losing every finding', async () => {
     // Dereferencing a null prop threw out of the whole normalizer, so one bad
     // entry cost the entire manifest's findings.
     const m = mutatePayloads(await load(V1), (payload) => {
@@ -221,12 +221,12 @@ describe('unresolved refs', () => {
       if (target.includes('story-docs')) throw new Error('ENOENT: no such file');
       return readFileSync(resolve(base, '../../v1/manifests', target), 'utf8');
     });
-    const issue = shapeIssueOf(resolved);
-    expect(issue?.componentId).toBe('feedback-banner');
-    expect(issue?.severity).toBe('warning');
-    expect(issue?.message).toMatch(/\$ref/);
+    const finding = shapeFindingOf(resolved);
+    expect(finding?.componentId).toBe('feedback-banner');
+    expect(finding?.severity).toBe('warning');
+    expect(finding?.message).toMatch(/\$ref/);
     // One line only: this message reaches a step-summary table row (#30).
-    expect(issue?.message).not.toMatch(/\n/);
+    expect(finding?.message).not.toMatch(/\n/);
   });
 
   it('keeps storiesFile when the docgen leaf is the missing one', async () => {
@@ -246,7 +246,7 @@ describe('unresolved refs', () => {
     const inline = await load(V0_RCM);
     const entry = Object.values(inline.components ?? {})[0];
     entry.error = { message: 'story indexer warning' };
-    expect(shapeIssueOf(inline)).toBeUndefined();
+    expect(shapeFindingOf(inline)).toBeUndefined();
   });
 });
 
@@ -308,7 +308,7 @@ describe('leaf shapes the resolver has to survive', () => {
     }) as unknown as RawManifest;
   const leaf = (node: object) => () => JSON.stringify({ components: { x: node } });
 
-  it('survives a null story instead of losing every diagnostic', async () => {
+  it('survives a null story instead of losing every finding', async () => {
     const resolved = await resolveManifestRefs(
       index({ stories: { $ref: 'l.json#/components/x' } }),
       leaf({ path: './x.stories.tsx', stories: { 'x--a': null, 'x--b': { id: 'x--b', name: 'B' } } }),

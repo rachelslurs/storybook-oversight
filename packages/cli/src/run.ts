@@ -52,12 +52,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
     files.set(failure.id, failure.storiesFile);
   }
 
-  const { diagnostics } = analysis;
+  const { findings } = analysis;
   const summary: LintSummary = {
-    diagnostics,
-    errors: diagnostics.filter((d) => d.severity === 'error').length,
-    warnings: diagnostics.filter((d) => d.severity === 'warning').length,
-    infos: diagnostics.filter((d) => d.severity === 'info').length,
+    findings,
+    errors: findings.filter((d) => d.severity === 'error').length,
+    warnings: findings.filter((d) => d.severity === 'warning').length,
+    infos: findings.filter((d) => d.severity === 'info').length,
     manifestPath: options.manifestPath,
     extractor: analysis.result.extractor,
     entryCount: analysis.result.components.length + analysis.result.failures.length,

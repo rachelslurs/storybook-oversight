@@ -1,5 +1,5 @@
 import { firstNonEmptyLine, summarizeError } from 'oversight-core';
-import type { Diagnostic, DiagnosticRule, DiagnosticSeverity } from 'oversight-core';
+import type { Finding, RuleName, Severity } from 'oversight-core';
 import type { LintSummary } from './types';
 
 const ANSI = {
@@ -12,7 +12,7 @@ const ANSI = {
   blue: '\x1b[34m',
 } as const;
 
-const SEVERITY_COLOR: Record<DiagnosticSeverity, string> = {
+const SEVERITY_COLOR: Record<Severity, string> = {
   error: ANSI.red,
   warning: ANSI.yellow,
   info: ANSI.blue,
@@ -39,10 +39,10 @@ function escapeCell(value: string): string {
   return value.replace(/\|/g, '\\|');
 }
 
-/** Distinct manifest entries the diagnostics sit on (manifest-level ones excluded). */
-function affectedEntries(diagnostics: Diagnostic[]): number {
+/** Distinct manifest entries the findings sit on (manifest-level ones excluded). */
+function affectedEntries(findings: Finding[]): number {
   const ids = new Set<string>();
-  for (const d of diagnostics) {
+  for (const d of findings) {
     if (d.componentId !== null) ids.add(d.componentId);
   }
   return ids.size;
@@ -52,10 +52,10 @@ function withProps(message: string, props: string[] | undefined): string {
   return props?.length ? `${message} (props: ${props.join(', ')})` : message;
 }
 
-/** Group diagnostics by component in first-seen order; manifest-level last. */
-function groupByComponent(diagnostics: Diagnostic[]): Map<string | null, Diagnostic[]> {
-  const groups = new Map<string | null, Diagnostic[]>();
-  for (const d of diagnostics) {
+/** Group findings by component in first-seen order; manifest-level last. */
+function groupByComponent(findings: Finding[]): Map<string | null, Finding[]> {
+  const groups = new Map<string | null, Finding[]>();
+  for (const d of findings) {
     const existing = groups.get(d.componentId);
     if (existing) existing.push(d);
     else groups.set(d.componentId, [d]);
@@ -68,7 +68,7 @@ function groupByComponent(diagnostics: Diagnostic[]): Map<string | null, Diagnos
 // `ref-unresolved` fires once per component, so a layout change upstream makes
 // every entry fail the same way and floods the output the collapse exists to
 // keep readable (#34).
-const COLLAPSIBLE_RULES: ReadonlySet<DiagnosticRule> = new Set([
+const COLLAPSIBLE_RULES: ReadonlySet<RuleName> = new Set([
   'docgen-missing',
   'story-extraction-error',
   'ref-unresolved',
@@ -82,8 +82,8 @@ const COLLAPSE_MIN_ENTRIES = 10;
 /** One row of collapsed output, shared by the stylish and step-summary
  *  renderers so both stay at the same size on the same input. */
 type CollapsedRow = {
-  severity: DiagnosticSeverity;
-  rule: DiagnosticRule;
+  severity: Severity;
+  rule: RuleName;
   /** Findings in the row. */
   count: number;
   /** Distinct entries those findings sit on. */
@@ -97,11 +97,11 @@ type CollapsedRow = {
  *  or whitespace), and `summarizeError` skips the message's `File: <path>`
  *  location line, so entries that share a diagnosis but not a path share a
  *  signature (#44). */
-function signatureOf(d: Diagnostic): string {
+function signatureOf(d: Finding): string {
   return summarizeError(d.errorName, d.error) ?? 'unknown error';
 }
 
-function rowOf(group: Diagnostic[], message: string): CollapsedRow {
+function rowOf(group: Finding[], message: string): CollapsedRow {
   return {
     severity: group[0].severity,
     rule: group[0].rule,
@@ -129,12 +129,9 @@ function reachOf(row: CollapsedRow, entryCount: number): string {
  * Rendering only: the tally still counts every finding, and `--format json`
  * keeps each one.
  */
-function collapseMassFailures(
-  diagnostics: Diagnostic[],
-  entryCount: number,
-): { rows: CollapsedRow[]; visible: Diagnostic[] } {
-  const byRule = new Map<DiagnosticRule, Diagnostic[]>();
-  for (const d of diagnostics) {
+function collapseMassFailures(findings: Finding[], entryCount: number): { rows: CollapsedRow[]; visible: Finding[] } {
+  const byRule = new Map<RuleName, Finding[]>();
+  for (const d of findings) {
     if (!COLLAPSIBLE_RULES.has(d.rule)) continue;
     const findings = byRule.get(d.rule) ?? [];
     byRule.set(d.rule, findings);
@@ -142,12 +139,12 @@ function collapseMassFailures(
   }
 
   const rows: CollapsedRow[] = [];
-  const hidden = new Set<Diagnostic>();
+  const hidden = new Set<Finding>();
   for (const findings of byRule.values()) {
     const touched = affectedEntries(findings);
     if (touched < COLLAPSE_MIN_ENTRIES || touched * 2 < entryCount) continue;
 
-    const bySignature = new Map<string, Diagnostic[]>();
+    const bySignature = new Map<string, Finding[]>();
     for (const d of findings) {
       const signature = signatureOf(d);
       const group = bySignature.get(signature) ?? [];
@@ -155,7 +152,7 @@ function collapseMassFailures(
       group.push(d);
     }
 
-    const leftovers: Diagnostic[] = [];
+    const leftovers: Finding[] = [];
     let leftoverSignatures = 0;
     let ownRows = 0;
     const sorted = [...bySignature.entries()].sort((a, b) => b[1].length - a[1].length);
@@ -176,13 +173,13 @@ function collapseMassFailures(
     }
     for (const d of findings) hidden.add(d);
   }
-  return { rows, visible: diagnostics.filter((d) => !hidden.has(d)) };
+  return { rows, visible: findings.filter((d) => !hidden.has(d)) };
 }
 
 /** ESLint `stylish`-style output, grouped by manifest entry instead of by file. */
 export function formatStylish(summary: LintSummary, options: { color: boolean; quiet: boolean }): string {
   const on = options.color;
-  const shown = options.quiet ? summary.diagnostics.filter((d) => d.severity === 'error') : summary.diagnostics;
+  const shown = options.quiet ? summary.findings.filter((d) => d.severity === 'error') : summary.findings;
   const { rows, visible } = collapseMassFailures(shown, summary.entryCount);
   const groups = groupByComponent(visible);
   const lines: string[] = [];
@@ -203,7 +200,7 @@ export function formatStylish(summary: LintSummary, options: { color: boolean; q
   }
 
   const label = labeller(summary);
-  const render = (title: string, detail: string, diags: Diagnostic[]) => {
+  const render = (title: string, detail: string, diags: Finding[]) => {
     lines.push(paint(title, ANSI.bold, on) + paint(detail, ANSI.dim, on));
     const width = Math.max(...diags.map((d) => d.severity.length));
     for (const d of diags) {
@@ -226,20 +223,20 @@ export function formatStylish(summary: LintSummary, options: { color: boolean; q
   const { errors, warnings, infos, entryCount } = summary;
   const total = errors + warnings + infos;
   if (total === 0) {
-    lines.push(paint(`✓ No problems found in ${entryCount} ${entriesWord(entryCount)}.`, ANSI.green, on));
+    lines.push(paint(`✓ No findings in ${entryCount} ${entriesWord(entryCount)}.`, ANSI.green, on));
   } else {
     const detail = `${plural(errors, 'error')}, ${plural(warnings, 'warning')}, ${infos} info`;
     const tone = errors > 0 ? ANSI.red : ANSI.yellow;
-    lines.push(paint(`✖ ${plural(total, 'problem')} (${detail})${entryShare(summary)}`, tone, on));
+    lines.push(paint(`✖ ${plural(total, 'finding')} (${detail})${entryShare(summary)}`, tone, on));
   }
   return lines.join('\n');
 }
 
 /** ", N of M entries affected", or "" when every finding is manifest-level:
- *  a share of zero entries beside a nonzero problem count reads as a
+ *  a share of zero entries beside a nonzero finding count reads as a
  *  contradiction. */
 function entryShare(summary: LintSummary): string {
-  const affected = affectedEntries(summary.diagnostics);
+  const affected = affectedEntries(summary.findings);
   if (affected === 0) return '';
   return `, ${affected} of ${summary.entryCount} ${entriesWord(summary.entryCount)} affected`;
 }
@@ -301,7 +298,7 @@ function labeller(summary: LintSummary): (componentId: string) => { name: string
 /** Machine-readable output: top level keyed by component id. */
 export function formatJson(summary: LintSummary): string {
   const components: Record<string, unknown[]> = {};
-  for (const d of summary.diagnostics) {
+  for (const d of summary.findings) {
     const key = d.componentId ?? '__manifest__';
     (components[key] ??= []).push({
       rule: d.rule,
@@ -333,7 +330,7 @@ export function formatJson(summary: LintSummary): string {
  *  truncates oversized step summaries, so a manifest-wide failure must not
  *  write one table row per entry. */
 export function formatStepSummary(summary: LintSummary): string {
-  const { errors, warnings, infos, diagnostics, entryCount } = summary;
+  const { errors, warnings, infos, findings, entryCount } = summary;
   const docgen = summary.extractor === null ? '' : ` (docgen: ${summary.extractor})`;
   const lines = [
     '### Oversight manifest lint',
@@ -341,11 +338,11 @@ export function formatStepSummary(summary: LintSummary): string {
     `\`${summary.manifestPath}\`${docgen}: ${plural(errors, 'error')}, ${plural(warnings, 'warning')}, ${infos} info${entryShare(summary)}.`,
     '',
   ];
-  if (diagnostics.length === 0) {
-    lines.push('No problems found.');
+  if (findings.length === 0) {
+    lines.push('No findings.');
     return lines.join('\n');
   }
-  const { rows, visible } = collapseMassFailures(diagnostics, entryCount);
+  const { rows, visible } = collapseMassFailures(findings, entryCount);
   if (rows.length > 0) {
     lines.push('Mass failures are collapsed; re-run with `--json` for the per-entry list.', '');
   }
@@ -363,7 +360,7 @@ export function formatStepSummary(summary: LintSummary): string {
   return lines.join('\n');
 }
 
-const GITHUB_COMMAND: Record<DiagnosticSeverity, 'error' | 'warning' | 'notice'> = {
+const GITHUB_COMMAND: Record<Severity, 'error' | 'warning' | 'notice'> = {
   error: 'error',
   warning: 'warning',
   info: 'notice',
@@ -396,7 +393,7 @@ export function formatGithub(summary: LintSummary): string {
   const dropped: Record<string, number> = { error: 0, warning: 0, notice: 0 };
   const lines: string[] = [];
 
-  for (const d of summary.diagnostics) {
+  for (const d of summary.findings) {
     const command = GITHUB_COMMAND[d.severity];
     if (emitted[command] >= MAX_ANNOTATIONS_PER_TYPE) {
       dropped[command] += 1;

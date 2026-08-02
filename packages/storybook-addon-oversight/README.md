@@ -101,7 +101,7 @@ npx oversight storybook-static/manifests/components.json
 
 See [`oversight-lint`](../cli/README.md) for options, config, and exit codes.
 
-## Diagnostics
+## Findings
 
 The panel and the CLI run the same rules from `oversight-core`, so they are documented outside both packages:
 

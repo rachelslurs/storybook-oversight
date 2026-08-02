@@ -6,7 +6,7 @@ import { useOversightReport } from '../useOversightReport';
 export function Title() {
   const api = useStorybookApi();
   const { status, report } = useOversightReport();
-  const count = status === 'ready' ? (report?.diagnostics.length ?? 0) : 0;
+  const count = status === 'ready' ? (report?.findings.length ?? 0) : 0;
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

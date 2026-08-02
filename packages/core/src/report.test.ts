@@ -11,26 +11,26 @@ function loadFixture(): RawManifest {
 describe('buildReport (fixture)', () => {
   const manifest = loadFixture();
 
-  it('resolves a documented component with no diagnostics', () => {
+  it('resolves a documented component with no findings', () => {
     const report = buildReport(manifest, 'forms-textfield');
     expect(report.found).toBe(true);
     expect(report.component?.name).toBe('TextField');
-    expect(report.diagnostics).toHaveLength(0);
+    expect(report.findings).toHaveLength(0);
   });
 
   it('resolves Card and Stack', () => {
     const card = buildReport(manifest, 'data-display-card');
     expect(card.found).toBe(true);
     expect(card.component?.name).toBe('Card');
-    expect(card.diagnostics).toHaveLength(0);
+    expect(card.findings).toHaveLength(0);
 
     const stack = buildReport(manifest, 'layout-stack');
     expect(stack.found).toBe(true);
     expect(stack.component?.name).toBe('Stack');
-    expect(stack.diagnostics).toHaveLength(0);
+    expect(stack.findings).toHaveLength(0);
   });
 
-  it('resolves an extraction-failed entry with its diagnostics', () => {
+  it('resolves an extraction-failed entry with its findings', () => {
     const report = buildReport(
       {
         components: {
@@ -47,7 +47,7 @@ describe('buildReport (fixture)', () => {
     expect(report.found).toBe(true);
     expect(report.failure?.name).toBe('Broken');
     expect(report.component).toBeUndefined();
-    expect(report.diagnostics.map((d) => d.rule).sort()).toEqual(['docgen-missing', 'story-extraction-error']);
+    expect(report.findings.map((d) => d.rule).sort()).toEqual(['docgen-missing', 'story-extraction-error']);
     expect(report.storyFailures).toHaveLength(1);
   });
 
@@ -56,10 +56,10 @@ describe('buildReport (fixture)', () => {
     expect(report.found).toBe(false);
     expect(report.component).toBeUndefined();
     expect(report.failure).toBeUndefined();
-    expect(report.diagnostics).toHaveLength(0);
+    expect(report.findings).toHaveLength(0);
   });
 
-  it('routes manifest-level extractor-drift to manifestDiagnostics, not per-component', () => {
+  it('routes manifest-level extractor-drift to manifestFindings, not per-component', () => {
     const drift: RawManifest = {
       meta: { docgen: 'react-docgen' }, // ≠ the expectation stated below
       components: {
@@ -76,10 +76,10 @@ describe('buildReport (fixture)', () => {
     };
     const report = buildReport(drift, 'ui-thing', { expectedExtractor: 'react-docgen-typescript' });
     // The component itself is clean, so drift must not leak into its findings/count.
-    expect(report.diagnostics).toHaveLength(0);
-    expect(report.manifestDiagnostics.map((d) => d.rule)).toEqual(['extractor-drift']);
-    expect(report.manifestDiagnostics[0].severity).toBe('warning');
-    expect(report.manifestDiagnostics[0].componentId).toBeNull();
+    expect(report.findings).toHaveLength(0);
+    expect(report.manifestFindings.map((d) => d.rule)).toEqual(['extractor-drift']);
+    expect(report.manifestFindings[0].severity).toBe('warning');
+    expect(report.manifestFindings[0].componentId).toBeNull();
   });
 
   it('has no manifest-level findings when the extractor matches the expectation', () => {
@@ -98,11 +98,11 @@ describe('buildReport (fixture)', () => {
       },
     };
     expect(
-      buildReport(clean, 'ui-thing', { expectedExtractor: 'react-docgen-typescript' }).manifestDiagnostics,
+      buildReport(clean, 'ui-thing', { expectedExtractor: 'react-docgen-typescript' }).manifestFindings,
     ).toHaveLength(0);
   });
 
-  it('passes lint options through to the resolved diagnostics', () => {
+  it('passes lint options through to the resolved findings', () => {
     const report = buildReport(
       {
         components: {
@@ -121,6 +121,6 @@ describe('buildReport (fixture)', () => {
     );
     expect(report.found).toBe(true);
     expect(report.failure?.name).toBe('Broken');
-    expect(report.diagnostics).toHaveLength(0);
+    expect(report.findings).toHaveLength(0);
   });
 });

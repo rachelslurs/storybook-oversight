@@ -1,6 +1,6 @@
 import { pathLinkPattern } from './pathLinks';
 import { firstNonEmptyLine, summarizeError } from './text';
-import type { Diagnostic, DiagnosticRule, DiagnosticSeverity, NormalizeResult, RuleSetting } from './types';
+import type { Finding, RuleName, Severity, NormalizeResult, RuleSetting } from './types';
 
 export type LintOptions = {
   /**
@@ -13,10 +13,10 @@ export type LintOptions = {
    * Unlisted rules keep their default severity; unrecognized values are
    * ignored (the rule keeps its default) rather than propagated.
    */
-  rules?: Partial<Record<DiagnosticRule, RuleSetting>>;
+  rules?: Partial<Record<RuleName, RuleSetting>>;
 };
 
-// Exhaustive by construction: `satisfies Record<DiagnosticRule, true>` fails to
+// Exhaustive by construction: `satisfies Record<RuleName, true>` fails to
 // compile if a rule is added to the union without a key here, so ALL_RULES can't
 // silently drift out of sync (which would make @oversightIgnore <new-rule> warn
 // "unknown rule" even though the exemption works).
@@ -32,10 +32,10 @@ const RULE_SET = {
   'deprecated-tag': true,
   'prop-shape-unrecognized': true,
   'ref-unresolved': true,
-} satisfies Record<DiagnosticRule, true>;
-/** Every diagnostic rule name. Exported so other surfaces (the CLI) can validate
+} satisfies Record<RuleName, true>;
+/** Every finding rule name. Exported so other surfaces (the CLI) can validate
  *  rule names against the single source of truth instead of hardcoding them. */
-export const ALL_RULES = Object.keys(RULE_SET) as DiagnosticRule[];
+export const ALL_RULES = Object.keys(RULE_SET) as RuleName[];
 
 // Exhaustive the same way RULE_SET is, so a rule added to the union has to say
 // what to do about itself rather than shipping a finding with no answer. The
@@ -54,11 +54,11 @@ const HINT = {
   'deprecated-tag': null,
   'prop-shape-unrecognized': 'Fix this one first: the prop rules do not run while it fires.',
   'ref-unresolved': "Resolve the entry's $ref before linting.",
-} satisfies Record<DiagnosticRule, string | null>;
+} satisfies Record<RuleName, string | null>;
 
 /** The one-line hint for a rule, or undefined when it reports a fact rather
  *  than a defect. `deprecated-tag` is the only rule without one. */
-export const hintFor = (rule: DiagnosticRule): string | undefined => HINT[rule] ?? undefined;
+export const hintFor = (rule: RuleName): string | undefined => HINT[rule] ?? undefined;
 
 /** The accepted `rules` override values, shared with the CLI's `--rule` parser. */
 export const VALID_SETTINGS: ReadonlySet<string> = new Set<RuleSetting>(['off', 'error', 'warning', 'info']);
@@ -78,7 +78,7 @@ function splitTokens(value: string): string[] {
  * it from agents entirely). Bare tag → exempt from every rule; a comma- or
  * newline-separated rule list → exempt from those rules only.
  */
-function isIgnored(ignoreValue: string | undefined, rule: DiagnosticRule): boolean {
+function isIgnored(ignoreValue: string | undefined, rule: RuleName): boolean {
   if (ignoreValue === undefined) return false;
   const tokens = splitTokens(ignoreValue);
   if (tokens.length === 0) return true;
@@ -89,7 +89,7 @@ function isIgnored(ignoreValue: string | undefined, rule: DiagnosticRule): boole
 // the panel's link parser via core/pathLinks so the two can't drift.
 const PATH_LINK_PATTERN = pathLinkPattern();
 
-export function lint(result: NormalizeResult, options: LintOptions = {}): Diagnostic[] {
+export function lint(result: NormalizeResult, options: LintOptions = {}): Finding[] {
   // The addon's config channels are untyped casts, so null or "" can arrive
   // here; both read as "no expectation", never as a value to compare against.
   const stated = options.expectedExtractor;
@@ -98,7 +98,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
   // then mismatched a manifest that recorded the same extractor, naming both
   // sides identically in the warning.
   const expectedExtractor = typeof stated === 'string' && stated.trim() !== '' ? stated.trim() : undefined;
-  const diagnostics: Diagnostic[] = [];
+  const findings: Finding[] = [];
 
   // Drift requires a stated expectation. A default here warned projects that
   // never chose an extractor, and the manifest-side default read a missing
@@ -106,7 +106,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
   // staying silent would rebuild that fabricated match.
   if (expectedExtractor !== undefined) {
     if (result.extractor === null) {
-      diagnostics.push({
+      findings.push({
         rule: 'extractor-drift',
         hint: hintFor('extractor-drift'),
         severity: 'warning',
@@ -118,7 +118,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
       // may be incomplete", an outcome that holds for at most one orientation
       // of one pairing: react-component-meta extracts more documented props
       // than react-docgen, and matches react-docgen-typescript (#52).
-      diagnostics.push({
+      findings.push({
         rule: 'extractor-drift',
         hint: hintFor('extractor-drift'),
         severity: 'warning',
@@ -129,7 +129,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
   }
 
   for (const failure of result.failures) {
-    diagnostics.push({
+    findings.push({
       rule: 'docgen-missing',
       hint: hintFor('docgen-missing'),
       severity: 'error',
@@ -141,7 +141,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
   }
 
   for (const storyFailure of result.storyFailures) {
-    diagnostics.push({
+    findings.push({
       rule: 'story-extraction-error',
       hint: hintFor('story-extraction-error'),
       severity: 'warning',
@@ -173,7 +173,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
   for (const shapeIssue of result.shapeIssues) {
     const scope = shapeIssue.componentId ? `${nameById.get(shapeIssue.componentId) ?? shapeIssue.componentId}: ` : '';
     const rule = shapeIssue.componentId === null ? 'prop-shape-unrecognized' : 'ref-unresolved';
-    diagnostics.push({
+    findings.push({
       rule,
       hint: hintFor(rule),
       severity: rule === 'prop-shape-unrecognized' ? 'error' : 'warning',
@@ -194,7 +194,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
       if (!knownIds.has(componentPrefix)) dangling.add(match[1]);
     }
     if (dangling.size > 0) {
-      diagnostics.push({
+      findings.push({
         rule: 'docs-link-dangling',
         hint: hintFor('docs-link-dangling'),
         severity: 'error',
@@ -209,7 +209,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
     const componentTags = result.tags[component.id] ?? {};
 
     if (component.description === null) {
-      diagnostics.push({
+      findings.push({
         rule: 'component-description-missing',
         hint: hintFor('component-description-missing'),
         severity: 'warning',
@@ -229,7 +229,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
             .map(([name]) => name)
         : [];
     if (undocumented.length > 0) {
-      diagnostics.push({
+      findings.push({
         rule: 'prop-descriptions-missing',
         hint: hintFor('prop-descriptions-missing'),
         severity: 'warning',
@@ -240,7 +240,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
 
       const requiredUndocumented = undocumented.filter((name) => component.props[name].required);
       if (requiredUndocumented.length > 0) {
-        diagnostics.push({
+        findings.push({
           rule: 'required-prop-undocumented',
           hint: hintFor('required-prop-undocumented'),
           severity: 'error',
@@ -260,7 +260,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
       const line = firstNonEmptyLine(deprecated);
       // The template appends its own period.
       const note = line?.replace(/\.$/, '');
-      diagnostics.push({
+      findings.push({
         rule: 'deprecated-tag',
         hint: hintFor('deprecated-tag'),
         severity: 'info',
@@ -281,7 +281,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
       (token) => !(ALL_RULES as readonly string[]).includes(token),
     );
     if (unknown.length > 0) {
-      diagnostics.push({
+      findings.push({
         rule: 'unknown-ignore-rule',
         hint: hintFor('unknown-ignore-rule'),
         severity: 'warning',
@@ -292,18 +292,15 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
   }
 
   const overrides = options.rules ?? {};
-  return diagnostics.flatMap((diagnostic) => {
-    if (
-      diagnostic.componentId !== null &&
-      isIgnored(result.tags[diagnostic.componentId]?.oversightIgnore, diagnostic.rule)
-    ) {
+  return findings.flatMap((finding) => {
+    if (finding.componentId !== null && isIgnored(result.tags[finding.componentId]?.oversightIgnore, finding.rule)) {
       return [];
     }
-    const setting = overrides[diagnostic.rule];
+    const setting = overrides[finding.rule];
     // Unrecognized values (e.g. ESLint-style "warn") fall through to the
     // rule's default severity instead of leaking out-of-contract strings.
-    if (setting === undefined || !VALID_SETTINGS.has(setting)) return [diagnostic];
+    if (setting === undefined || !VALID_SETTINGS.has(setting)) return [finding];
     if (setting === 'off') return [];
-    return [{ ...diagnostic, severity: setting as DiagnosticSeverity }];
+    return [{ ...finding, severity: setting as Severity }];
   });
 }

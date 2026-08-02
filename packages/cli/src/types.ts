@@ -1,8 +1,8 @@
-import type { Diagnostic } from 'oversight-core';
+import type { Finding } from 'oversight-core';
 
 /** The linted manifest reduced to what the formatters and the exit code need. */
 export type LintSummary = {
-  diagnostics: Diagnostic[];
+  findings: Finding[];
   errors: number;
   warnings: number;
   infos: number;

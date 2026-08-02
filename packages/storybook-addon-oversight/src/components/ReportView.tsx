@@ -3,7 +3,7 @@ import type { ComponentType, ReactNode } from 'react';
 import { CheckIcon, CrossIcon } from '@storybook/icons';
 import { Badge, EmptyTabContent, codeCommon } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
-import type { ComponentReport, Diagnostic, DiagnosticSeverity } from 'oversight-core';
+import type { ComponentReport, Finding, Severity } from 'oversight-core';
 import { summarizeError } from 'oversight-core';
 import { parseInline, splitParagraphs, storybookPathId } from './markdown';
 
@@ -144,12 +144,12 @@ const Footer = styled.div(({ theme }) => ({
 
 // Each severity maps to a Storybook Badge status, so a finding reads as a
 // colored `error`/`warning`/`info` pill next to its rule name.
-const SEVERITY_STATUS: Record<DiagnosticSeverity, 'negative' | 'warning' | 'neutral'> = {
+const SEVERITY_STATUS: Record<Severity, 'negative' | 'warning' | 'neutral'> = {
   error: 'negative',
   warning: 'warning',
   info: 'neutral',
 };
-const SEVERITY_RANK: Record<DiagnosticSeverity, number> = { error: 0, warning: 1, info: 2 };
+const SEVERITY_RANK: Record<Severity, number> = { error: 0, warning: 1, info: 2 };
 
 const FindingBody = styled.div(({ theme }) => ({ color: theme.color.defaultText, lineHeight: 1.4 }));
 // quieter than the message it answers, so a row reads what happened first
@@ -157,7 +157,7 @@ const FindingHint = styled.div(({ theme }) => ({
   color: theme.textMutedColor,
   lineHeight: 1.4,
 }));
-const RuleName = styled.code(({ theme }) => ({
+const RuleChip = styled.code(({ theme }) => ({
   fontFamily: theme.typography.fonts.mono,
   fontSize: '0.92em',
   color: theme.textMutedColor,
@@ -295,10 +295,10 @@ function EmptyState({
   );
 }
 
-/** A severity-badged list of diagnostics, errors first. Shared by the
+/** A severity-badged list of findings, errors first. Shared by the
  *  per-component "Findings" section and the manifest-level "Manifest" section. */
-function FindingsList({ diagnostics }: { diagnostics: Diagnostic[] }) {
-  const sorted = [...diagnostics].sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+function FindingsList({ findings }: { findings: Finding[] }) {
+  const sorted = [...findings].sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
   return (
     <TableScroll>
       <ReportTable>
@@ -311,20 +311,20 @@ function FindingsList({ diagnostics }: { diagnostics: Diagnostic[] }) {
           </tr>
         </thead>
         <tbody>
-          {sorted.map((diagnostic, index) => (
-            <tr key={`${diagnostic.rule}-${index}`}>
+          {sorted.map((finding, index) => (
+            <tr key={`${finding.rule}-${index}`}>
               <td>
-                <Badge compact status={SEVERITY_STATUS[diagnostic.severity]}>
-                  {diagnostic.severity}
+                <Badge compact status={SEVERITY_STATUS[finding.severity]}>
+                  {finding.severity}
                 </Badge>
               </td>
               <td>
-                <RuleName>{diagnostic.rule}</RuleName>
+                <RuleChip>{finding.rule}</RuleChip>
               </td>
               <td>
-                <FindingBody>{markDanglingIds(diagnostic.message, diagnostic.targets)}</FindingBody>
+                <FindingBody>{markDanglingIds(finding.message, finding.targets)}</FindingBody>
               </td>
-              <td>{diagnostic.hint ? <FindingHint>{diagnostic.hint}</FindingHint> : null}</td>
+              <td>{finding.hint ? <FindingHint>{finding.hint}</FindingHint> : null}</td>
             </tr>
           ))}
         </tbody>
@@ -335,11 +335,11 @@ function FindingsList({ diagnostics }: { diagnostics: Diagnostic[] }) {
 
 /** This component's coverage as named lint rules, or a clean-state note when
  *  nothing fired. */
-function FindingsSection({ diagnostics }: { diagnostics: Diagnostic[] }) {
+function FindingsSection({ findings }: { findings: Finding[] }) {
   return (
     <Section>
       <Heading>Findings</Heading>
-      {diagnostics.length === 0 ? (
+      {findings.length === 0 ? (
         <span>
           <Badge compact status="positive">
             No findings
@@ -347,7 +347,7 @@ function FindingsSection({ diagnostics }: { diagnostics: Diagnostic[] }) {
           this component&apos;s docs reach the agent intact.
         </span>
       ) : (
-        <FindingsList diagnostics={diagnostics} />
+        <FindingsList findings={findings} />
       )}
     </Section>
   );
@@ -356,13 +356,13 @@ function FindingsSection({ diagnostics }: { diagnostics: Diagnostic[] }) {
 /** Manifest-level findings (e.g. extractor-drift) are a property of the whole
  *  manifest, not one component, so they get their own section and stay out of
  *  the per-component tab count. */
-function ManifestSection({ diagnostics }: { diagnostics: Diagnostic[] }) {
-  if (diagnostics.length === 0) return null;
+function ManifestSection({ findings }: { findings: Finding[] }) {
+  if (findings.length === 0) return null;
   return (
     <Section>
       <Heading>Manifest</Heading>
       <Note>Affects every component, not just this one.</Note>
-      <FindingsList diagnostics={diagnostics} />
+      <FindingsList findings={findings} />
     </Section>
   );
 }
@@ -531,16 +531,16 @@ export function ReportView({
     return <EmptyState variant={variant} title="No manifest entry for this component." />;
   }
 
-  const { component, failure, storyFailures, diagnostics, manifestDiagnostics, propShape } = report;
+  const { component, failure, storyFailures, findings, manifestFindings, propShape } = report;
   const componentId = component?.id ?? failure?.id ?? '';
-  const storyErrorsShown = diagnostics.some((d) => d.rule === 'story-extraction-error') && storyFailures.length > 0;
+  const storyErrorsShown = findings.some((d) => d.rule === 'story-extraction-error') && storyFailures.length > 0;
 
   if (failure) {
     const failureLine = summarizeError(failure.errorName, failure.error);
     return (
       <>
-        <ManifestSection diagnostics={manifestDiagnostics} />
-        <FindingsSection diagnostics={diagnostics} />
+        <ManifestSection findings={manifestFindings} />
+        <FindingsSection findings={findings} />
         <Section>
           <Heading>Extraction</Heading>
           <Negative>
@@ -557,19 +557,19 @@ export function ReportView({
 
   const propNames = Object.keys(component.props);
   const danglingTargets = new Set(
-    diagnostics.filter((d) => d.rule === 'docs-link-dangling').flatMap((d) => d.targets ?? []),
+    findings.filter((d) => d.rule === 'docs-link-dangling').flatMap((d) => d.targets ?? []),
   );
 
   return (
     <>
-      <ManifestSection diagnostics={manifestDiagnostics} />
+      <ManifestSection findings={manifestFindings} />
       <DescriptionSection
         description={component.description}
         sourceFile={component.sourceFile}
         LinkComponent={LinkComponent}
         danglingTargets={danglingTargets}
       />
-      <FindingsSection diagnostics={diagnostics} />
+      <FindingsSection findings={findings} />
       <Section>
         {propShape === 'unrecognized' ? (
           <>

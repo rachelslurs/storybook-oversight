@@ -306,7 +306,7 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
     const props: NormalizedComponent['props'] = {};
     for (const [propName, prop] of Object.entries(isPropRecord(payload.props) ? payload.props : {})) {
       // A null or non-object prop used to throw out of the whole normalizer,
-      // which cost every diagnostic in the manifest for one malformed entry.
+      // which cost every finding in the manifest for one malformed entry.
       // Skipping it also keeps a string-valued `props` map from inventing props
       // named "0" and "1" and reporting them as undocumented.
       if (prop === null || typeof prop !== 'object') continue;
