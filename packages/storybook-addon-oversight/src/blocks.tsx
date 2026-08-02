@@ -3,8 +3,9 @@ import type { PropsWithChildren, ReactNode } from 'react';
 import { DocsContainer, useOf } from '@storybook/addon-docs/blocks';
 import type { DocsContainerProps } from '@storybook/addon-docs/blocks';
 import { ThemeProvider, ensure, styled, themes, useTheme } from 'storybook/theming';
-import { buildReport, describeManifestUnavailable } from 'oversight-core';
+import { buildReport } from 'oversight-core';
 import type { RawManifest } from 'oversight-core';
+import { createManifestSource } from './manifestSource';
 import { DEFAULT_DEBUGGER_LINK } from './config';
 import type { OversightConfig } from './config';
 import { ReportView } from './components/ReportView';
@@ -42,49 +43,18 @@ const Container = styled.div(({ theme }) => ({
   '& > :last-child': { borderBottom: 'none' },
 }));
 
-/** Manifest + debugger URLs relative to the iframe document (drops
- *  `iframe.html`; correct at root and under a subpath deploy). */
-function manifestUrl(name: string): string {
-  return new URL(`manifests/${name}`, document.baseURI).href;
-}
-
 // The fetched manifest is cached across block instances (one fetch per page),
 // but the per-component analysis is NOT. Each block runs `buildReport` with its
-// OWN page's lint options. A failed fetch is not cached, so a later Docs page
-// retries instead of being wedged in the `unavailable` state for the session.
-let manifestPromise: Promise<RawManifest | null> | undefined;
-
-// The server's own explanation for a failed load (e.g. the experimentalDocgenServer
-// dev-404 body), so the docs block states the real cause instead of guessing.
-let unavailableReason: string | undefined;
-
-async function fetchManifest(): Promise<RawManifest | null> {
-  try {
-    const response = await fetch(manifestUrl('components.json'));
-    if (!response.ok) {
-      unavailableReason = describeManifestUnavailable(await response.text().catch(() => ''));
-      return null;
-    }
-    unavailableReason = undefined;
-    return (await response.json()) as RawManifest;
-  } catch {
-    unavailableReason = undefined;
-    return null;
-  }
-}
-
-function loadManifest(): Promise<RawManifest | null> {
-  manifestPromise ??= fetchManifest().then((manifest) => {
-    if (manifest === null) manifestPromise = undefined; // don't cache failures
-    return manifest;
-  });
-  return manifestPromise;
-}
+// OWN page's lint options.
+//
+// URLs resolve against the iframe document (dropping `iframe.html`), correct at
+// the root and under a subpath deploy.
+const manifest = createManifestSource((name) => new URL(`manifests/${name}`, document.baseURI).href);
 
 // Warm the network path when the blocks bundle evaluates (preview-iframe load),
-// so opening a Docs page doesn't wait on a cold fetch. Failures aren't cached
-// (above), so an early miss just retries when the block renders.
-void loadManifest();
+// so opening a Docs page doesn't wait on a cold fetch. Failures aren't cached,
+// so an early miss just retries when the block renders.
+void manifest.load();
 
 const ANCHOR_ID = 'oversight';
 
@@ -138,12 +108,12 @@ export function Oversight() {
   const componentId = meta.csfFile.meta.id;
   const options = meta.csfFile.meta.parameters?.oversight ?? {};
 
-  const [manifest, setManifest] = useState<RawManifest | null | 'loading'>('loading');
+  const [raw, setRaw] = useState<RawManifest | null | 'loading'>('loading');
 
   useEffect(() => {
     let cancelled = false;
-    loadManifest().then((loaded) => {
-      if (!cancelled) setManifest(loaded);
+    manifest.load().then((loaded) => {
+      if (!cancelled) setRaw(loaded);
     });
     return () => {
       cancelled = true;
@@ -154,9 +124,9 @@ export function Oversight() {
   // the shared cache holds only the raw manifest, so per-page config is honored.
   let status: ReportViewStatus;
   let report;
-  if (manifest === 'loading') {
+  if (raw === 'loading') {
     status = 'loading';
-  } else if (manifest === null) {
+  } else if (raw === null) {
     status = 'unavailable';
   } else if (componentId === undefined) {
     status = 'no-entry';
@@ -166,7 +136,7 @@ export function Oversight() {
     // Degrade to the error state instead, the same guarantee the addons panel
     // makes (never hang or crash on a bad manifest).
     try {
-      report = buildReport(manifest, componentId, options);
+      report = buildReport(raw, componentId, options);
       status = report.found ? 'ready' : 'no-entry';
     } catch (err) {
       console.error('[storybook-addon-oversight] could not analyze the components manifest', err);
@@ -183,11 +153,11 @@ export function Oversight() {
         <ReportView
           status={status}
           report={report}
-          debuggerUrl={manifestUrl('components.html')}
+          debuggerUrl={manifest.urlFor('components.html')}
           variant="compact"
           LinkComponent={DocsLink}
           showDebuggerLink={options.debuggerLink ?? DEFAULT_DEBUGGER_LINK}
-          unavailableReason={unavailableReason}
+          unavailableReason={manifest.unavailableReason()}
         />
       </Container>
     </ThemedRoot>
