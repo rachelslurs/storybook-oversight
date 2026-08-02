@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
-import { DocsContainer, useOf } from '@storybook/addon-docs/blocks';
+import { DocsContainer, Heading, useOf } from '@storybook/addon-docs/blocks';
 import type { DocsContainerProps } from '@storybook/addon-docs/blocks';
 import { ThemeProvider, ensure, styled, themes, useTheme } from 'storybook/theming';
 import { buildReport } from 'oversight-core';
@@ -18,11 +18,14 @@ import { isAbsoluteTarget } from './components/markdown';
  * its class names are emotion hashes, so tokens are the stable surface: this
  * follows whatever theme the Docs page is rendered with.
  *
- * The id is set explicitly rather than slugged, so `#oversight` is a stable deep
- * link into any component's Docs page. Only one block per page carries it; see
+ * `Heading` carries the copy-the-URL control every other heading on the page
+ * has. Its own id is slugged from the text on each render, and this block
+ * renders again when the manifest arrives, so the second pass would take
+ * `oversight-1` and the link would name nothing. The id is passed instead,
+ * which overrides the slug. Only one block per page carries it; see
  * `useAnchorId`.
  */
-const SectionHeading = styled.h2(({ theme }) => ({
+const SectionHeading = styled(Heading)<{ id?: string }>(({ theme }) => ({
   fontSize: `${theme.typography.size.s2 - 1}px`,
   fontWeight: theme.typography.weight.bold,
   lineHeight: '16px',

@@ -8,6 +8,7 @@ import { Oversight } from './blocks';
 // makes of what it is given, not how the manifest arrives.
 vi.mock('@storybook/addon-docs/blocks', () => ({
   DocsContainer: (props: { children?: unknown }) => props.children,
+  Heading: ({ id, children }: { id?: string; children?: unknown }) => <h2 id={id}>{children as never}</h2>,
   useOf: () => ({ csfFile: { meta: { id: 'ex-doc' } } }),
 }));
 
