@@ -39,9 +39,9 @@ const Section = styled.section(({ theme }) => ({
   fontSize: theme.typography.size.s2,
   background: theme.background.content,
   // a section carrying its own background has to carry the text color that goes
-  // on it. Without this the headings and the props count set no color of their
-  // own, inherited nothing, and fell back to the browser's black, which reads
-  // on a white Docs page and disappears on a dark one
+  // on it. Without this the headings set no color of their own, inherited
+  // nothing, and fell back to the browser's black, which reads on a white Docs
+  // page and disappears on a dark one
   color: theme.color.defaultText,
 }));
 
