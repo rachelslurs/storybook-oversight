@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { CheckIcon, CrossIcon } from '@storybook/icons';
-import { Badge, EmptyTabContent, codeCommon } from 'storybook/internal/components';
+import { Badge, EmptyTabContent } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 import type { ComponentReport, Finding, Severity } from 'oversight-core';
 import { summarizeError } from 'oversight-core';
@@ -50,13 +50,19 @@ const Heading = styled.div(({ theme }) => ({
   marginBottom: 6,
 }));
 
-// Warning/error text takes the theme's semantic foreground scale, which is what
+// Error text takes the theme's semantic foreground scale, which is what
 // Storybook's own Badge uses for these statuses. The text-tone colors next to it
 // in the palette read as the same thing but hold one value for both themes, so
 // they met AA on the white panel and left a struck manifest id at 1.64:1 on a
 // dark Docs page.
-const Warning = styled.span(({ theme }) => ({ color: theme.fgColor.warning }));
 const Negative = styled.span(({ theme }) => ({ color: theme.fgColor.negative }));
+
+// An empty field, not a problem being reported: the finding below says it is a
+// warning and what to do, so this only has to say the field is empty.
+const Absent = styled.span(({ theme }) => ({
+  color: theme.textMutedColor,
+  fontStyle: 'italic',
+}));
 
 const Prose = styled.div(({ theme }) => ({
   color: theme.color.defaultText,
@@ -235,17 +241,6 @@ const ReportTable = styled.table(({ theme }) => ({
     borderTop: `1px solid ${theme.appBorderColor}`,
   },
 }));
-/**
- * A file path in prose, chipped so it reads as something to open and select
- * rather than as words. `codeCommon` is Storybook's own inline-code styling, so
- * the chip tracks the ones the Docs page renders beside it instead of drifting
- * from a copy. Only `whiteSpace` is overridden: its `nowrap` would send a long
- * path off the edge.
- */
-const FilePath = styled.code(codeCommon, {
-  whiteSpace: 'normal',
-  wordBreak: 'break-all',
-});
 const Note = styled.div(({ theme }) => ({
   color: theme.textMutedColor,
   fontSize: theme.typography.size.s1,
@@ -346,9 +341,10 @@ function FindingsSection({ findings }: { findings: Finding[] }) {
       {findings.length === 0 ? (
         <span>
           <Badge compact status="positive">
-            No findings
+            no findings
           </Badge>{' '}
-          this component&apos;s docs reach the agent intact.
+          {/* decorative: the badge beside it already says no findings */}
+          <span aria-hidden="true">&#128079;</span>
         </span>
       ) : (
         <FindingsList findings={findings} />
@@ -443,12 +439,10 @@ function StoryFailuresSection({ storyFailures }: { storyFailures: ComponentRepor
 
 function DescriptionSection({
   description,
-  sourceFile,
   LinkComponent,
   danglingTargets,
 }: {
   description: string | null;
-  sourceFile: string | null;
   LinkComponent?: LinkComponent;
   danglingTargets?: Set<string>;
 }) {
@@ -456,15 +450,7 @@ function DescriptionSection({
     <Section>
       <Heading>Description</Heading>
       {description === null ? (
-        <Warning>
-          None.
-          {sourceFile ? (
-            <>
-              {' '}
-              The component is in <FilePath>{sourceFile}</FilePath>.
-            </>
-          ) : null}
-        </Warning>
+        <Absent>None</Absent>
       ) : (
         <Markdown text={description} LinkComponent={LinkComponent} danglingTargets={danglingTargets} />
       )}
@@ -569,7 +555,6 @@ export function ReportView({
       <ManifestSection findings={manifestFindings} />
       <DescriptionSection
         description={component.description}
-        sourceFile={component.sourceFile}
         LinkComponent={LinkComponent}
         danglingTargets={danglingTargets}
       />

@@ -11,9 +11,6 @@ export interface TileProps {
  * A compact fixed-size surface for a single stat or shortcut. For a flexible
  * container that grows with its content, use
  * [Ghost](?path=/docs/data-display-ghost--docs) instead.
- *
- * (That link is intentionally broken. There is no `data-display-ghost`
- * component, so Oversight flags it as docs-link-dangling.)
  */
 export function Tile({ label, children }: TileProps) {
   return (
