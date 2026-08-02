@@ -40,13 +40,16 @@ const manifest = createManifestSource((name) => `${manifestsBaseUrl()}${name}`);
 // `.storybook/manager.ts` has applied `addons.setConfig`, so the consumer's
 // `rules`/`expectedExtractor` are read. Cached for the session, shared across
 // story changes.
-let analysisPromise: Promise<ManifestAnalysis | null> | undefined;
+let analysisPromise: Promise<ManifestAnalysis | null | 'error'> | undefined;
 
-function loadAnalysis(): Promise<ManifestAnalysis | null> {
+function loadAnalysis(): Promise<ManifestAnalysis | null | 'error'> {
   analysisPromise ??= manifest.load().then((raw) => {
     if (raw === null) {
       analysisPromise = undefined; // don't cache failures, retry on next mount
-      return null;
+      // A served-but-unparseable manifest gets the parse-error state, not the
+      // "enable the manifest feature" guess: the feature answered, its body
+      // was the problem. manifestSource has already logged the cause.
+      return manifest.parseFailed() ? 'error' : null;
     }
     // Config channel: consumers tune rules via
     // `addons.setConfig({ [ADDON_ID]: { rules, expectedExtractor } })` in

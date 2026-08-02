@@ -227,7 +227,32 @@ const UndocumentedIcon = styled(CrossIcon)(({ theme }) => ({
 // A rule name never breaks, so a narrow panel cannot squeeze these columns past
 // their content. The table scrolls inside this rather than spilling out of the
 // section, which clips it: the page itself never scrolls sideways.
-const TableScroll = styled.div({ overflowX: 'auto' });
+const TableScroll = styled.div(({ theme }) => ({
+  overflowX: 'auto',
+  // the surrounding page is free to reset the browser's own focus ring, so the
+  // region draws one of its own, inset so its own scrolled edge cannot clip it
+  '&:focus-visible': {
+    outline: `2px solid ${theme.color.secondary}`,
+    outlineOffset: -2,
+  },
+}));
+
+/**
+ * Nothing inside these tables takes focus, so without a tab stop of its own a
+ * scrolling table has columns a keyboard user can neither reach nor scroll to
+ * (axe: scrollable-region-focusable). The stop is unconditional: granting it
+ * only on overflow means measuring, and the panel is often hidden when this
+ * mounts, where every measurement reads zero. Landing on a bare div says
+ * nothing, so the region carries a name, and each caller names its own table
+ * so two stops in one report do not announce identically.
+ */
+function ScrollRegion({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <TableScroll tabIndex={0} role="region" aria-label={label}>
+      {children}
+    </TableScroll>
+  );
+}
 
 const ReportTable = styled.table(({ theme }) => ({
   // doubled throughout, because the Docs page styles every table it renders and
@@ -321,10 +346,10 @@ function EmptyState({
 
 /** A severity-badged list of findings, errors first. Shared by the
  *  per-component "Findings" section and the manifest-level "Manifest" section. */
-function FindingsList({ findings }: { findings: Finding[] }) {
+function FindingsList({ findings, label }: { findings: Finding[]; label: string }) {
   const sorted = [...findings].sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
   return (
-    <TableScroll>
+    <ScrollRegion label={label}>
       <ReportTable>
         <thead>
           <tr>
@@ -355,7 +380,7 @@ function FindingsList({ findings }: { findings: Finding[] }) {
           ))}
         </tbody>
       </ReportTable>
-    </TableScroll>
+    </ScrollRegion>
   );
 }
 
@@ -373,7 +398,7 @@ function FindingsSection({ findings }: { findings: Finding[] }) {
           <span aria-hidden="true">&#128079;</span>
         </CleanState>
       ) : (
-        <FindingsList findings={findings} />
+        <FindingsList findings={findings} label="Findings" />
       )}
     </Section>
   );
@@ -388,7 +413,7 @@ function ManifestSection({ findings }: { findings: Finding[] }) {
     <Section>
       <Heading>Manifest</Heading>
       <Note>Affects every component, not just this one.</Note>
-      <FindingsList findings={findings} />
+      <FindingsList findings={findings} label="Manifest findings" />
     </Section>
   );
 }
@@ -603,7 +628,7 @@ export function ReportView({
             <SectionText>No props extracted.</SectionText>
           </>
         ) : (
-          <TableScroll>
+          <ScrollRegion label="Props">
             <ReportTable>
               <thead>
                 <tr>
@@ -636,7 +661,7 @@ export function ReportView({
                 })}
               </tbody>
             </ReportTable>
-          </TableScroll>
+          </ScrollRegion>
         )}
       </Section>
       {storyErrorsShown && <StoryFailuresSection storyFailures={storyFailures} />}

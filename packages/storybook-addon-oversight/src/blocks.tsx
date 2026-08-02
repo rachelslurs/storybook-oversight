@@ -10,6 +10,7 @@ import { DEFAULT_DEBUGGER_LINK } from './config';
 import type { OversightConfig } from './config';
 import { ReportView } from './components/ReportView';
 import type { ReportViewStatus } from './components/ReportView';
+import { isAbsoluteTarget } from './components/markdown';
 
 /**
  * The section heading Storybook's own Docs blocks use for "Stories", built from
@@ -93,10 +94,25 @@ type MetaOf = {
 /** Preview-side link. The manager's version SPA-navigates through
  *  `api.selectStory`, which is manager-api and unreachable from here, so the
  *  block links by URL instead: `./` is the Storybook root beside `iframe.html`,
- *  and `_top` moves the page rather than the frame the block sits in. */
+ *  and `_top` moves the page rather than the frame the block sits in.
+ *
+ *  Only a relative target gets that rebasing: descriptions also carry absolute
+ *  http(s) links, and `./`-prefixing one sends the tab to
+ *  `<storybook-origin>/https://…`, a 404 that has also dropped the user out of
+ *  Storybook. The split is on whether the target names its own origin, not on
+ *  whether it parses as a story id: `?path=` carrying `&args=` or a `#hash`
+ *  names no id and still has to resolve against the root, because leaving it
+ *  alone resolves it against `iframe.html` and loads the preview frame as the
+ *  whole page. The manager can pass a target through untouched, being on the
+ *  document those already resolve against; here that is the one thing that
+ *  cannot be done. Absolute targets get `rel` so a private Storybook host
+ *  doesn't leak in the Referer to whatever site a description cites;
+ *  `noreferrer` implies `noopener`, kept explicit for modified clicks that
+ *  open a new tab. */
 function DocsLink({ label, target }: { label: string; target: string }) {
+  const external = isAbsoluteTarget(target);
   return (
-    <a href={`./${target}`} target="_top">
+    <a href={external ? target : `./${target}`} target="_top" rel={external ? 'noopener noreferrer' : undefined}>
       {label}
     </a>
   );
@@ -127,7 +143,9 @@ export function Oversight() {
   if (raw === 'loading') {
     status = 'loading';
   } else if (raw === null) {
-    status = 'unavailable';
+    // a served-but-unparseable body is the opposite diagnosis from a missing
+    // manifest: the feature answered, so pointing at addon-mcp would be wrong
+    status = manifest.parseFailed() ? 'error' : 'unavailable';
   } else if (componentId === undefined) {
     status = 'no-entry';
   } else {
@@ -148,8 +166,10 @@ export function Oversight() {
     <ThemedRoot>
       <SectionHeading id={anchorId}>Oversight</SectionHeading>
       <Container>
-        {/* compact: autodocs renders the description prose right below us, so
-              we show a documented/missing verdict, not the full text. */}
+        {/* compact keeps the nothing-to-show states inline, which a full-height
+              centered one would dwarf on a page. The description and the props
+              are shown in full: a dangling `?path=` link is struck where it is
+              read, and the page's own copies of both mark nothing. */}
         <ReportView
           status={status}
           report={report}
