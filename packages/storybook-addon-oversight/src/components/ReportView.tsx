@@ -306,7 +306,7 @@ function FindingsList({ diagnostics }: { diagnostics: Diagnostic[] }) {
           <tr>
             <th scope="col">Severity</th>
             <th scope="col">Rule</th>
-            <th scope="col">Finding</th>
+            <th scope="col">Message</th>
             <th scope="col">Fix</th>
           </tr>
         </thead>
