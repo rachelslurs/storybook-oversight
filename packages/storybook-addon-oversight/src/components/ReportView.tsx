@@ -163,9 +163,40 @@ const PropName = styled.code(({ theme }) => ({
   color: theme.color.defaultText,
 }));
 
-// The undocumented props take the same borderless row the findings take, so
-// the two sections of one report scan the same way down the page.
-const PropRows = styled(RowList)({ margin: '6px 0 0' });
+// The undocumented props take the treatment the Controls panel gives its own
+// prop table, two tabs from this one: no cell borders and no striping, a muted
+// heading, and a rule between rows. Storybook's `ArgsTable` is bound to args,
+// so this is its look rather than the component itself.
+const PropTable = styled.table(({ theme }) => ({
+  // doubled throughout, because the Docs page styles every table it renders and
+  // would otherwise box each cell and stripe the rows
+  '&&': {
+    width: '100%',
+    margin: '8px 0 0',
+    borderCollapse: 'collapse',
+    fontSize: 13,
+  },
+  '&& th, && td': {
+    textAlign: 'left',
+    padding: '10px 15px 10px 0',
+    border: 'none',
+    background: 'none',
+    verticalAlign: 'middle',
+  },
+  '&& th:last-of-type, && td:last-of-type': { paddingRight: 0 },
+  // the docs stylesheet stripes every other row and the panel does not, so
+  // without this the same table reads two ways on the two surfaces
+  '&& tr': { background: 'none' },
+  '&& th': {
+    color: theme.textMutedColor,
+    fontWeight: theme.typography.weight.bold,
+  },
+  '&& td': {
+    color: theme.color.defaultText,
+    fontWeight: theme.typography.weight.regular,
+    borderTop: `1px solid ${theme.appBorderColor}`,
+  },
+}));
 /**
  * A file path in prose, chipped so it reads as something to open and select
  * rather than as words. `codeCommon` is Storybook's own inline-code styling, so
@@ -516,22 +547,34 @@ export function ReportView({
               {propNames.length - undocumented.length}/{propNames.length} props documented
             </span>
             {undocumented.length > 0 && (
-              <PropRows>
-                {undocumented.map((name) => (
-                  <Row key={name}>
-                    <PropName>{name}</PropName>
-                    {component.props[name].required ? (
-                      <Badge compact status="negative">
-                        required, undocumented
-                      </Badge>
-                    ) : (
-                      <Badge compact status="warning">
-                        undocumented
-                      </Badge>
-                    )}
-                  </Row>
-                ))}
-              </PropRows>
+              <PropTable>
+                <thead>
+                  <tr>
+                    <th scope="col">Prop</th>
+                    <th scope="col">Missing</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {undocumented.map((name) => (
+                    <tr key={name}>
+                      <td>
+                        <PropName>{name}</PropName>
+                      </td>
+                      <td>
+                        {component.props[name].required ? (
+                          <Badge compact status="negative">
+                            required, undocumented
+                          </Badge>
+                        ) : (
+                          <Badge compact status="warning">
+                            undocumented
+                          </Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </PropTable>
             )}
           </>
         )}
