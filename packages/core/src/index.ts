@@ -3,7 +3,7 @@ export { detectManifestFormat } from './format';
 export type { ManifestFormat } from './format';
 export { resolveManifestRefs } from './resolveRefs';
 export type { RefLoader } from './resolveRefs';
-export { lint, fixFor, ALL_RULES, VALID_SETTINGS } from './lint';
+export { lint, hintFor, ALL_RULES, VALID_SETTINGS } from './lint';
 export type { LintOptions } from './lint';
 export { describeManifestUnavailable } from './manifestStatus';
 export { firstNonEmptyLine, summarizeError } from './text';

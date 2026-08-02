@@ -152,8 +152,8 @@ const SEVERITY_STATUS: Record<DiagnosticSeverity, 'negative' | 'warning' | 'neut
 const SEVERITY_RANK: Record<DiagnosticSeverity, number> = { error: 0, warning: 1, info: 2 };
 
 const FindingBody = styled.div(({ theme }) => ({ color: theme.color.defaultText, lineHeight: 1.4 }));
-// quieter than the finding it answers, so a row reads problem first
-const FindingFix = styled.div(({ theme }) => ({
+// quieter than the message it answers, so a row reads what happened first
+const FindingHint = styled.div(({ theme }) => ({
   color: theme.textMutedColor,
   lineHeight: 1.4,
 }));
@@ -307,7 +307,7 @@ function FindingsList({ diagnostics }: { diagnostics: Diagnostic[] }) {
             <th scope="col">Severity</th>
             <th scope="col">Rule</th>
             <th scope="col">Message</th>
-            <th scope="col">Fix</th>
+            <th scope="col">Hint</th>
           </tr>
         </thead>
         <tbody>
@@ -324,7 +324,7 @@ function FindingsList({ diagnostics }: { diagnostics: Diagnostic[] }) {
               <td>
                 <FindingBody>{markDanglingIds(diagnostic.message, diagnostic.targets)}</FindingBody>
               </td>
-              <td>{diagnostic.fix ? <FindingFix>{diagnostic.fix}</FindingFix> : null}</td>
+              <td>{diagnostic.hint ? <FindingHint>{diagnostic.hint}</FindingHint> : null}</td>
             </tr>
           ))}
         </tbody>
