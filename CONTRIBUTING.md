@@ -13,6 +13,8 @@ pnpm build-storybook # build the addon, then the demo Storybook
 pnpm storybook       # run the demo at http://localhost:6006
 ```
 
+Prefix either Storybook command with `STORYBOOK_DARK=1` to render the Docs pages dark. Text that sets no color of its own falls back to the browser's black, which reads on a white page and disappears on a dark one, so both surfaces are worth a look before changing how either is styled.
+
 Every rule lives as a pure function in `oversight-core` (zero Storybook imports). The panel and the Docs block are thin renderers over it, and the CLI runs the same rules, so a rule change ships to all three at once.
 
 ## Pull requests
