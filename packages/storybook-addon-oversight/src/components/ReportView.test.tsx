@@ -158,7 +158,12 @@ describe('ReportView report rendering', () => {
     const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
     expect(container.textContent).toContain('required-prop-undocumented');
     expect(container.textContent).toContain('1/2 props documented');
-    expect(container.textContent).toContain('required, undocumented');
+    // the required prop carries the mark and the column, and the badge names
+    // only what is missing, so "required" is not said three times in one row
+    const rows = [...container.querySelectorAll('tbody tr')].map((row) =>
+      [...row.children].map((cell) => cell.textContent?.trim()),
+    );
+    expect(rows).toEqual([['label*', 'Yes', 'undocumented']]);
   });
 
   it('renders a positive no-findings state for a clean component', () => {
