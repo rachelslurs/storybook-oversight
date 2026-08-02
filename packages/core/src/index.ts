@@ -11,9 +11,9 @@ export { parsePathTargetId, pathLinkPattern } from './pathLinks';
 export { analyzeManifest, buildReport, resolveComponent } from './report';
 export type { ComponentReport, ManifestAnalysis } from './report';
 export type {
-  Diagnostic,
-  DiagnosticRule,
-  DiagnosticSeverity,
+  Finding,
+  RuleName,
+  Severity,
   ExtractionFailure,
   NormalizeResult,
   NormalizedComponent,

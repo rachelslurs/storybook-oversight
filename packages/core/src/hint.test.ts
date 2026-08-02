@@ -41,9 +41,9 @@ describe('what a rule dictates', () => {
         },
       },
     } as unknown as RawManifest;
-    const { diagnostics } = buildReport(manifest, 'ex-a');
+    const { findings } = buildReport(manifest, 'ex-a');
 
-    const byRule = new Map(diagnostics.map((d) => [d.rule, d]));
+    const byRule = new Map(findings.map((d) => [d.rule, d]));
     expect([...byRule.keys()].sort()).toContain('deprecated-tag');
     expect(byRule.get('deprecated-tag')?.hint).toBeUndefined();
 
@@ -52,7 +52,7 @@ describe('what a rule dictates', () => {
     expect(required?.hint).toBeTruthy();
 
     // severity and message are required fields, so every finding has both
-    for (const d of diagnostics) {
+    for (const d of findings) {
       expect(d.severity).toBeTruthy();
       expect(d.message.length).toBeGreaterThan(0);
     }

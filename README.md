@@ -45,7 +45,7 @@ The rules are shared, so they are documented in [`docs/`](./docs) rather than in
 ```
 docs/                          the rules, and how to satisfy them, shared by both packages
 packages/
-  core/                        oversight-core, the diagnostic engine (pure, private, bundled into the addon and the CLI)
+  core/                        oversight-core, the rules engine (pure, private, bundled into the addon and the CLI)
   storybook-addon-oversight/   the Storybook addon (panel + Docs block)
   cli/                         oversight-lint, the CI linter
 .storybook/  stories/          the demo Storybook that dogfoods the addon

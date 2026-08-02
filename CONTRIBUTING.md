@@ -1,6 +1,6 @@
 # Contributing
 
-This is a pnpm workspace with three packages: `oversight-core` (the private diagnostic engine), `storybook-addon-oversight` (the addon), and `oversight-lint` (the CLI). See the [root README](./README.md) for the layout.
+This is a pnpm workspace with three packages: `oversight-core` (the private rules engine), `storybook-addon-oversight` (the addon), and `oversight-lint` (the CLI). See the [root README](./README.md) for the layout.
 
 ## Development
 

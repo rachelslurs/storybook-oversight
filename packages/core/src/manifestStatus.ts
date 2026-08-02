@@ -22,7 +22,7 @@ export function describeManifestUnavailable(body: string | undefined): string | 
   const reason = firstNonEmptyLine(text);
   if (!reason) return undefined;
   // The docgen-server manifest is only written on `storybook build`; point there
-  // so the message is actionable, not just diagnostic. (Plain-text output: the
+  // so the message is actionable, not just finding. (Plain-text output: the
   // panel renders it as-is, so no markdown or backticks in the string.)
   return /experimentalDocgenServer/i.test(reason)
     ? `${reason}. It is written on "storybook build", not served in dev.`

@@ -166,7 +166,7 @@ export type NormalizeResult = {
   tags: Record<string, Record<string, string>>;
 };
 
-export type DiagnosticRule =
+export type RuleName =
   | 'docgen-missing'
   | 'story-extraction-error'
   | 'extractor-drift'
@@ -179,14 +179,14 @@ export type DiagnosticRule =
   | 'prop-shape-unrecognized'
   | 'ref-unresolved';
 
-export type DiagnosticSeverity = 'error' | 'warning' | 'info';
+export type Severity = 'error' | 'warning' | 'info';
 
 /** Per-rule override: remap the severity or disable the rule entirely. */
-export type RuleSetting = DiagnosticSeverity | 'off';
+export type RuleSetting = Severity | 'off';
 
-export type Diagnostic = {
-  rule: DiagnosticRule;
-  severity: DiagnosticSeverity;
+export type Finding = {
+  rule: RuleName;
+  severity: Severity;
   /** null for manifest-level rules (e.g. extractor-drift). */
   componentId: string | null;
   message: string;

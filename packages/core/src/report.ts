@@ -2,7 +2,7 @@ import { lint } from './lint';
 import type { LintOptions } from './lint';
 import { normalizeManifest } from './normalize';
 import type {
-  Diagnostic,
+  Finding,
   ExtractionFailure,
   NormalizeResult,
   NormalizedComponent,
@@ -14,7 +14,7 @@ import type {
  *  components' reports. */
 export type ManifestAnalysis = {
   result: NormalizeResult;
-  diagnostics: Diagnostic[];
+  findings: Finding[];
 };
 
 /** Everything the panel/block needs to render one component's coverage. */
@@ -24,12 +24,12 @@ export type ComponentReport = {
   component?: NormalizedComponent;
   failure?: ExtractionFailure;
   storyFailures: StoryFailure[];
-  /** Diagnostics scoped to this component. */
-  diagnostics: Diagnostic[];
-  /** Manifest-level diagnostics (`componentId: null`, e.g. extractor-drift).
+  /** Findings scoped to this component. */
+  findings: Finding[];
+  /** Manifest-level findings (`componentId: null`, e.g. extractor-drift).
    *  The same list on every component's report, rendered in their own section
    *  and deliberately kept out of the per-component count. */
-  manifestDiagnostics: Diagnostic[];
+  manifestFindings: Finding[];
   /** `unrecognized` means the prop payload was not in a shape this build reads,
    *  so `props` is not trustworthy. Renderers must not present prop coverage
    *  from it: the lint rules do not run in that case, and a coverage figure
@@ -39,8 +39,8 @@ export type ComponentReport = {
 
 export function analyzeManifest(manifest: RawManifest, options?: LintOptions): ManifestAnalysis {
   const result = normalizeManifest(manifest);
-  const diagnostics = lint(result, options);
-  return { result, diagnostics };
+  const findings = lint(result, options);
+  return { result, findings };
 }
 
 export function resolveComponent(analysis: ManifestAnalysis, componentId: string): ComponentReport {
@@ -51,8 +51,8 @@ export function resolveComponent(analysis: ManifestAnalysis, componentId: string
     component,
     failure,
     storyFailures: analysis.result.storyFailures.filter((f) => f.componentId === componentId),
-    diagnostics: analysis.diagnostics.filter((d) => d.componentId === componentId),
-    manifestDiagnostics: analysis.diagnostics.filter((d) => d.componentId === null),
+    findings: analysis.findings.filter((d) => d.componentId === componentId),
+    manifestFindings: analysis.findings.filter((d) => d.componentId === null),
     propShape: analysis.result.propShape,
   };
 }

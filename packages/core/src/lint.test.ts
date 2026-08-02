@@ -18,15 +18,15 @@ function loadInline(fixture: string): RawManifest {
 
 describe('lint (fixture baseline)', () => {
   const result = normalizeManifest(loadFixture());
-  const diagnostics = lint(result, { expectedExtractor: 'react-docgen-typescript' });
+  const findings = lint(result, { expectedExtractor: 'react-docgen-typescript' });
 
   it('does not flag extractor drift for the configured extractor', () => {
-    expect(diagnostics.filter((d) => d.rule === 'extractor-drift')).toHaveLength(0);
+    expect(findings.filter((d) => d.rule === 'extractor-drift')).toHaveLength(0);
   });
 
   it('reports no extraction failures in the live catalog', () => {
-    expect(diagnostics.filter((d) => d.rule === 'docgen-missing')).toHaveLength(0);
-    expect(diagnostics.filter((d) => d.rule === 'story-extraction-error')).toHaveLength(0);
+    expect(findings.filter((d) => d.rule === 'docgen-missing')).toHaveLength(0);
+    expect(findings.filter((d) => d.rule === 'story-extraction-error')).toHaveLength(0);
   });
 
   it('finds no documentation-coverage gaps after the backfill', () => {
@@ -38,7 +38,7 @@ describe('lint (fixture baseline)', () => {
       'unknown-ignore-rule',
       'deprecated-tag',
     ] as const) {
-      expect(diagnostics.filter((d) => d.rule === rule)).toHaveLength(0);
+      expect(findings.filter((d) => d.rule === rule)).toHaveLength(0);
     }
   });
 });
@@ -60,9 +60,9 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         },
       },
     });
-    const diagnostics = lint(result);
-    const propDiag = diagnostics.find((d) => d.rule === 'prop-descriptions-missing');
-    const requiredDiag = diagnostics.find((d) => d.rule === 'required-prop-undocumented');
+    const findings = lint(result);
+    const propDiag = findings.find((d) => d.rule === 'prop-descriptions-missing');
+    const requiredDiag = findings.find((d) => d.rule === 'required-prop-undocumented');
     expect(propDiag?.props).toEqual(['value', 'tone']);
     expect(requiredDiag?.severity).toBe('error');
     expect(requiredDiag?.props).toEqual(['value']);
@@ -337,8 +337,8 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         },
       },
     });
-    const diagnostics = lint(result);
-    expect(diagnostics.some((d) => d.rule === 'component-description-missing')).toBe(true);
+    const findings = lint(result);
+    expect(findings.some((d) => d.rule === 'component-description-missing')).toBe(true);
   });
 
   it('reports story extraction errors on payload-bearing entries too', () => {
@@ -373,12 +373,12 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         },
       },
     });
-    const diagnostics = lint(result);
-    const docgen = diagnostics.find((d) => d.rule === 'docgen-missing');
+    const findings = lint(result);
+    const docgen = findings.find((d) => d.rule === 'docgen-missing');
     expect(docgen?.message).toContain('No component file found');
     expect(docgen?.message).not.toContain('at resolve');
     expect(docgen?.error).toBe('No component file found\nat resolve (/src/a.tsx:1:1)');
-    const story = diagnostics.find((d) => d.rule === 'story-extraction-error');
+    const story = findings.find((d) => d.rule === 'story-extraction-error');
     expect(story?.message).toContain('kaput');
     expect(story?.message).not.toContain('at parse');
     expect(story?.error).toBe('kaput\nat parse (/src/b.tsx:2:2)');
@@ -474,12 +474,12 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         },
       },
     });
-    const diagnostics = lint(result);
+    const findings = lint(result);
     // The listed rule is exempted…
-    expect(diagnostics.filter((d) => d.rule === 'component-description-missing')).toHaveLength(0);
+    expect(findings.filter((d) => d.rule === 'component-description-missing')).toHaveLength(0);
     // …but unlisted rules still fire.
-    expect(diagnostics.some((d) => d.rule === 'prop-descriptions-missing')).toBe(true);
-    expect(diagnostics.some((d) => d.rule === 'required-prop-undocumented')).toBe(true);
+    expect(findings.some((d) => d.rule === 'prop-descriptions-missing')).toBe(true);
+    expect(findings.some((d) => d.rule === 'required-prop-undocumented')).toBe(true);
   });
 
   it("lets @oversightIgnore on a failed entry's meta JSDoc silence its rules", () => {
@@ -494,9 +494,9 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         },
       },
     });
-    const diagnostics = lint(result);
-    expect(diagnostics.filter((d) => d.rule === 'docgen-missing')).toHaveLength(0);
-    expect(diagnostics.filter((d) => d.rule === 'story-extraction-error')).toHaveLength(0);
+    const findings = lint(result);
+    expect(findings.filter((d) => d.rule === 'docgen-missing')).toHaveLength(0);
+    expect(findings.filter((d) => d.rule === 'story-extraction-error')).toHaveLength(0);
   });
 
   it('exempts rules from a whitespace-separated @oversightIgnore list', () => {
@@ -515,10 +515,10 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         },
       },
     });
-    const diagnostics = lint(result);
-    expect(diagnostics.filter((d) => d.rule === 'component-description-missing')).toHaveLength(0);
-    expect(diagnostics.filter((d) => d.rule === 'prop-descriptions-missing')).toHaveLength(0);
-    expect(diagnostics.filter((d) => d.rule === 'unknown-ignore-rule')).toHaveLength(0);
+    const findings = lint(result);
+    expect(findings.filter((d) => d.rule === 'component-description-missing')).toHaveLength(0);
+    expect(findings.filter((d) => d.rule === 'prop-descriptions-missing')).toHaveLength(0);
+    expect(findings.filter((d) => d.rule === 'unknown-ignore-rule')).toHaveLength(0);
   });
 
   it('treats a boolean-valued bare @oversightIgnore as exempt-all', () => {
@@ -535,7 +535,7 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         },
       },
     });
-    const diagnostics = lint(result);
+    const findings = lint(result);
     // Every rule that would otherwise fire is exempted, and "true" is not
     // surfaced as an unknown token.
     for (const rule of [
@@ -544,7 +544,7 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
       'required-prop-undocumented',
       'unknown-ignore-rule',
     ] as const) {
-      expect(diagnostics.filter((d) => d.rule === rule)).toHaveLength(0);
+      expect(findings.filter((d) => d.rule === rule)).toHaveLength(0);
     }
   });
 
@@ -562,13 +562,13 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         },
       },
     });
-    const diagnostics = lint(result);
-    const unknown = diagnostics.filter((d) => d.rule === 'unknown-ignore-rule');
+    const findings = lint(result);
+    const unknown = findings.filter((d) => d.rule === 'unknown-ignore-rule');
     expect(unknown).toHaveLength(1);
     // Whitespace-separated, so each word is surfaced as an unknown token.
     expect(unknown[0].message).toContain('internal, token, catalog');
     // The malformed list exempts nothing, so other rules still fire.
-    expect(diagnostics.some((d) => d.rule === 'component-description-missing')).toBe(true);
+    expect(findings.some((d) => d.rule === 'component-description-missing')).toBe(true);
   });
 
   it('flags prose links to unknown manifest ids', () => {
@@ -610,14 +610,14 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         },
       },
     });
-    const diagnostics = lint(result, {
+    const findings = lint(result, {
       rules: {
         'component-description-missing': 'off',
         'prop-descriptions-missing': 'error',
       },
     });
-    expect(diagnostics.filter((d) => d.rule === 'component-description-missing')).toHaveLength(0);
-    const remapped = diagnostics.find((d) => d.rule === 'prop-descriptions-missing');
+    expect(findings.filter((d) => d.rule === 'component-description-missing')).toHaveLength(0);
+    const remapped = findings.find((d) => d.rule === 'prop-descriptions-missing');
     expect(remapped?.severity).toBe('error');
   });
 
@@ -627,12 +627,12 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         a: { name: 'A', path: './a.stories.tsx', reactDocgenTypescript: { props: {} } },
       },
     });
-    const diagnostics = lint(result, {
+    const findings = lint(result, {
       // ESLint muscle memory, not a valid RuleSetting.
       rules: { 'component-description-missing': 'warn' as never },
     });
-    const diagnostic = diagnostics.find((d) => d.rule === 'component-description-missing');
-    expect(diagnostic?.severity).toBe('warning'); // default kept, not "warn"
+    const finding = findings.find((d) => d.rule === 'component-description-missing');
+    expect(finding?.severity).toBe('warning'); // default kept, not "warn"
   });
 });
 
@@ -666,7 +666,7 @@ describe('the shape rules are wired like every other rule', () => {
 describe('extractor-drift under the react-component-meta extractors', () => {
   // `experimentalReactComponentMeta` records `react-component-meta` on an inline
   // manifest, which is what these cases read. The ref index records the same
-  // label, and that the two reach identical diagnostics is asserted once for
+  // label, and that the two reach identical findings is asserted once for
   // every rule by the parity test in refFormat.test.ts rather than per rule
   // here (#52).
   const driftOn = (expectedExtractor: string) =>
@@ -713,13 +713,13 @@ describe('extractor-drift under the react-component-meta extractors', () => {
     );
 
     expect(result.extractor).toBeNull();
-    const diagnostics = lint(result, { expectedExtractor: 'react-component-meta' });
-    expect(diagnostics.find((d) => d.rule === 'extractor-drift')?.message).toContain('does not record');
+    const findings = lint(result, { expectedExtractor: 'react-component-meta' });
+    expect(findings.find((d) => d.rule === 'extractor-drift')?.message).toContain('does not record');
     // The per-component row is not a substitute: it says nothing about the
     // expectation the project configured. Its text is asserted because the
     // errno mapping has no other coverage, and it is what CI shows when a build
     // ships without its payload tree.
-    const missing = diagnostics.filter((d) => d.rule === 'docgen-missing');
+    const missing = findings.filter((d) => d.rule === 'docgen-missing');
     expect(missing).toHaveLength(1);
     expect(missing[0].message).toContain('no such file');
   });

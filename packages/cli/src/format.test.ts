@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { Diagnostic } from 'oversight-core';
+import type { Finding } from 'oversight-core';
 import { formatGithub, formatJson, formatStepSummary, formatStylish } from './format';
 import type { LintSummary } from './types';
 
-const diagnostics: Diagnostic[] = [
+const findings: Finding[] = [
   {
     rule: 'component-description-missing',
     severity: 'warning',
@@ -22,7 +22,7 @@ const diagnostics: Diagnostic[] = [
 ];
 
 const summary: LintSummary = {
-  diagnostics,
+  findings,
   errors: 1,
   warnings: 2,
   infos: 1,
@@ -39,13 +39,13 @@ const summary: LintSummary = {
   ]),
 };
 
-/** A summary whose counts are derived from the diagnostics, for one-off cases. */
-function summaryOf(diagnostics: Diagnostic[], over: Partial<LintSummary> = {}): LintSummary {
+/** A summary whose counts are derived from the findings, for one-off cases. */
+function summaryOf(findings: Finding[], over: Partial<LintSummary> = {}): LintSummary {
   return {
-    diagnostics,
-    errors: diagnostics.filter((d) => d.severity === 'error').length,
-    warnings: diagnostics.filter((d) => d.severity === 'warning').length,
-    infos: diagnostics.filter((d) => d.severity === 'info').length,
+    findings,
+    errors: findings.filter((d) => d.severity === 'error').length,
+    warnings: findings.filter((d) => d.severity === 'warning').length,
+    infos: findings.filter((d) => d.severity === 'info').length,
     manifestPath: 'storybook-static/manifests/components.json',
     extractor: 'react-docgen-typescript',
     entryCount: 0,
@@ -69,8 +69,8 @@ describe('formatStylish', () => {
     expect(out).toContain('(props: title)');
   });
 
-  it('ends on a problem tally', () => {
-    expect(out).toContain('✖ 4 problems (1 error, 2 warnings, 1 info)');
+  it('ends on a finding tally', () => {
+    expect(out).toContain('✖ 4 findings (1 error, 2 warnings, 1 info)');
   });
 
   it('emits no ANSI escapes when color is off', () => {
@@ -79,7 +79,7 @@ describe('formatStylish', () => {
 
   it('reports a clean run with the entry count', () => {
     const clean = formatStylish(summaryOf([], { entryCount: 3 }), { color: false, quiet: false });
-    expect(clean).toContain('No problems found in 3 entries.');
+    expect(clean).toContain('No findings in 3 entries.');
   });
 
   it('opens with the manifest path and its recorded extractor', () => {
@@ -98,14 +98,14 @@ describe('formatStylish', () => {
   });
 
   it('omits the entry share when only manifest-level findings exist', () => {
-    const drift: Diagnostic = { rule: 'extractor-drift', severity: 'warning', componentId: null, message: 'drift' };
+    const drift: Finding = { rule: 'extractor-drift', severity: 'warning', componentId: null, message: 'drift' };
     const only = formatStylish(summaryOf([drift], { entryCount: 5 }), { color: false, quiet: false });
-    expect(only).toContain('✖ 1 problem (0 errors, 1 warning, 0 info)');
+    expect(only).toContain('✖ 1 finding (0 errors, 1 warning, 0 info)');
     expect(only).not.toContain('0 of 5');
   });
 
   it('labels the tally with affected entries', () => {
-    expect(out).toContain('✖ 4 problems (1 error, 2 warnings, 1 info), 2 of 2 entries affected');
+    expect(out).toContain('✖ 4 findings (1 error, 2 warnings, 1 info), 2 of 2 entries affected');
   });
 
   it('quiet hides non-errors but keeps the full tally', () => {
@@ -256,10 +256,10 @@ describe('formatStylish: shared component names (#44)', () => {
 });
 
 describe('formatStylish: mass-failure collapse', () => {
-  const render = (diags: Diagnostic[], entryCount: number) =>
+  const render = (diags: Finding[], entryCount: number) =>
     formatStylish(summaryOf(diags, { entryCount }), { color: false, quiet: false });
 
-  function docgenFailure(i: number, over: Partial<Diagnostic> = {}): Diagnostic {
+  function docgenFailure(i: number, over: Partial<Finding> = {}): Finding {
     return {
       rule: 'docgen-missing',
       severity: 'error',
@@ -413,7 +413,7 @@ describe('formatStylish: mass-failure collapse', () => {
   });
 
   it('keeps distinct diagnoses that share an error class in separate rows (#44)', () => {
-    const syntaxFailure = (i: number, diagnosis: string): Diagnostic => ({
+    const syntaxFailure = (i: number, diagnosis: string): Finding => ({
       rule: 'story-extraction-error',
       severity: 'warning',
       componentId: `ui-c${i}`,
@@ -506,17 +506,17 @@ describe('formatJson', () => {
     expect(withEntries.summary.manifest.entries).toBe(42);
   });
 
-  it('keys component diagnostics by id and manifest-level ones under __manifest__', () => {
+  it('keys component findings by id and manifest-level ones under __manifest__', () => {
     expect(parsed.components['ui-card']).toHaveLength(2);
     expect(parsed.components['__manifest__'][0].rule).toBe('extractor-drift');
   });
 
-  it('keeps props on the diagnostics that carry them', () => {
+  it('keeps props on the findings that carry them', () => {
     const required = parsed.components['ui-card'].find((d) => d.rule === 'required-prop-undocumented');
     expect(required?.props).toEqual(['title']);
   });
 
-  it('keeps the full extraction error and its name on diagnostics that carry them', () => {
+  it('keeps the full extraction error and its name on findings that carry them', () => {
     const failing = summaryOf(
       [
         {
@@ -650,12 +650,12 @@ describe('formatStepSummary', () => {
 
   it('renders a clean run without a table', () => {
     const clean = formatStepSummary(summaryOf([], { manifestPath: 'x.json', entryCount: 1 }));
-    expect(clean).toContain('No problems found.');
+    expect(clean).toContain('No findings.');
     expect(clean).not.toContain('| Component |');
   });
 
   it('collapses mass failures into the same share rows as the text output', () => {
-    const failures: Diagnostic[] = Array.from({ length: 12 }, (_, i) => ({
+    const failures: Finding[] = Array.from({ length: 12 }, (_, i) => ({
       rule: 'docgen-missing',
       severity: 'error',
       componentId: `ui-c${i}`,
@@ -672,7 +672,7 @@ describe('formatStepSummary', () => {
   });
 
   it('omits the entry share when only manifest-level findings exist', () => {
-    const drift: Diagnostic = { rule: 'extractor-drift', severity: 'warning', componentId: null, message: 'drift' };
+    const drift: Finding = { rule: 'extractor-drift', severity: 'warning', componentId: null, message: 'drift' };
     const only = formatStepSummary(summaryOf([drift], { entryCount: 5 }));
     expect(only).not.toContain('0 of 5');
   });
@@ -739,7 +739,7 @@ describe('formatGithub', () => {
   });
 
   it('caps annotations per type and notes the truncation', () => {
-    const many: Diagnostic[] = Array.from({ length: 12 }, (_, i) => ({
+    const many: Finding[] = Array.from({ length: 12 }, (_, i) => ({
       rule: 'docgen-missing',
       severity: 'error',
       componentId: `c${i}`,

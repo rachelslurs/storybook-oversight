@@ -6,7 +6,7 @@ Your coding agent reads your components from the manifest Storybook's MCP server
 
 It runs the same rules as [`storybook-addon-oversight`](../storybook-addon-oversight/README.md), which surfaces them live in Storybook while you work.
 
-[Install](#install) · [Prerequisite](#prerequisite-a-built-manifest) · [Usage](#usage) · [Output](#output) · [Exit codes](#exit-codes) · [Options](#options) · [Diagnostics](#diagnostics) · [Configuration file](#configuration-file)
+[Install](#install) · [Prerequisite](#prerequisite-a-built-manifest) · [Usage](#usage) · [Output](#output) · [Exit codes](#exit-codes) · [Options](#options) · [Findings](#findings) · [Configuration file](#configuration-file)
 
 ## Install
 
@@ -57,7 +57,7 @@ Card
   warning  prop-descriptions-missing   Card has 2 undocumented props. (props: title, elevated)
   error    required-prop-undocumented  Card has required prop without documentation. (props: title)
 
-✖ 2 problems (1 error, 1 warning, 0 info), 1 of 42 entries affected
+✖ 2 findings (1 error, 1 warning, 0 info), 1 of 42 entries affected
 ```
 
 The header names the manifest that was linted and its recorded extractor: `meta.docgen` when the manifest sets it, else the payload key every extracted entry shares (`reactDocgenTypescript`, `reactDocgen` or `reactComponentMeta`). It matters because the same path can hold a different artifact per build: a config like `reactDocgen: isCI ? 'react-docgen-typescript' : 'react-docgen'` writes one manifest in CI and another locally, and toggling `features.experimentalReactComponentMeta` or `features.experimentalDocgenServer` changes it without touching `reactDocgen` at all.
@@ -107,7 +107,7 @@ Exit `2` is distinct from `1` so a broken setup does not read as a passing lint.
 
 `@oversightIgnore` on a component's JSDoc exempts it; the directive is documented under [Exempting a component](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/authoring.md#exempting-a-component).
 
-## Diagnostics
+## Findings
 
 Findings name a rule id. The rules are shared with the addon, so they are documented outside both packages:
 
