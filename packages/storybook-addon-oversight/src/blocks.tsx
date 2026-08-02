@@ -120,6 +120,18 @@ type MetaOf = {
  * Reads which component it documents from `useOf("meta")`. Requires the
  * components-manifest feature (e.g. `@storybook/addon-mcp`).
  */
+/** Preview-side link. The manager's version SPA-navigates through
+ *  `api.selectStory`, which is manager-api and unreachable from here, so the
+ *  block links by URL instead: `./` is the Storybook root beside `iframe.html`,
+ *  and `_top` moves the page rather than the frame the block sits in. */
+function DocsLink({ label, target }: { label: string; target: string }) {
+  return (
+    <a href={`./${target}`} target="_top">
+      {label}
+    </a>
+  );
+}
+
 export function Oversight() {
   const anchorId = useAnchorId();
   const meta = useOf('meta', ['meta']) as unknown as MetaOf;
@@ -173,6 +185,7 @@ export function Oversight() {
           report={report}
           debuggerUrl={manifestUrl('components.html')}
           variant="compact"
+          LinkComponent={DocsLink}
           showDebuggerLink={options.debuggerLink ?? DEFAULT_DEBUGGER_LINK}
           unavailableReason={unavailableReason}
         />
