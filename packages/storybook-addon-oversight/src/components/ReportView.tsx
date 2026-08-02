@@ -33,8 +33,9 @@ export type ReportViewProps = {
 };
 
 const Section = styled.section(({ theme }) => ({
-  padding: '12px 16px',
-  borderBottom: `1px solid ${theme.appBorderColor}`,
+  // no rule between sections: the panel and the block each already draw an edge
+  // around the report, and the headings carry the division on their own
+  padding: '14px 16px',
   fontSize: theme.typography.size.s2,
   background: theme.background.content,
   // a section carrying its own background has to carry the text color that goes
