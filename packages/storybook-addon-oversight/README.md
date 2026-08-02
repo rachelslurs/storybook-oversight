@@ -88,7 +88,7 @@ The manifest Oversight lints is the _upstream_ artifact: Storybook's MCP `get-do
 
 The same diagnostics appear in two places, independently:
 
-- **Manager panel**: an "Oversight" tab in the addons drawer, shown on every component's **story** view (Storybook hides addon panels on Docs pages). Registering the addon in `.storybook/main.ts` enables it.
+- **Addons panel**: an "Oversight" tab on every component's **story** view (Storybook hides addon panels on Docs pages). Registering the addon in `.storybook/main.ts` enables it.
 - **Docs-page block**: the same coverage rendered inline on Docs pages. It is an optional step in the [installation](#optional-enable-the-docs-page-block).
 
 ## In CI
