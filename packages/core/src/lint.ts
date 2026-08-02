@@ -56,8 +56,9 @@ const FIX = {
   'ref-unresolved': "Resolve the entry's $ref before linting.",
 } satisfies Record<DiagnosticRule, string | null>;
 
-/** The one-line fix for a rule, or undefined when it reports a fact. */
-const fixFor = (rule: DiagnosticRule): string | undefined => FIX[rule] ?? undefined;
+/** The one-line fix for a rule, or undefined when it reports a fact rather
+ *  than a defect. `deprecated-tag` is the only rule without one. */
+export const fixFor = (rule: DiagnosticRule): string | undefined => FIX[rule] ?? undefined;
 
 /** The accepted `rules` override values, shared with the CLI's `--rule` parser. */
 export const VALID_SETTINGS: ReadonlySet<string> = new Set<RuleSetting>(['off', 'error', 'warning', 'info']);
