@@ -44,7 +44,7 @@ export const ALL_RULES = Object.keys(RULE_SET) as RuleName[];
 // `deprecated-tag` is null on purpose: it reports a fact, not a defect.
 const HINT = {
   'docgen-missing': "Set typescript.reactDocgen to 'react-docgen-typescript', or give the root tsconfig your sources.",
-  'story-extraction-error': 'Run with --format json for the full error behind this summary.',
+  'story-extraction-error': 'Read the error the manifest records on that story, which says more than this summary.',
   'extractor-drift': 'Check meta.docgen for the extractor that ran, then set the expectation to match.',
   'component-description-missing': 'Add a JSDoc block above the component.',
   'prop-descriptions-missing': 'Add a JSDoc comment to each undocumented prop.',
