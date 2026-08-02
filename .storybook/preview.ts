@@ -11,7 +11,13 @@ import { OversightDocsContainer } from 'storybook-addon-oversight/blocks';
 // no color of its own falls back to black, which reads on a white page and
 // disappears here, so this is how that gets looked at. The Vite builder exposes
 // STORYBOOK_-prefixed vars on import.meta.env, not on process.env.
-const docsTheme = import.meta.env.STORYBOOK_DARK ? themes.dark : undefined;
+//
+// Every value arrives as a string, so a bare truthiness check reads `0` and
+// `false` as on and would render dark to someone asking for light. Spelling the
+// off-states out keeps a two-theme sweep from checking one theme twice.
+const OFF = new Set(['', '0', 'false', 'no', 'off']);
+const darkRequested = !OFF.has(String(import.meta.env.STORYBOOK_DARK ?? '').toLowerCase());
+const docsTheme = darkRequested ? themes.dark : undefined;
 
 const preview: Preview = {
   parameters: {
