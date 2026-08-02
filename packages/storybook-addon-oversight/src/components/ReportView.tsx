@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import type { ComponentType, ReactNode } from 'react';
-import { Badge, EmptyTabContent } from 'storybook/internal/components';
+import { Badge, EmptyTabContent, codeCommon } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 import type { ComponentReport, Diagnostic, DiagnosticSeverity } from 'oversight-core';
 import { summarizeError } from 'oversight-core';
@@ -79,7 +79,7 @@ const DanglingLink = styled.span(({ theme }) => ({
  */
 const DanglingId = styled.code(({ theme }) => ({
   // doubled, because the Docs page styles bare `code` and would otherwise win
-  // the colour and leave a struck id looking like any other id
+  // the color and leave a struck id looking like any other id
   '&&': {
     fontFamily: theme.typography.fonts.mono,
     fontSize: '0.92em',
@@ -100,7 +100,9 @@ const MissingMark = styled.span(({ theme }) => ({
 /** Sets each id the finding names as a struck-through id inside its message. */
 function markDanglingIds(message: string, targets?: string[]): ReactNode {
   if (!targets?.length) return message;
-  const escaped = targets.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  // longest first: regex alternation takes the leftmost match, so an id that is
+  // a prefix of another would otherwise match inside it and truncate it
+  const escaped = [...targets].sort((a, b) => b.length - a.length).map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   return message.split(new RegExp(`(${escaped.join('|')})`, 'g')).map((part, index) =>
     targets.includes(part) ? (
       <Fragment key={index}>
@@ -152,27 +154,15 @@ const RuleName = styled.code(({ theme }) => ({
 }));
 /**
  * A file path in prose, chipped so it reads as something to open and select
- * rather than as words.
- *
- * Storybook styles inline code with an internal `codeCommon` mixin that neither
- * `storybook/theming` nor `storybook/internal/components` exports: `TT` applies
- * it to a `<title>` element and `Code` is a syntax-highlighted block, so
- * neither is usable here. These are its values, read from the same public
- * tokens it reads, so the chip matches the ones the Docs page renders. It drops
- * only `whiteSpace: nowrap`, which would send a long path off the edge.
+ * rather than as words. `codeCommon` is Storybook's own inline-code styling, so
+ * the chip tracks the ones the Docs page renders beside it instead of drifting
+ * from a copy. Only `whiteSpace` is overridden: its `nowrap` would send a long
+ * path off the edge.
  */
-const FilePath = styled.code(({ theme }) => ({
-  lineHeight: 1,
-  margin: '0 2px',
-  padding: '3px 5px',
-  borderRadius: 3,
-  fontFamily: theme.typography.fonts.mono,
-  fontSize: theme.typography.size.s2 - 1,
-  border: theme.base === 'light' ? '1px solid hsl(0 0 0 / 0.05)' : '1px solid hsl(0 0 100 / 0.05)',
-  color: theme.color.defaultText,
-  backgroundColor: theme.base === 'light' ? 'hsl(0 0 0 / 0.01)' : 'hsl(0 0 100 / 0.02)',
+const FilePath = styled.code(codeCommon, {
+  whiteSpace: 'normal',
   wordBreak: 'break-all',
-}));
+});
 const Note = styled.div(({ theme }) => ({
   color: theme.textMutedColor,
   fontSize: theme.typography.size.s1,
@@ -423,7 +413,7 @@ export function ReportView({
   unavailableReason,
 }: ReportViewProps) {
   if (status === 'loading') {
-    return <StatusMessage>Loading the components manifest…</StatusMessage>;
+    return <EmptyState variant={variant} title="Loading the components manifest…" />;
   }
   if (status === 'error') {
     return (

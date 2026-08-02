@@ -105,16 +105,16 @@ Exit `2` is distinct from `1` so a broken setup does not read as a passing lint.
 | `-h`, `--help` | Show help. |
 | `--version` | Print the version. |
 
-`@oversightIgnore` on a component's JSDoc exempts it; the directive is documented under [Exempting a component](../../docs/authoring.md#exempting-a-component).
+`@oversightIgnore` on a component's JSDoc exempts it; the directive is documented under [Exempting a component](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/authoring.md#exempting-a-component).
 
 ## Diagnostics
 
 Findings name a rule id. The rules are shared with the addon, so they are documented outside both packages:
 
-- [Rules](../../docs/rules.md), what each one fires on and its default severity
-- [Troubleshooting](../../docs/troubleshooting.md), a fix for every finding
-- [Authoring MCP-legible docs](../../docs/authoring.md), how to write the docs that keep most of them from firing, and [exempting a component](../../docs/authoring.md#exempting-a-component) with `@oversightIgnore`
-- [Why these are lint rules](../../docs/why-lint-rules.md), the four that need judgment a raw view can't give you
+- [Rules](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/rules.md), what each one fires on and its default severity
+- [Troubleshooting](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/troubleshooting.md), a fix for every finding
+- [Authoring MCP-legible docs](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/authoring.md), how to write the docs that keep most of them from firing, and [exempting a component](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/authoring.md#exempting-a-component) with `@oversightIgnore`
+- [Why these are lint rules](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/why-lint-rules.md), the four that need judgment a raw view can't give you
 
 ## Configuration file
 

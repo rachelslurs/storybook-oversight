@@ -56,6 +56,24 @@ describe('ReportView status states', () => {
     expect(noEntry.container.textContent).toContain('No manifest entry');
   });
 
+  // The docs block renders title+description inline, not as an empty-tab state.
+  // Splitting the states by variant left this branch uncovered, because the
+  // pre-existing error/unavailable tests default to the panel.
+  it('the docs block keeps a described state inline, with its heading', () => {
+    const { container } = renderView(
+      <ReportView
+        status="unavailable"
+        debuggerUrl={DEBUGGER_URL}
+        variant="compact"
+        unavailableReason="server said no"
+      />,
+    );
+    expect(container.textContent).toContain('Components manifest unavailable');
+    expect(container.textContent).toContain('server said no');
+    // EmptyTabContent would dwarf the page; the inline branch must be what renders
+    expect(container.querySelector('button')).toBeNull();
+  });
+
   // The panel gets Storybook's centered EmptyTabContent; the docs block keeps
   // the inline message, which would otherwise dwarf the page it sits under.
   it('says the same thing in both variants, but not with the same markup', () => {

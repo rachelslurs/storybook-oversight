@@ -42,6 +42,6 @@ A value outside those four is ignored and the rule keeps its default, so an ESLi
 
 `off` stops a rule across the whole manifest. To keep a rule running and exempt one component from it, use [`@oversightIgnore`](./authoring.md#exempting-a-component).
 
-[Why these are lint rules](./why-lint-rules.md) covers the four that need judgment a raw view can't give you, including why this one is an `error`.
+[Why these are lint rules](./why-lint-rules.md) covers the four that need judgment a raw view can't give you, including why `prop-shape-unrecognized` is an `error`.
 
 [Troubleshooting](./troubleshooting.md) has a fix for every rule above. [Authoring MCP-legible docs](./authoring.md) covers writing the docs that keep most of them from firing.

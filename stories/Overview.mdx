@@ -5,14 +5,6 @@ import blockShot from './assets/block.png';
 import driftShot from './assets/manifest-drift.png';
 import findingsShot from './assets/findings.png';
 
-export const StoryLink = ({ path, children }) => (
-  // Storybook's own link blue is 4.26:1 on the figure tint, under the 4.5:1 AA
-  // floor for this size, so the caption states its own.
-  <a href={`./?path=${path}`} target="_top" style={{ color: '#0056bd' }}>
-    {children}
-  </a>
-);
-
 export const figureStyle = {
   margin: '1.5rem 0',
   border: '1px solid #e5e7eb',
@@ -32,7 +24,7 @@ export const shotStyle = {
 
 export const captionLinkStyle = {
   display: 'block',
-  // shrink to the text so the auto margins centre it under the caption
+  // shrink to the text so the auto margins center it under the caption
   width: 'fit-content',
   margin: '0 auto',
   fontWeight: 400,
@@ -75,9 +67,7 @@ Pick a component in the sidebar, open its story, then click the Oversight tab in
   <figcaption style={captionStyle}>
     An Oversight tab in the addons drawer, on every component's Story view, with a count badge of how many issues it
     found
-    <span style={captionLinkStyle}>
-      Pictured above: <StoryLink path="/story/data-display-card--default">Card</StoryLink>
-    </span>
+    <span style={captionLinkStyle}>Pictured above: [Card](?path=/story/data-display-card--default)</span>
   </figcaption>
 </figure>
 
@@ -89,9 +79,7 @@ Scroll to the end of any component's Docs to find it. The block is optional. Fol
   <img src={blockShot} alt="The Oversight coverage block at the bottom of the Card Docs page" style={shotStyle} />
   <figcaption style={captionStyle}>
     The same report, rendered inline at the bottom of every Docs page
-    <span style={captionLinkStyle}>
-      Pictured above: <StoryLink path="/docs/data-display-card--docs#oversight">Card</StoryLink>
-    </span>
+    <span style={captionLinkStyle}>Pictured above: [Card](?path=/docs/data-display-card--docs#oversight)</span>
   </figcaption>
 </figure>
 
@@ -107,25 +95,18 @@ Each component is built to demonstrate one rule. Four trip a finding, two pass.
   />
   <figcaption style={captionStyle}>
     A failing rule renders as a severity chip, the rule name, and a one-line message
-    <span style={captionLinkStyle}>
-      Pictured above: <StoryLink path="/story/data-display-card--default">Card</StoryLink>
-    </span>
+    <span style={captionLinkStyle}>Pictured above: [Card](?path=/story/data-display-card--default)</span>
   </figcaption>
 </figure>
 
 Open each component and watch the Oversight tab (Story view) or scroll to the block (Docs view):
 
-- <StoryLink path="/docs/actions-button--docs">Button</StoryLink>: fully documented, and its description ends with a
-  valid `?path=` redirect to Card → clean, and the link renders clickable in the panel.
-- <StoryLink path="/docs/data-display-card--docs">Card</StoryLink>: an undocumented required prop →
-  `required-prop-undocumented` (error) plus `prop-descriptions-missing` (warning). _(pictured above)_
-- <StoryLink path="/docs/data-display-badge--docs">Badge</StoryLink>: no component description →
-  `component-description-missing` (warning).
-- <StoryLink path="/docs/data-display-tile--docs">Tile</StoryLink>: a `?path=` link pointing at a component that isn't
-  in the manifest → `docs-link-dangling` (error).
-- <StoryLink path="/docs/feedback-banner--docs">Banner</StoryLink>: a `@deprecated` tag → `deprecated-tag` (info).
-- <StoryLink path="/docs/layout-panel--docs">Panel</StoryLink>: an undocumented `slot` prop that would trip
-  `prop-descriptions-missing`, but `@oversightIgnore` exempts this component from that rule → clean.
+- [Button](?path=/docs/actions-button--docs): fully documented, and its description ends with a valid `?path=` redirect to Card → clean, and the link renders clickable in the panel.
+- [Card](?path=/docs/data-display-card--docs): an undocumented required prop → `required-prop-undocumented` (error) plus `prop-descriptions-missing` (warning). _(pictured above)_
+- [Badge](?path=/docs/data-display-badge--docs): no component description → `component-description-missing` (warning).
+- [Tile](?path=/docs/data-display-tile--docs): a `?path=` link pointing at a component that isn't in the manifest → `docs-link-dangling` (error).
+- [Banner](?path=/docs/feedback-banner--docs): a `@deprecated` tag → `deprecated-tag` (info).
+- [Panel](?path=/docs/layout-panel--docs): an undocumented `slot` prop that would trip `prop-descriptions-missing`, but `@oversightIgnore` exempts this component from that rule → clean.
 
 ## Why these are rules
 
@@ -149,9 +130,7 @@ A fourth, `prop-shape-unrecognized`, needs a manifest whose prop payload has mov
   />
   <figcaption style={captionStyle}>
     `extractor-drift` in its own Manifest section, above the per-component findings
-    <span style={captionLinkStyle}>
-      Pictured above: <StoryLink path="/story/data-display-card--default">Card</StoryLink>
-    </span>
+    <span style={captionLinkStyle}>Pictured above: [Card](?path=/story/data-display-card--default)</span>
   </figcaption>
 </figure>
 
