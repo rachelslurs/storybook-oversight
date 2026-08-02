@@ -232,7 +232,7 @@ describe('ReportView report rendering', () => {
     } as unknown as RawManifest;
     const report = buildReport(manifest, 'ex-clean');
     const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
-    expect(container.textContent).toContain('No findings');
+    expect(container.textContent).toContain('no findings');
   });
 
   it('renders the extraction-failure section and a docgen-missing finding for a payload-less entry', () => {
