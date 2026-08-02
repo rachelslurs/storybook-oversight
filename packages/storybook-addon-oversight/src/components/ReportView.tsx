@@ -48,11 +48,13 @@ const Heading = styled.div(({ theme }) => ({
   marginBottom: 6,
 }));
 
-// Warning/error sentences use the theme's text-tone accent colors, which meet
-// WCAG AA on the white panel background. Short annotations use Storybook's Badge
-// (a tinted chip) instead, so their color reads without failing contrast.
-const Warning = styled.span(({ theme }) => ({ color: theme.color.warningText }));
-const Negative = styled.span(({ theme }) => ({ color: theme.color.negativeText }));
+// Warning/error text takes the theme's semantic foreground scale, which is what
+// Storybook's own Badge uses for these statuses. The text-tone colors next to it
+// in the palette read as the same thing but hold one value for both themes, so
+// they met AA on the white panel and left a struck manifest id at 1.64:1 on a
+// dark Docs page.
+const Warning = styled.span(({ theme }) => ({ color: theme.fgColor.warning }));
+const Negative = styled.span(({ theme }) => ({ color: theme.fgColor.negative }));
 
 const Prose = styled.div(({ theme }) => ({
   color: theme.color.defaultText,
@@ -72,9 +74,9 @@ const Prose = styled.div(({ theme }) => ({
 // link (so it can't navigate to the missing target). The `docs-link-dangling`
 // finding names it; this marks it where you read it.
 const DanglingLink = styled.span(({ theme }) => ({
-  color: theme.color.negativeText,
+  color: theme.fgColor.negative,
   whiteSpace: 'nowrap',
-  '& s': { textDecorationColor: theme.color.negativeText },
+  '& s': { textDecorationColor: theme.fgColor.negative },
 }));
 
 /**
@@ -88,16 +90,20 @@ const DanglingId = styled.code(({ theme }) => ({
   '&&': {
     fontFamily: theme.typography.fonts.mono,
     fontSize: '0.92em',
-    color: theme.color.negativeText,
+    color: theme.fgColor.negative,
+    // the tint Storybook pairs with this foreground, which is transparent on a
+    // dark theme. Left on the Docs page's own `code` background the struck id
+    // sat at 3.17:1, because that background is lighter than the section behind
+    background: theme.bgColor.negative,
     textDecoration: 'line-through',
-    textDecorationColor: theme.color.negativeText,
+    textDecorationColor: theme.fgColor.negative,
   },
 }));
 
 /** A strikethrough says nothing to a screen reader, so the mark is what carries
  *  the reason the id is struck. */
 const MissingMark = styled.span(({ theme }) => ({
-  color: theme.color.negativeText,
+  color: theme.fgColor.negative,
   marginLeft: 3,
   cursor: 'help',
 }));
@@ -161,6 +167,14 @@ const PropName = styled.code(({ theme }) => ({
   fontFamily: theme.typography.fonts.mono,
   fontSize: '0.92em',
   color: theme.color.defaultText,
+}));
+
+/** The Controls panel marks a required prop with an asterisk after its name.
+ *  The Required column says the same thing in a word, so this is hidden from a
+ *  screen reader rather than announced twice. */
+const RequiredMark = styled.span(({ theme }) => ({
+  color: theme.fgColor.negative,
+  marginLeft: 2,
 }));
 
 // The undocumented props take the treatment the Controls panel gives its own
@@ -551,28 +565,30 @@ export function ReportView({
                 <thead>
                   <tr>
                     <th scope="col">Prop</th>
+                    <th scope="col">Required</th>
                     <th scope="col">Missing</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {undocumented.map((name) => (
-                    <tr key={name}>
-                      <td>
-                        <PropName>{name}</PropName>
-                      </td>
-                      <td>
-                        {component.props[name].required ? (
-                          <Badge compact status="negative">
-                            required, undocumented
-                          </Badge>
-                        ) : (
-                          <Badge compact status="warning">
+                  {undocumented.map((name) => {
+                    const required = component.props[name].required;
+                    return (
+                      <tr key={name}>
+                        <td>
+                          <PropName>{name}</PropName>
+                          {required && <RequiredMark aria-hidden="true">*</RequiredMark>}
+                        </td>
+                        <td>{required ? 'Yes' : 'No'}</td>
+                        <td>
+                          {/* the severity stays in the badge's color: an undocumented
+                              required prop is the error, the rest are warnings */}
+                          <Badge compact status={required ? 'negative' : 'warning'}>
                             undocumented
                           </Badge>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </PropTable>
             )}
