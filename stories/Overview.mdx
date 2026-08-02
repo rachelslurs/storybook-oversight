@@ -28,6 +28,11 @@ export const captionLinkStyle = {
   width: 'fit-content',
   margin: '0 auto',
   fontWeight: 400,
+  // the caption text is a paragraph and picks up the docs stylesheet's 14px; a
+  // bare span does not, so without this the pointer outsizes the caption it
+  // annotates
+  fontSize: 14,
+  lineHeight: '24px',
 };
 
 export const captionStyle = {
