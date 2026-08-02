@@ -549,7 +549,6 @@ export function ReportView({
   return (
     <>
       <ManifestSection diagnostics={manifestDiagnostics} />
-      <FindingsSection diagnostics={diagnostics} />
       <DescriptionSection
         description={component.description}
         sourceFile={component.sourceFile}
@@ -558,6 +557,7 @@ export function ReportView({
         LinkComponent={LinkComponent}
         danglingTargets={danglingTargets}
       />
+      <FindingsSection diagnostics={diagnostics} />
       <Section>
         <Heading>Props</Heading>
         {propShape === 'unrecognized' ? (
