@@ -255,6 +255,70 @@ describe('ReportView report rendering', () => {
     }
   });
 
+  it('separates a struck manifest id from the mark that says why it is struck', () => {
+    const manifest = {
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ex-tile': {
+          name: 'Tile',
+          path: './Tile.stories.tsx',
+          reactDocgenTypescript: {
+            description: 'See [Ghost](?path=/docs/ex-ghost--docs).',
+            props: {},
+          },
+        },
+      },
+    } as unknown as RawManifest;
+    const report = buildReport(manifest, 'ex-tile');
+    const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+
+    const marks = [...container.querySelectorAll('[role="img"]')].filter(
+      (m) => m.getAttribute('aria-label') === 'not in the manifest',
+    );
+    // one marks the dead link where the description reads it, one marks the id
+    // the finding names
+    expect(marks).toHaveLength(2);
+    for (const mark of marks) {
+      // read aloud, what is struck and the mark's label are adjacent, so with no
+      // text node between them they run together as one word
+      expect(mark.previousSibling?.nodeValue).toBe(' ');
+    }
+    const struck = marks.map((m) => m.previousSibling?.previousSibling?.textContent);
+    expect(struck).toContain('ex-ghost--docs');
+  });
+
+  it('leads each findings row with its rule, then the severity', () => {
+    const manifest = {
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ex-button': {
+          name: 'Button',
+          path: './Button.stories.tsx',
+          reactDocgenTypescript: {
+            description: 'A button.',
+            props: { label: { description: '', required: true, declarations: [] } },
+          },
+        },
+      },
+    } as unknown as RawManifest;
+    const report = buildReport(manifest, 'ex-button');
+    const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+
+    const findings = [...container.querySelectorAll('table')].find((table) =>
+      [...table.querySelectorAll('th')].some((th) => th.textContent?.trim() === 'Hint'),
+    );
+    expect([...(findings?.querySelectorAll('thead th') ?? [])].map((th) => th.textContent?.trim())).toEqual([
+      'Rule',
+      'Severity',
+      'Message',
+      'Hint',
+    ]);
+    // the rule heads its row, so it is the row's first cell as well as its name
+    const first = findings?.querySelector('tbody tr')?.firstElementChild;
+    expect(first?.tagName).toBe('TH');
+    expect(first?.textContent?.trim()).toBe('required-prop-undocumented');
+  });
+
   it('renders a positive no-findings state for a clean component', () => {
     const manifest = {
       meta: { docgen: 'react-docgen-typescript' },
