@@ -1,47 +1,53 @@
 import { Meta } from '@storybook/addon-docs/blocks';
+import { styled } from 'storybook/theming';
 import icon from '../assets/oversight-icon-128.png';
 import panelShot from './assets/panel.png';
 import blockShot from './assets/block.png';
 import driftShot from './assets/manifest-drift.png';
 import findingsShot from './assets/findings.png';
 
-export const figureStyle = {
+export const Figure = styled.figure(({ theme }) => ({
   margin: '1.5rem 0',
-  border: '1px solid #e5e7eb',
-  borderRadius: 8,
-  background: '#eef2f7',
   padding: 16,
-};
+  border: `1px solid ${theme.appBorderColor}`,
+  borderRadius: 8,
+  background: theme.background.app,
+}));
 
-export const shotStyle = {
+export const Shot = styled.img(({ theme }) => ({
   width: '100%',
   display: 'block',
-  // the screenshots are mostly white and the tint behind them is near-white, so
-  // without an edge of its own an image bleeds into the figure
-  border: '1px solid #e5e7eb',
   borderRadius: 4,
-};
+  // the screenshots carry their own light background, so without an edge they
+  // bleed into a light figure and float on a dark one
+  border: `1px solid ${theme.appBorderColor}`,
+}));
 
-export const captionLinkStyle = {
+export const Caption = styled.figcaption(({ theme }) => ({
+  padding: 0,
+  textAlign: 'center',
+  // every value is a theme token, not a hex literal: hardcoding the light
+  // palette put this at 1.43:1 on a dark Docs page, because the text follows
+  // the theme and a fixed tint does not
+  fontWeight: theme.typography.weight.bold,
+  color: theme.color.defaultText,
+  // MDX wraps the caption text in a paragraph, which a styled component can
+  // reach and an inline style could not
+  '& p': { margin: 0 },
+}));
+
+export const Pointer = styled.span(({ theme }) => ({
   display: 'block',
   // shrink to the text so the auto margins center it under the caption
   width: 'fit-content',
   margin: '0 auto',
-  fontWeight: 400,
-  // the caption text is a paragraph and picks up the docs stylesheet's 14px; a
-  // bare span does not, so without this the pointer outsizes the caption it
-  // annotates
-  fontSize: 14,
+  fontWeight: theme.typography.weight.regular,
+  // the caption text is a paragraph and picks up the docs stylesheet's size; a
+  // bare span does not, so without this the pointer outsizes what it annotates
+  fontSize: theme.typography.size.s2,
   lineHeight: '24px',
-};
-
-export const captionStyle = {
-  padding: 0,
-  textAlign: 'center',
-  fontWeight: 600,
-  // #64748b is 4.23:1 on the figure tint, under the 4.5:1 AA floor
-  color: '#475569',
-};
+  '& a': { color: theme.color.secondary },
+}));
 
 <Meta title="Overview" />
 
@@ -63,46 +69,41 @@ Open any component below and watch the panel and the block react to what it actu
 
 Pick a component in the sidebar, open its story, then click the Oversight tab in the addons panel.
 
-<figure style={figureStyle}>
-  <img
-    src={panelShot}
-    alt="The Oversight panel on the Card story, flagging an undocumented required prop"
-    style={shotStyle}
-  />
-  <figcaption style={captionStyle}>
+<Figure>
+  <Shot src={panelShot} alt="The Oversight panel on the Card story, flagging an undocumented required prop" />
+  <Caption>
     An Oversight tab in the addons panel, on every component's Story view, with a count badge of how many issues it
     found
-    <span style={captionLinkStyle}>Pictured above: [Card](?path=/story/data-display-card--default)</span>
-  </figcaption>
-</figure>
+    <Pointer>Pictured above: [Card](?path=/story/data-display-card--default)</Pointer>
+  </Caption>
+</Figure>
 
 ### 2 · The Docs block
 
 Scroll to the end of any component's Docs to find it. The block is optional. Follow the [global or per-page setup instructions](https://github.com/rachelslurs/storybook-oversight/blob/main/packages/storybook-addon-oversight/README.md#optional-enable-the-docs-page-block) to add it to your Storybook:
 
-<figure style={figureStyle}>
-  <img src={blockShot} alt="The Oversight coverage block at the bottom of the Card Docs page" style={shotStyle} />
-  <figcaption style={captionStyle}>
+<Figure>
+  <Shot src={blockShot} alt="The Oversight coverage block at the bottom of the Card Docs page" />
+  <Caption>
     The same report, rendered inline at the bottom of every Docs page
-    <span style={captionLinkStyle}>Pictured above: [Card](?path=/docs/data-display-card--docs#oversight)</span>
-  </figcaption>
-</figure>
+    <Pointer>Pictured above: [Card](?path=/docs/data-display-card--docs#oversight)</Pointer>
+  </Caption>
+</Figure>
 
 ## The examples
 
 Each component is built to demonstrate one rule. Four trip a finding, two pass.
 
-<figure style={{ ...figureStyle, maxWidth: 600, marginInline: 'auto' }}>
-  <img
+<Figure style={{ maxWidth: 600, marginInline: 'auto' }}>
+  <Shot
     src={findingsShot}
     alt="The Findings section showing an error and a warning: a severity chip, the rule name, and a message for each"
-    style={shotStyle}
   />
-  <figcaption style={captionStyle}>
+  <Caption>
     A failing rule renders as a severity chip, the rule name, and a one-line message
-    <span style={captionLinkStyle}>Pictured above: [Card](?path=/story/data-display-card--default)</span>
-  </figcaption>
-</figure>
+    <Pointer>Pictured above: [Card](?path=/story/data-display-card--default)</Pointer>
+  </Caption>
+</Figure>
 
 Open each component and watch the Oversight tab (Story view) or scroll to the block (Docs view):
 
@@ -127,17 +128,16 @@ A fourth, `prop-shape-unrecognized`, needs a manifest whose prop payload has mov
 
 `extractor-drift` isn't tied to one component. It fires when the manifest was built with a different docgen extractor than the one you state as `expectedExtractor` (addon config, or `--expected-extractor` in the CLI); with no expectation stated, the rule does not run. The shallow `react-docgen` parser silently drops complex prop types, so descriptions come back empty across the board. Because it's a property of the whole manifest, the panel reports it separately:
 
-<figure style={figureStyle}>
-  <img
+<Figure>
+  <Shot
     src={driftShot}
     alt="The Oversight panel's Manifest section flagging extractor-drift, above the component's findings"
-    style={shotStyle}
   />
-  <figcaption style={captionStyle}>
+  <Caption>
     `extractor-drift` in its own Manifest section, above the per-component findings
-    <span style={captionLinkStyle}>Pictured above: [Card](?path=/story/data-display-card--default)</span>
-  </figcaption>
-</figure>
+    <Pointer>Pictured above: [Card](?path=/story/data-display-card--default)</Pointer>
+  </Caption>
+</Figure>
 
 This demo ships on `react-docgen-typescript`, so drift can't fire live. The still above is a build with the shallow extractor; in a project that states its expectation, the warning appears the moment the manifest drifts.
 
