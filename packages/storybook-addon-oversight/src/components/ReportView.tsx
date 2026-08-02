@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import type { ComponentType, ReactNode } from 'react';
+import { CheckIcon, CrossIcon } from '@storybook/icons';
 import { Badge, EmptyTabContent, codeCommon } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 import type { ComponentReport, Diagnostic, DiagnosticSeverity } from 'oversight-core';
@@ -47,24 +48,6 @@ const Heading = styled.div(({ theme }) => ({
   fontWeight: theme.typography.weight.bold,
   marginBottom: 6,
 }));
-
-// The count sits against the table's own heading row, where the Controls panel
-// puts its reset control: outside the table, so it is not read as part of a
-// column header, and positioned onto that row rather than given a line of its
-// own.
-const PropTableFrame = styled.div({ position: 'relative' });
-
-const PropCount = styled.span({
-  position: 'absolute',
-  top: 0,
-  right: 0,
-  // the heading row's own padding and line height, so the badge sits on that
-  // row rather than near it
-  padding: '10px 0',
-  lineHeight: '24px',
-  whiteSpace: 'nowrap',
-  pointerEvents: 'none',
-});
 
 // Warning/error text takes the theme's semantic foreground scale, which is what
 // Storybook's own Badge uses for these statuses. The text-tone colors next to it
@@ -185,6 +168,17 @@ const PropName = styled.code(({ theme }) => ({
   fontFamily: theme.typography.fonts.mono,
   fontSize: '0.92em',
   color: theme.color.defaultText,
+}));
+
+// A tick or a cross per prop, in the same foregrounds the findings use. Each
+// carries its own label, because a glyph and a color say nothing on their own.
+const DocumentedIcon = styled(CheckIcon)(({ theme }) => ({
+  display: 'block',
+  color: theme.fgColor.positive,
+}));
+const UndocumentedIcon = styled(CrossIcon)(({ theme }) => ({
+  display: 'block',
+  color: theme.fgColor.negative,
 }));
 
 /** The Controls panel marks a required prop with an asterisk after its name.
@@ -548,7 +542,6 @@ export function ReportView({
   if (!component) return null;
 
   const propNames = Object.keys(component.props);
-  const undocumented = propNames.filter((name) => component.props[name].description === null);
   const danglingTargets = new Set(
     diagnostics.filter((d) => d.rule === 'docs-link-dangling').flatMap((d) => d.targets ?? []),
   );
@@ -573,52 +566,37 @@ export function ReportView({
           <span>Prop coverage is unavailable: the manifest&rsquo;s prop payload was not recognized.</span>
         ) : propNames.length === 0 ? (
           <span>No props extracted.</span>
-        ) : undocumented.length === 0 ? (
-          // Nothing to table, so the count is the whole report for this section
-          <Badge compact status="positive">
-            {propNames.length}/{propNames.length} props documented
-          </Badge>
         ) : (
-          <PropTableFrame>
-            <PropCount>
-              <Badge
-                compact
-                status={undocumented.some((name) => component.props[name].required) ? 'negative' : 'warning'}
-              >
-                {propNames.length - undocumented.length}/{propNames.length} props documented
-              </Badge>
-            </PropCount>
-            <PropTable>
-              <thead>
-                <tr>
-                  <th scope="col">Prop</th>
-                  <th scope="col">Required</th>
-                  <th scope="col">Missing</th>
-                </tr>
-              </thead>
-              <tbody>
-                {undocumented.map((name) => {
-                  const required = component.props[name].required;
-                  return (
-                    <tr key={name}>
-                      <td>
-                        <PropName>{name}</PropName>
-                        {required && <RequiredMark aria-hidden="true">*</RequiredMark>}
-                      </td>
-                      <td>{required ? 'Yes' : 'No'}</td>
-                      <td>
-                        {/* the severity stays in the badge's color: an undocumented
-                              required prop is the error, the rest are warnings */}
-                        <Badge compact status={required ? 'negative' : 'warning'}>
-                          undocumented
-                        </Badge>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </PropTable>
-          </PropTableFrame>
+          <PropTable>
+            <thead>
+              <tr>
+                <th scope="col">Prop</th>
+                <th scope="col">Required</th>
+                <th scope="col">Documented</th>
+              </tr>
+            </thead>
+            <tbody>
+              {propNames.map((name) => {
+                const { required, description } = component.props[name];
+                return (
+                  <tr key={name}>
+                    <td>
+                      <PropName>{name}</PropName>
+                      {required && <RequiredMark aria-hidden="true">*</RequiredMark>}
+                    </td>
+                    <td>{required ? 'Yes' : 'No'}</td>
+                    <td>
+                      {description === null ? (
+                        <UndocumentedIcon role="img" aria-label="undocumented" />
+                      ) : (
+                        <DocumentedIcon role="img" aria-label="documented" />
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </PropTable>
         )}
       </Section>
       {storyErrorsShown && <StoryFailuresSection storyFailures={storyFailures} />}

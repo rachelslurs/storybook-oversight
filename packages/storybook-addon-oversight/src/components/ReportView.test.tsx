@@ -137,7 +137,7 @@ describe('ReportView theming', () => {
 });
 
 describe('ReportView report rendering', () => {
-  it('renders findings and the undocumented-props list for a documented component', () => {
+  it('renders findings and a row per prop for a documented component', () => {
     const manifest = {
       meta: { docgen: 'react-docgen-typescript' },
       components: {
@@ -157,13 +157,20 @@ describe('ReportView report rendering', () => {
     const report = buildReport(manifest, 'ex-button');
     const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
     expect(container.textContent).toContain('required-prop-undocumented');
-    expect(container.textContent).toContain('1/2 props documented');
-    // the required prop carries the mark and the column, and the badge names
-    // only what is missing, so "required" is not said three times in one row
-    const rows = [...container.querySelectorAll('tbody tr')].map((row) =>
-      [...row.children].map((cell) => cell.textContent?.trim()),
-    );
-    expect(rows).toEqual([['label*', 'Yes', 'undocumented']]);
+    // every prop is listed, documented or not, and the mark in the last column
+    // carries a label rather than leaving a glyph and a color to say it
+    const rows = [...container.querySelectorAll('tbody tr')].map((row) => {
+      const cells = [...row.children];
+      return [
+        cells[0].textContent?.trim(),
+        cells[1].textContent?.trim(),
+        cells[2].querySelector('[role="img"]')?.getAttribute('aria-label'),
+      ];
+    });
+    expect(rows).toEqual([
+      ['label*', 'Yes', 'undocumented'],
+      ['size', 'No', 'documented'],
+    ]);
   });
 
   it('renders a positive no-findings state for a clean component', () => {

@@ -65,5 +65,8 @@
       "react"
     ],
     "icon": "https://raw.githubusercontent.com/rachelslurs/storybook-oversight/main/assets/oversight-icon-512.png"
+  },
+  "dependencies": {
+    "@storybook/icons": "^2.1.0"
   }
 }
