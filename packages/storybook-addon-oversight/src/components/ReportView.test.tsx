@@ -250,22 +250,26 @@ describe('ReportView report rendering', () => {
     expect(container.textContent).not.toContain('at parse');
   });
 
-  it('compact variant shows a Documented verdict instead of the description prose', () => {
+  it('renders the description prose in both variants', () => {
     const manifest = {
       meta: { docgen: 'react-docgen-typescript' },
       components: {
         'ex-doc': {
           name: 'Doc',
           path: './Doc.stories.tsx',
-          reactDocgenTypescript: { description: 'Prose that compact should hide.', props: {} },
+          reactDocgenTypescript: { description: 'Prose both surfaces show.', props: {} },
         },
       },
     } as unknown as RawManifest;
     const report = buildReport(manifest, 'ex-doc');
-    const { container } = renderView(
+
+    const full = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} variant="full" />);
+    expect(full.container.textContent).toContain('Prose both surfaces show.');
+    cleanup();
+
+    const compact = renderView(
       <ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} variant="compact" />,
     );
-    expect(container.textContent).toContain('Documented');
-    expect(container.textContent).not.toContain('Prose that compact should hide');
+    expect(compact.container.textContent).toContain('Prose both surfaces show.');
   });
 });
