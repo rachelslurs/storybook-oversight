@@ -108,13 +108,24 @@ const DanglingId = styled.code(({ theme }) => ({
   },
 }));
 
-/** A strikethrough says nothing to a screen reader, so the mark is what carries
- *  the reason the id is struck. */
 const MissingMark = styled.span(({ theme }) => ({
   color: theme.fgColor.negative,
   marginLeft: 3,
   cursor: 'help',
 }));
+
+/**
+ * The mark beside anything struck through. A strikethrough and a color say
+ * nothing to a screen reader, so this carries the reason, and both places that
+ * strike something use this one rather than repeating the glyph.
+ */
+function DanglingMark() {
+  return (
+    <MissingMark role="img" aria-label="not in the manifest" title="not in the manifest">
+      &#9888;
+    </MissingMark>
+  );
+}
 
 /** Sets each id the finding names as a struck-through id inside its message. */
 function markDanglingIds(message: string, targets?: string[]): ReactNode {
@@ -126,9 +137,7 @@ function markDanglingIds(message: string, targets?: string[]): ReactNode {
     targets.includes(part) ? (
       <Fragment key={index}>
         <DanglingId>{part}</DanglingId>
-        <MissingMark role="img" aria-label="not in the manifest" title="not in the manifest">
-          &#9888;
-        </MissingMark>
+        <DanglingMark />
       </Fragment>
     ) : (
       part
@@ -395,7 +404,7 @@ function Markdown({
                 if (targetId && danglingTargets?.has(targetId)) {
                   return (
                     <DanglingLink key={index} title={`Broken link: ${segment.target} is not in the manifest`}>
-                      <s>{segment.label}</s> ⚠
+                      <s>{segment.label}</s> <DanglingMark />
                     </DanglingLink>
                   );
                 }
