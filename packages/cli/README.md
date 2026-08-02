@@ -55,10 +55,14 @@ storybook-static/manifests/components.json (docgen: react-docgen-typescript)
 
 Card
   warning  prop-descriptions-missing   Card has 2 undocumented props. (props: title, elevated)
+           hint: Add a JSDoc comment to each undocumented prop.
   error    required-prop-undocumented  Card has required prop without documentation. (props: title)
+           hint: Add a JSDoc comment to each required prop.
 
 ✖ 2 findings (1 error, 1 warning, 0 info), 1 of 42 entries affected
 ```
+
+The dimmed `hint:` line is the rule's one-line fix. `deprecated-tag` has none, since it reports a fact rather than a defect, and a run of findings from one rule prints the line once. The same text reaches the `hint` field in `--format json`, the second line of each `--format github` annotation, and the Message column of the Actions step summary.
 
 The header names the manifest that was linted and its recorded extractor: `meta.docgen` when the manifest sets it, else the payload key every extracted entry shares (`reactDocgenTypescript`, `reactDocgen` or `reactComponentMeta`). It matters because the same path can hold a different artifact per build: a config like `reactDocgen: isCI ? 'react-docgen-typescript' : 'react-docgen'` writes one manifest in CI and another locally, and toggling `features.experimentalReactComponentMeta` or `features.experimentalDocgenServer` changes it without touching `reactDocgen` at all.
 
@@ -74,6 +78,7 @@ A repo-wide extraction failure makes `docgen-missing` fire once per entry and `s
 
 ```
   error  docgen-missing  122 of 123 entries: No component found: We could not detect the component from your story file. Specify meta.component.
+         hint: Set typescript.reactDocgen to 'react-docgen-typescript', or give the root tsconfig your sources.
 ```
 
 Because the summary skips the message's `File: <path>` location line, entries that share a diagnosis share a row instead of fragmenting on their per-entry paths. Signatures on fewer than 10 entries pool into one leftovers line ("8 other errors"). The Actions step summary collapses the same way, so both surfaces stay the same size on the same input. The tally still counts every finding, and `--format json` keeps the per-entry list.

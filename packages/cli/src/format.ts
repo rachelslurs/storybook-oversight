@@ -52,6 +52,24 @@ function withProps(message: string, props: string[] | undefined): string {
   return props?.length ? `${message} (props: ${props.join(', ')})` : message;
 }
 
+/**
+ * The hint gets its own dimmed line under the finding instead of a suffix on
+ * the message: the message ends in per-finding specifics (prop names, ids)
+ * that the eye scans down, and a fix sentence appended there would push them
+ * into the terminal wrap. A hint is one string per rule, so a run of same-rule
+ * findings (per-story extraction errors pile onto one component) would repeat
+ * the line verbatim; only the first of a run prints. Indented to the rule
+ * column so it reads as a continuation, not a finding.
+ */
+function hintLines(width: number, on: boolean): (hint: string | undefined) => string[] {
+  let last: string | undefined;
+  return (hint) => {
+    const repeat = hint === last;
+    last = hint;
+    return hint === undefined || repeat ? [] : [paint(`${' '.repeat(width + 4)}hint: ${hint}`, ANSI.dim, on)];
+  };
+}
+
 /** Group findings by component in first-seen order; manifest-level last. */
 function groupByComponent(findings: Finding[]): Map<string | null, Finding[]> {
   const groups = new Map<string | null, Finding[]>();
@@ -90,6 +108,8 @@ type CollapsedRow = {
   entries: number;
   /** The row's error signature, or the pooled-leftovers label. */
   message: string;
+  /** The rule's fix. One per rule, so the group's first finding speaks for all. */
+  hint?: string;
 };
 
 /** The clamped one-line error summary doubles as the grouping signature: it is
@@ -108,6 +128,7 @@ function rowOf(group: Finding[], message: string): CollapsedRow {
     count: group.length,
     entries: affectedEntries(group),
     message,
+    hint: group[0].hint,
   };
 }
 
@@ -190,10 +211,12 @@ export function formatStylish(summary: LintSummary, options: { color: boolean; q
 
   if (rows.length > 0) {
     const width = Math.max(...rows.map((r) => r.severity.length));
+    const hintOf = hintLines(width, on);
     for (const r of rows) {
       const severity = paint(r.severity.padEnd(width), SEVERITY_COLOR[r.severity], on);
       const rule = paint(r.rule, ANSI.dim, on);
       lines.push(`  ${severity}  ${rule}  ${reachOf(r, summary.entryCount)}: ${r.message}`);
+      lines.push(...hintOf(r.hint));
     }
     lines.push(paint('  Findings above are collapsed; re-run with --json for the per-entry list.', ANSI.dim, on));
     lines.push('');
@@ -203,10 +226,12 @@ export function formatStylish(summary: LintSummary, options: { color: boolean; q
   const render = (title: string, detail: string, diags: Finding[]) => {
     lines.push(paint(title, ANSI.bold, on) + paint(detail, ANSI.dim, on));
     const width = Math.max(...diags.map((d) => d.severity.length));
+    const hintOf = hintLines(width, on);
     for (const d of diags) {
       const severity = paint(d.severity.padEnd(width), SEVERITY_COLOR[d.severity], on);
       const rule = paint(d.rule, ANSI.dim, on);
       lines.push(`  ${severity}  ${rule}  ${withProps(d.message, d.props)}`);
+      lines.push(...hintOf(d.hint));
     }
     lines.push('');
   };
@@ -308,6 +333,7 @@ export function formatJson(summary: LintSummary): string {
       ...(d.targets ? { targets: d.targets } : {}),
       ...(d.error ? { error: d.error } : {}),
       ...(d.errorName ? { errorName: d.errorName } : {}),
+      ...(d.hint ? { hint: d.hint } : {}),
     });
   }
   return JSON.stringify(
@@ -346,15 +372,23 @@ export function formatStepSummary(summary: LintSummary): string {
   if (rows.length > 0) {
     lines.push('Mass failures are collapsed; re-run with `--json` for the per-entry list.', '');
   }
+  // The hint shares the Message cell rather than taking a fifth column: it is
+  // one string per rule, repeated on every row that rule fires on, so a column
+  // of its own would spend the table's width on its most repetitive text and
+  // squeeze the per-finding specifics beside it.
+  const withHint = (message: string, hint: string | undefined) =>
+    hint === undefined ? message : `${message}<br>hint: ${escapeCell(hint)}`;
   lines.push('| Component | Severity | Rule | Message |', '| --- | --- | --- | --- |');
   for (const r of rows) {
-    lines.push(`| ${reachOf(r, entryCount)} | ${r.severity} | \`${r.rule}\` | ${escapeCell(r.message)} |`);
+    lines.push(
+      `| ${reachOf(r, entryCount)} | ${r.severity} | \`${r.rule}\` | ${withHint(escapeCell(r.message), r.hint)} |`,
+    );
   }
   const label = labeller(summary);
   for (const d of visible) {
     const { name, detail } = d.componentId === null ? { name: MANIFEST_HEADING, detail: '' } : label(d.componentId);
     const component = escapeCell(name + detail);
-    const message = escapeCell(withProps(d.message, d.props));
+    const message = withHint(escapeCell(withProps(d.message, d.props)), d.hint);
     lines.push(`| ${component} | ${d.severity} | \`${d.rule}\` | ${message} |`);
   }
   return lines.join('\n');
@@ -405,7 +439,14 @@ export function formatGithub(summary: LintSummary): string {
     const anchor = d.componentId === null ? '' : storiesFileOf(summary, d.componentId);
     if (anchor) properties.push(`file=${encodeProperty(anchor)}`);
 
-    lines.push(`::${command} ${properties.join(',')}::${encodeData(withProps(d.message, d.props))}`);
+    // The hint rides on a second line (`%0A` once encoded) instead of a
+    // same-line suffix: GitHub renders the break in the annotation body, so
+    // the diagnosis and the fix read separately instead of as one run-on
+    // sentence, and the payload's first line stays byte-identical for
+    // anything grepping the raw log.
+    const message = withProps(d.message, d.props);
+    const payload = d.hint === undefined ? message : `${message}\nhint: ${d.hint}`;
+    lines.push(`::${command} ${properties.join(',')}::${encodeData(payload)}`);
   }
 
   for (const command of ['error', 'warning', 'notice'] as const) {
