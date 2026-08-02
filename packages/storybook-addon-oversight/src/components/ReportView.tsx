@@ -143,8 +143,8 @@ const SEVERITY_STATUS: Record<DiagnosticSeverity, 'negative' | 'warning' | 'neut
 };
 const SEVERITY_RANK: Record<DiagnosticSeverity, number> = { error: 0, warning: 1, info: 2 };
 
-const FindingList = styled.ul({ listStyle: 'none', margin: 0, padding: 0 });
-const FindingItem = styled.li({
+const RowList = styled.ul({ listStyle: 'none', margin: 0, padding: 0 });
+const Row = styled.li({
   display: 'flex',
   gap: 8,
   alignItems: 'baseline',
@@ -157,6 +157,15 @@ const RuleName = styled.code(({ theme }) => ({
   fontSize: '0.92em',
   color: theme.textMutedColor,
 }));
+const PropName = styled.code(({ theme }) => ({
+  fontFamily: theme.typography.fonts.mono,
+  fontSize: '0.92em',
+  color: theme.color.defaultText,
+}));
+
+// The undocumented props take the same borderless row the findings take, so
+// the two sections of one report scan the same way down the page.
+const PropRows = styled(RowList)({ margin: '6px 0 0' });
 /**
  * A file path in prose, chipped so it reads as something to open and select
  * rather than as words. `codeCommon` is Storybook's own inline-code styling, so
@@ -227,18 +236,18 @@ function EmptyState({
 function FindingsList({ diagnostics }: { diagnostics: Diagnostic[] }) {
   const sorted = [...diagnostics].sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
   return (
-    <FindingList>
+    <RowList>
       {sorted.map((diagnostic, index) => (
-        <FindingItem key={`${diagnostic.rule}-${index}`}>
+        <Row key={`${diagnostic.rule}-${index}`}>
           <Badge compact status={SEVERITY_STATUS[diagnostic.severity]}>
             {diagnostic.severity}
           </Badge>
           <FindingBody>
             <RuleName>{diagnostic.rule}</RuleName> {markDanglingIds(diagnostic.message, diagnostic.targets)}
           </FindingBody>
-        </FindingItem>
+        </Row>
       ))}
-    </FindingList>
+    </RowList>
   );
 }
 
@@ -507,10 +516,10 @@ export function ReportView({
               {propNames.length - undocumented.length}/{propNames.length} props documented
             </span>
             {undocumented.length > 0 && (
-              <PropList>
+              <PropRows>
                 {undocumented.map((name) => (
-                  <li key={name}>
-                    <code>{name}</code>{' '}
+                  <Row key={name}>
+                    <PropName>{name}</PropName>
                     {component.props[name].required ? (
                       <Badge compact status="negative">
                         required, undocumented
@@ -520,9 +529,9 @@ export function ReportView({
                         undocumented
                       </Badge>
                     )}
-                  </li>
+                  </Row>
                 ))}
-              </PropList>
+              </PropRows>
             )}
           </>
         )}
