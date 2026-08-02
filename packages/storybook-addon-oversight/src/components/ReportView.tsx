@@ -48,6 +48,20 @@ const Heading = styled.div(({ theme }) => ({
   marginBottom: 6,
 }));
 
+// A count of what the section covers belongs on the heading's line, not as a
+// second line under it.
+const SectionHeader = styled.div({
+  display: 'flex',
+  alignItems: 'baseline',
+  justifyContent: 'space-between',
+  gap: 12,
+  marginBottom: 6,
+  // the heading's own bottom margin is the row's now, or it opens a gap inside
+  '& > *': { marginBottom: 0 },
+  // the count reads as one thing, so it wraps as one or not at all
+  '& > span': { whiteSpace: 'nowrap' },
+});
+
 // Warning/error text takes the theme's semantic foreground scale, which is what
 // Storybook's own Badge uses for these statuses. The text-tone colors next to it
 // in the palette read as the same thing but hold one value for both themes, so
@@ -548,18 +562,22 @@ export function ReportView({
         danglingTargets={danglingTargets}
       />
       <Section>
-        <Heading>Props</Heading>
+        <SectionHeader>
+          <Heading>Props</Heading>
+          {propShape !== 'unrecognized' && propNames.length > 0 && (
+            <span>
+              {propNames.length - undocumented.length}/{propNames.length} props documented
+            </span>
+          )}
+        </SectionHeader>
         {propShape === 'unrecognized' ? (
-          // The lint rules are held in this case. A coverage figure read from
-          // the same fields would contradict the finding that says so.
+          // The rules do not run in this case. A coverage figure read from the
+          // same fields would contradict the finding that says so.
           <span>Prop coverage is unavailable: the manifest&rsquo;s prop payload was not recognized.</span>
         ) : propNames.length === 0 ? (
           <span>No props extracted.</span>
         ) : (
           <>
-            <span>
-              {propNames.length - undocumented.length}/{propNames.length} props documented
-            </span>
             {undocumented.length > 0 && (
               <PropTable>
                 <thead>
