@@ -203,5 +203,5 @@ export type Diagnostic = {
   errorName?: string;
   /** What to do about the finding, in one imperative line. Absent on a rule
    *  that reports a fact rather than a defect (`deprecated-tag`). */
-  fix?: string;
+  hint?: string;
 };

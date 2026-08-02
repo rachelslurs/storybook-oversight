@@ -42,7 +42,7 @@ export const ALL_RULES = Object.keys(RULE_SET) as DiagnosticRule[];
 // long form of each stays in docs/troubleshooting.md.
 //
 // `deprecated-tag` is null on purpose: it reports a fact, not a defect.
-const FIX = {
+const HINT = {
   'docgen-missing': "Set typescript.reactDocgen to 'react-docgen-typescript', or give the root tsconfig your sources.",
   'story-extraction-error': 'Run with --format json for the full error behind this summary.',
   'extractor-drift': 'Check meta.docgen for the extractor that ran, then set the expectation to match.',
@@ -56,9 +56,9 @@ const FIX = {
   'ref-unresolved': "Resolve the entry's $ref before linting.",
 } satisfies Record<DiagnosticRule, string | null>;
 
-/** The one-line fix for a rule, or undefined when it reports a fact rather
+/** The one-line hint for a rule, or undefined when it reports a fact rather
  *  than a defect. `deprecated-tag` is the only rule without one. */
-export const fixFor = (rule: DiagnosticRule): string | undefined => FIX[rule] ?? undefined;
+export const hintFor = (rule: DiagnosticRule): string | undefined => HINT[rule] ?? undefined;
 
 /** The accepted `rules` override values, shared with the CLI's `--rule` parser. */
 export const VALID_SETTINGS: ReadonlySet<string> = new Set<RuleSetting>(['off', 'error', 'warning', 'info']);
@@ -108,7 +108,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
     if (result.extractor === null) {
       diagnostics.push({
         rule: 'extractor-drift',
-        fix: fixFor('extractor-drift'),
+        hint: hintFor('extractor-drift'),
         severity: 'warning',
         componentId: null,
         message: `Manifest does not record which extractor ran; this project expects "${expectedExtractor}".`,
@@ -120,7 +120,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
       // than react-docgen, and matches react-docgen-typescript (#52).
       diagnostics.push({
         rule: 'extractor-drift',
-        fix: fixFor('extractor-drift'),
+        hint: hintFor('extractor-drift'),
         severity: 'warning',
         componentId: null,
         message: `Manifest was extracted with "${result.extractor}" but this project expects "${expectedExtractor}".`,
@@ -131,7 +131,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
   for (const failure of result.failures) {
     diagnostics.push({
       rule: 'docgen-missing',
-      fix: fixFor('docgen-missing'),
+      hint: hintFor('docgen-missing'),
       severity: 'error',
       componentId: failure.id,
       message: `Docgen extraction failed for ${failure.name}: ${summarizeError(failure.errorName, failure.error) ?? 'unknown error'}`,
@@ -143,7 +143,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
   for (const storyFailure of result.storyFailures) {
     diagnostics.push({
       rule: 'story-extraction-error',
-      fix: fixFor('story-extraction-error'),
+      hint: hintFor('story-extraction-error'),
       severity: 'warning',
       componentId: storyFailure.componentId,
       message: `Story "${storyFailure.storyName}" failed extraction: ${summarizeError(storyFailure.errorName, storyFailure.error) ?? 'unknown error'}`,
@@ -175,7 +175,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
     const rule = shapeIssue.componentId === null ? 'prop-shape-unrecognized' : 'ref-unresolved';
     diagnostics.push({
       rule,
-      fix: fixFor(rule),
+      hint: hintFor(rule),
       severity: rule === 'prop-shape-unrecognized' ? 'error' : 'warning',
       componentId: shapeIssue.componentId,
       message: `${scope}expected ${shapeIssue.expected}, got ${shapeIssue.got}.`,
@@ -196,7 +196,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
     if (dangling.size > 0) {
       diagnostics.push({
         rule: 'docs-link-dangling',
-        fix: fixFor('docs-link-dangling'),
+        hint: hintFor('docs-link-dangling'),
         severity: 'error',
         componentId: id,
         message: `${name} links to unknown manifest ids: ${[...dangling].join(', ')}.`,
@@ -211,7 +211,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
     if (component.description === null) {
       diagnostics.push({
         rule: 'component-description-missing',
-        fix: fixFor('component-description-missing'),
+        hint: hintFor('component-description-missing'),
         severity: 'warning',
         componentId: component.id,
         message: `${component.name} has no description for the MCP or the Docs page to show.`,
@@ -231,7 +231,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
     if (undocumented.length > 0) {
       diagnostics.push({
         rule: 'prop-descriptions-missing',
-        fix: fixFor('prop-descriptions-missing'),
+        hint: hintFor('prop-descriptions-missing'),
         severity: 'warning',
         componentId: component.id,
         message: `${component.name} has ${undocumented.length} undocumented prop${undocumented.length === 1 ? '' : 's'}.`,
@@ -242,7 +242,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
       if (requiredUndocumented.length > 0) {
         diagnostics.push({
           rule: 'required-prop-undocumented',
-          fix: fixFor('required-prop-undocumented'),
+          hint: hintFor('required-prop-undocumented'),
           severity: 'error',
           componentId: component.id,
           message: `${component.name} has required prop${requiredUndocumented.length === 1 ? '' : 's'} without documentation.`,
@@ -262,7 +262,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
       const note = line?.replace(/\.$/, '');
       diagnostics.push({
         rule: 'deprecated-tag',
-        fix: fixFor('deprecated-tag'),
+        hint: hintFor('deprecated-tag'),
         severity: 'info',
         componentId: component.id,
         message: `${component.name} is marked @deprecated${note ? `: ${note}` : ''}.`,
@@ -283,7 +283,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Diagno
     if (unknown.length > 0) {
       diagnostics.push({
         rule: 'unknown-ignore-rule',
-        fix: fixFor('unknown-ignore-rule'),
+        hint: hintFor('unknown-ignore-rule'),
         severity: 'warning',
         componentId: id,
         message: `${nameById.get(id) ?? id}'s @oversightIgnore lists unknown rule${unknown.length === 1 ? '' : 's'}: ${unknown.join(', ')}. Nothing is exempted by them.`,
