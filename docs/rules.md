@@ -1,5 +1,7 @@
 # Rules
 
+A rule is one check. It fires when the manifest meets its condition, and dictates the finding that results: its severity, the message naming what happened, and the one-line fix. Which component the finding is about, and the specifics the message names, come from the manifest. [Troubleshooting](./troubleshooting.md) is the long form of those fixes.
+
 `oversight-lint` and `storybook-addon-oversight` run the same rules from `oversight-core`, at these default severities:
 
 | Rule | Default severity | Fires when |
