@@ -152,16 +152,18 @@ const SEVERITY_STATUS: Record<DiagnosticSeverity, 'negative' | 'warning' | 'neut
 const SEVERITY_RANK: Record<DiagnosticSeverity, number> = { error: 0, warning: 1, info: 2 };
 
 const FindingBody = styled.div(({ theme }) => ({ color: theme.color.defaultText, lineHeight: 1.4 }));
-// the fix sits under the message it answers, quieter than it
+// quieter than the finding it answers, so a row reads problem first
 const FindingFix = styled.div(({ theme }) => ({
   color: theme.textMutedColor,
   lineHeight: 1.4,
-  marginTop: 2,
 }));
 const RuleName = styled.code(({ theme }) => ({
   fontFamily: theme.typography.fonts.mono,
   fontSize: '0.92em',
   color: theme.textMutedColor,
+  // a rule name is an identifier: it wraps as one or not at all, never broken
+  // across two lines at a hyphen
+  whiteSpace: 'nowrap',
 }));
 const PropName = styled.code(({ theme }) => ({
   fontFamily: theme.typography.fonts.mono,
@@ -192,6 +194,11 @@ const RequiredMark = styled.span(({ theme }) => ({
 // prop table, two tabs from this one: no cell borders and no striping, a muted
 // heading, and a rule between rows. Storybook's `ArgsTable` is bound to args,
 // so this is its look rather than the component itself.
+// A rule name never breaks, so a narrow panel cannot squeeze these columns past
+// their content. The table scrolls inside this rather than spilling out of the
+// section, which clips it: the page itself never scrolls sideways.
+const TableScroll = styled.div({ overflowX: 'auto' });
+
 const ReportTable = styled.table(({ theme }) => ({
   // doubled throughout, because the Docs page styles every table it renders and
   // would otherwise box each cell and stripe the rows
@@ -293,33 +300,36 @@ function EmptyState({
 function FindingsList({ diagnostics }: { diagnostics: Diagnostic[] }) {
   const sorted = [...diagnostics].sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
   return (
-    <ReportTable>
-      <thead>
-        <tr>
-          <th scope="col">Severity</th>
-          <th scope="col">Rule</th>
-          <th scope="col">Finding</th>
-        </tr>
-      </thead>
-      <tbody>
-        {sorted.map((diagnostic, index) => (
-          <tr key={`${diagnostic.rule}-${index}`}>
-            <td>
-              <Badge compact status={SEVERITY_STATUS[diagnostic.severity]}>
-                {diagnostic.severity}
-              </Badge>
-            </td>
-            <td>
-              <RuleName>{diagnostic.rule}</RuleName>
-            </td>
-            <td>
-              <FindingBody>{markDanglingIds(diagnostic.message, diagnostic.targets)}</FindingBody>
-              {diagnostic.fix ? <FindingFix>{diagnostic.fix}</FindingFix> : null}
-            </td>
+    <TableScroll>
+      <ReportTable>
+        <thead>
+          <tr>
+            <th scope="col">Severity</th>
+            <th scope="col">Rule</th>
+            <th scope="col">Finding</th>
+            <th scope="col">Fix</th>
           </tr>
-        ))}
-      </tbody>
-    </ReportTable>
+        </thead>
+        <tbody>
+          {sorted.map((diagnostic, index) => (
+            <tr key={`${diagnostic.rule}-${index}`}>
+              <td>
+                <Badge compact status={SEVERITY_STATUS[diagnostic.severity]}>
+                  {diagnostic.severity}
+                </Badge>
+              </td>
+              <td>
+                <RuleName>{diagnostic.rule}</RuleName>
+              </td>
+              <td>
+                <FindingBody>{markDanglingIds(diagnostic.message, diagnostic.targets)}</FindingBody>
+              </td>
+              <td>{diagnostic.fix ? <FindingFix>{diagnostic.fix}</FindingFix> : null}</td>
+            </tr>
+          ))}
+        </tbody>
+      </ReportTable>
+    </TableScroll>
   );
 }
 
@@ -578,36 +588,38 @@ export function ReportView({
             <span>No props extracted.</span>
           </>
         ) : (
-          <ReportTable>
-            <thead>
-              <tr>
-                <th scope="col">Prop</th>
-                <th scope="col">Required</th>
-                <th scope="col">Documented</th>
-              </tr>
-            </thead>
-            <tbody>
-              {propNames.map((name) => {
-                const { required, description } = component.props[name];
-                return (
-                  <tr key={name}>
-                    <td>
-                      <PropName>{name}</PropName>
-                      {required && <RequiredMark aria-hidden="true">*</RequiredMark>}
-                    </td>
-                    <td>{required ? 'Yes' : 'No'}</td>
-                    <td>
-                      {description === null ? (
-                        <UndocumentedIcon role="img" aria-label="undocumented" />
-                      ) : (
-                        <DocumentedIcon role="img" aria-label="documented" />
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </ReportTable>
+          <TableScroll>
+            <ReportTable>
+              <thead>
+                <tr>
+                  <th scope="col">Prop</th>
+                  <th scope="col">Required</th>
+                  <th scope="col">Documented</th>
+                </tr>
+              </thead>
+              <tbody>
+                {propNames.map((name) => {
+                  const { required, description } = component.props[name];
+                  return (
+                    <tr key={name}>
+                      <td>
+                        <PropName>{name}</PropName>
+                        {required && <RequiredMark aria-hidden="true">*</RequiredMark>}
+                      </td>
+                      <td>{required ? 'Yes' : 'No'}</td>
+                      <td>
+                        {description === null ? (
+                          <UndocumentedIcon role="img" aria-label="undocumented" />
+                        ) : (
+                          <DocumentedIcon role="img" aria-label="documented" />
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </ReportTable>
+          </TableScroll>
         )}
       </Section>
       {storyErrorsShown && <StoryFailuresSection storyFailures={storyFailures} />}
