@@ -17,6 +17,13 @@ function renderWith(theme: ReturnType<typeof ensure>, ui: ReactElement) {
   return render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
 }
 
+/** The findings and the props both render a table, so tests name the one they mean. */
+function propsTable(container: HTMLElement) {
+  return [...container.querySelectorAll('table')].find((table) =>
+    [...table.querySelectorAll('th')].some((th) => th.textContent?.trim() === 'Documented'),
+  );
+}
+
 const DEBUGGER_URL = 'http://localhost/manifests/components.html';
 
 afterEach(cleanup);
@@ -127,7 +134,7 @@ describe('ReportView prop shape', () => {
     const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
     expect(container.textContent).toContain('The prop rules did not run');
     // the table would be a coverage figure read from fields the rules rejected
-    expect(container.querySelector('tbody')).toBeNull();
+    expect(propsTable(container)).toBeUndefined();
   });
 });
 
@@ -198,7 +205,7 @@ describe('ReportView report rendering', () => {
     expect(container.textContent).toContain('required-prop-undocumented');
     // every prop is listed, documented or not, and the mark in the last column
     // carries a label rather than leaving a glyph and a color to say it
-    const rows = [...container.querySelectorAll('tbody tr')].map((row) => {
+    const rows = [...(propsTable(container)?.querySelectorAll('tbody tr') ?? [])].map((row) => {
       const cells = [...row.children];
       return [
         cells[0].textContent?.trim(),
