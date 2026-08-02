@@ -3,12 +3,14 @@ import type { Finding } from 'oversight-core';
 import { formatGithub, formatJson, formatStepSummary, formatStylish } from './format';
 import type { LintSummary } from './types';
 
+// Hints mirror what the linter attaches: one per rule, none on `deprecated-tag`.
 const findings: Finding[] = [
   {
     rule: 'component-description-missing',
     severity: 'warning',
     componentId: 'ui-card',
     message: 'Card has no description.',
+    hint: 'Add a JSDoc block above the component.',
   },
   {
     rule: 'required-prop-undocumented',
@@ -16,9 +18,16 @@ const findings: Finding[] = [
     componentId: 'ui-card',
     message: 'Card has a required prop.',
     props: ['title'],
+    hint: 'Add a JSDoc comment to each required prop.',
   },
   { rule: 'deprecated-tag', severity: 'info', componentId: 'ui-old', message: 'Old is deprecated.' },
-  { rule: 'extractor-drift', severity: 'warning', componentId: null, message: 'drift | with a pipe' },
+  {
+    rule: 'extractor-drift',
+    severity: 'warning',
+    componentId: null,
+    message: 'drift | with a pipe',
+    hint: 'Check meta.docgen for the extractor that ran, then set the expectation to match.',
+  },
 ];
 
 const summary: LintSummary = {
@@ -113,6 +122,68 @@ describe('formatStylish', () => {
     expect(quiet).toContain('required-prop-undocumented');
     expect(quiet).not.toContain('deprecated-tag');
     expect(quiet).toContain('2 warnings');
+  });
+
+  it('prints the hint as a continuation line aligned to the rule column', () => {
+    const lines = out.split('\n');
+    const finding = lines.indexOf('  error    required-prop-undocumented  Card has a required prop. (props: title)');
+    expect(finding).toBeGreaterThan(-1);
+    expect(lines[finding + 1]).toBe('           hint: Add a JSDoc comment to each required prop.');
+  });
+
+  it('prints no hint line under deprecated-tag, which carries none', () => {
+    const section = out.split('\n\n').find((s) => s.startsWith('Old'));
+    expect(section).toContain('deprecated-tag');
+    expect(section).not.toContain('hint:');
+  });
+
+  it('dims the hint line when color is on', () => {
+    const colored = formatStylish(summary, { color: true, quiet: false });
+    const hint = colored.split('\n').find((l) => l.includes('hint: Add a JSDoc comment to each required prop.'));
+    expect(hint).toContain('\x1b[2m');
+  });
+
+  it('quiet keeps the hint on the errors it shows', () => {
+    const quiet = formatStylish(summary, { color: false, quiet: true });
+    expect(quiet).toContain('hint: Add a JSDoc comment to each required prop.');
+  });
+
+  it('prints one hint line for a run of same-rule findings', () => {
+    const stories: Finding[] = Array.from({ length: 3 }, (_, i) => ({
+      rule: 'story-extraction-error',
+      severity: 'warning',
+      componentId: 'ui-card',
+      message: `Story "S${i}" failed extraction.`,
+      hint: 'Read the error the manifest records on that story, which says more than this summary.',
+    }));
+    const rendered = formatStylish(summaryOf(stories, { entryCount: 2, names: new Map([['ui-card', 'Card']]) }), {
+      color: false,
+      quiet: false,
+    });
+    const hints = rendered.split('\n').filter((l) => l.trim().startsWith('hint:'));
+    expect(hints).toHaveLength(1);
+    // The one line sits under the first finding of the run, not after the last.
+    expect(rendered.indexOf('hint:')).toBeGreaterThan(rendered.indexOf('Story "S0"'));
+    expect(rendered.indexOf('hint:')).toBeLessThan(rendered.indexOf('Story "S1"'));
+  });
+
+  it('reprints the hint when a hintless finding breaks the run', () => {
+    const hinted: Finding = {
+      rule: 'prop-shape-unrecognized',
+      severity: 'warning',
+      componentId: 'ui-card',
+      message: 'Odd prop shape.',
+      hint: 'Fix this one first: the prop rules do not run while it fires.',
+    };
+    const bare: Finding = { rule: 'deprecated-tag', severity: 'info', componentId: 'ui-card', message: 'Deprecated.' };
+    const rendered = formatStylish(
+      summaryOf([hinted, bare, { ...hinted, message: 'Another odd shape.' }], {
+        entryCount: 1,
+        names: new Map([['ui-card', 'Card']]),
+      }),
+      { color: false, quiet: false },
+    );
+    expect(rendered.split('\n').filter((l) => l.trim().startsWith('hint:'))).toHaveLength(2);
   });
 });
 
@@ -475,12 +546,28 @@ describe('formatStylish: mass-failure collapse', () => {
     const out = render(blank, 20);
     expect(out).toContain('12 of 20 entries: kaput');
   });
+
+  it('prints the rule hint once under its collapsed rows', () => {
+    const hint = "Set typescript.reactDocgen to 'react-docgen-typescript', or give the root tsconfig your sources.";
+    const hinted = twelve.map((d) => ({ ...d, hint }));
+    const straggler = docgenFailure(12, {
+      componentId: 'ui-s0',
+      error: 'story file unreadable',
+      errorName: 'Unreadable',
+      hint,
+    });
+    const out = render([...hinted, straggler], 20);
+    // Two rows, one rule, one fix: the second row must not repeat the line.
+    expect(out.split('\n').filter((l) => l.trim().startsWith('hint:'))).toHaveLength(1);
+    expect(out).toContain(`hint: ${hint}`);
+    expect(out).toContain('Findings above are collapsed');
+  });
 });
 
 describe('formatJson', () => {
   const parsed = JSON.parse(formatJson(summary)) as {
     summary: { errors: number; warnings: number; infos: number };
-    components: Record<string, { rule: string; props?: string[] }[]>;
+    components: Record<string, { rule: string; props?: string[]; hint?: string }[]>;
   };
 
   it('carries the summary counts and the manifest provenance', () => {
@@ -514,6 +601,16 @@ describe('formatJson', () => {
   it('keeps props on the findings that carry them', () => {
     const required = parsed.components['ui-card'].find((d) => d.rule === 'required-prop-undocumented');
     expect(required?.props).toEqual(['title']);
+  });
+
+  it('keeps the hint on findings that carry one', () => {
+    const required = parsed.components['ui-card'].find((d) => d.rule === 'required-prop-undocumented');
+    expect(required?.hint).toBe('Add a JSDoc comment to each required prop.');
+  });
+
+  it('omits the hint key on deprecated-tag, which carries none', () => {
+    expect(parsed.components['ui-old'][0].rule).toBe('deprecated-tag');
+    expect(parsed.components['ui-old'][0]).not.toHaveProperty('hint');
   });
 
   it('keeps the full extraction error and its name on findings that carry them', () => {
@@ -648,6 +745,33 @@ describe('formatStepSummary', () => {
     expect(md).toContain('drift \\| with a pipe');
   });
 
+  it('appends the hint to the Message cell and leaves hintless rows bare', () => {
+    expect(md).toContain(
+      '| Card | error | `required-prop-undocumented` | ' +
+        'Card has a required prop. (props: title)<br>hint: Add a JSDoc comment to each required prop. |',
+    );
+    const row = md.split('\n').find((l) => l.includes('deprecated-tag'));
+    expect(row).toBe('| Old | info | `deprecated-tag` | Old is deprecated. |');
+  });
+
+  it('escapes pipes in the hint so the table survives', () => {
+    const piped = formatStepSummary(
+      summaryOf(
+        [
+          {
+            rule: 'docs-link-dangling',
+            severity: 'error',
+            componentId: 'ui-x',
+            message: 'Bad link.',
+            hint: 'Point it at a current id | or drop it.',
+          },
+        ],
+        { entryCount: 1, names: new Map([['ui-x', 'X']]) },
+      ),
+    );
+    expect(piped).toContain('| Bad link.<br>hint: Point it at a current id \\| or drop it. |');
+  });
+
   it('renders a clean run without a table', () => {
     const clean = formatStepSummary(summaryOf([], { manifestPath: 'x.json', entryCount: 1 }));
     expect(clean).toContain('No findings.');
@@ -669,6 +793,23 @@ describe('formatStepSummary', () => {
     );
     expect(collapsed).not.toContain('Docgen extraction failed for C3');
     expect(collapsed).toContain('--json');
+  });
+
+  it('carries the rule hint into collapsed rows', () => {
+    const hint = "Set typescript.reactDocgen to 'react-docgen-typescript', or give the root tsconfig your sources.";
+    const failures: Finding[] = Array.from({ length: 12 }, (_, i) => ({
+      rule: 'docgen-missing',
+      severity: 'error',
+      componentId: `ui-c${i}`,
+      message: `Docgen extraction failed for C${i}: No docs found: no docs for this file`,
+      error: 'File: /repo/index.tsx\nno docs for this file',
+      errorName: 'No docs found',
+      hint,
+    }));
+    const collapsed = formatStepSummary(summaryOf(failures, { entryCount: 20 }));
+    expect(collapsed).toContain(
+      `| 12 of 20 entries | error | \`docgen-missing\` | No docs found: no docs for this file<br>hint: ${hint} |`,
+    );
   });
 
   it('omits the entry share when only manifest-level findings exist', () => {
@@ -749,6 +890,19 @@ describe('formatGithub', () => {
     const errorLines = big.split('\n').filter((l) => l.startsWith('::error '));
     expect(errorLines).toHaveLength(10);
     expect(big).toContain('2 more error annotations omitted');
+  });
+
+  it('appends the hint as an encoded second line of the payload', () => {
+    const errorLine = lines.find((l) => l.startsWith('::error '));
+    // The first line of the payload stays intact, so log greps keep matching.
+    expect(errorLine).toContain('::Card has a required prop. (props: title)%0Ahint: Add a JSDoc comment');
+    expect(errorLine).toContain('title=oversight/required-prop-undocumented');
+  });
+
+  it('leaves the payload bare on deprecated-tag, which carries no hint', () => {
+    const notice = lines.find((l) => l.includes('oversight/deprecated-tag'));
+    expect(notice).toContain('::Old is deprecated.');
+    expect(notice).not.toContain('hint:');
   });
 
   it('percent-encodes newlines in the message', () => {
