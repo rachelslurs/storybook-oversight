@@ -151,10 +151,15 @@ const SEVERITY_STATUS: Record<Severity, 'negative' | 'warning' | 'neutral'> = {
 };
 const SEVERITY_RANK: Record<Severity, number> = { error: 0, warning: 1, info: 2 };
 
-const FindingBody = styled.div(({ theme }) => ({ color: theme.color.defaultText, lineHeight: 1.4 }));
+const FindingBody = styled.div(({ theme }) => ({
+  color: theme.color.defaultText,
+  fontSize: 'inherit',
+  lineHeight: 1.4,
+}));
 // quieter than the message it answers, so a row reads what happened first
 const FindingHint = styled.div(({ theme }) => ({
   color: theme.textMutedColor,
+  fontSize: 'inherit',
   lineHeight: 1.4,
 }));
 const RuleChip = styled.code(({ theme }) => ({
@@ -338,7 +343,6 @@ function FindingsList({ findings }: { findings: Finding[] }) {
 function FindingsSection({ findings }: { findings: Finding[] }) {
   return (
     <Section>
-      <Heading>Findings</Heading>
       {findings.length === 0 ? (
         <span>
           <Badge compact status="positive">
