@@ -10,7 +10,11 @@ import type { RawManifest } from 'oversight-core';
 // ReportView's `styled` components read `theme.*`, so every render needs a
 // ThemeProvider (the same trick blocks.tsx uses for the docs block).
 function renderView(ui: ReactElement) {
-  return render(<ThemeProvider theme={ensure(themes.light)}>{ui}</ThemeProvider>);
+  return renderWith(ensure(themes.light), ui);
+}
+
+function renderWith(theme: ReturnType<typeof ensure>, ui: ReactElement) {
+  return render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
 }
 
 const DEBUGGER_URL = 'http://localhost/manifests/components.html';
@@ -85,6 +89,50 @@ describe('ReportView status states', () => {
     const compact = renderView(<ReportView status="no-entry" debuggerUrl={DEBUGGER_URL} variant="compact" />);
     expect(compact.container.textContent).toContain('No manifest entry');
     expect(compact.container.innerHTML).not.toBe(fullHtml);
+  });
+});
+
+describe('ReportView theming', () => {
+  const manifest = {
+    meta: { docgen: 'react-docgen-typescript' },
+    components: {
+      'ex-themed': {
+        name: 'Themed',
+        path: './Themed.stories.tsx',
+        reactDocgenTypescript: {
+          description: 'A component.',
+          props: { label: { description: '', required: true, declarations: [] } },
+        },
+      },
+    },
+  } as unknown as RawManifest;
+
+  // The headings and the props count set no color of their own, so they take
+  // the color of the section they sit in. When that section painted a
+  // background and set no color, they fell back to the browser's black, which
+  // reads on a white Docs page and disappears on a dark one.
+  it.each([
+    ['light', themes.light],
+    ['dark', themes.dark],
+  ])('gives the section a text color to go with its background (%s)', (_name, base) => {
+    const theme = ensure(base);
+    const report = buildReport(manifest, 'ex-themed');
+    renderWith(theme, <ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+
+    const rules = [...document.styleSheets].flatMap((sheet) => {
+      try {
+        return [...sheet.cssRules].map((rule) => rule.cssText);
+      } catch {
+        return [];
+      }
+    });
+    // the section paints the content background, so some rule has to pair that
+    // background with the theme's text color. Nothing else on the page does
+    const paired = rules.some(
+      (rule) =>
+        rule.includes(`background: ${theme.background.content}`) && rule.includes(`color: ${theme.color.defaultText}`),
+    );
+    expect(paired).toBe(true);
   });
 });
 
