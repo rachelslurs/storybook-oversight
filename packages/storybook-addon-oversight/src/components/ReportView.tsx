@@ -153,8 +153,9 @@ function markDanglingIds(message: string, targets?: string[]): ReactNode {
   return message.split(new RegExp(`(${escaped.join('|')})`, 'g')).map((part, index) =>
     targets.includes(part) ? (
       <Fragment key={index}>
-        <DanglingId>{part}</DanglingId>
-        <DanglingMark />
+        {/* the space is read: without it the id and the mark's label run
+            together as one word. The prose path spaces them the same way */}
+        <DanglingId>{part}</DanglingId> <DanglingMark />
       </Fragment>
     ) : (
       part
@@ -342,8 +343,8 @@ function FindingsList({ findings }: { findings: Finding[] }) {
       <ReportTable>
         <thead>
           <tr>
-            <th scope="col">Severity</th>
             <th scope="col">Rule</th>
+            <th scope="col">Severity</th>
             <th scope="col">Message</th>
             <th scope="col">Hint</th>
           </tr>
@@ -351,16 +352,16 @@ function FindingsList({ findings }: { findings: Finding[] }) {
         <tbody>
           {sorted.map((finding, index) => (
             <tr key={`${finding.rule}-${index}`}>
-              <td>
-                <Badge compact status={SEVERITY_STATUS[finding.severity]}>
-                  {finding.severity}
-                </Badge>
-              </td>
               {/* the rule names its row: without this the message and the hint
                   announce their column and their text and never say which rule */}
               <th scope="row">
                 <RuleChip>{finding.rule}</RuleChip>
               </th>
+              <td>
+                <Badge compact status={SEVERITY_STATUS[finding.severity]}>
+                  {finding.severity}
+                </Badge>
+              </td>
               <td>
                 <FindingBody>{markDanglingIds(finding.message, finding.targets)}</FindingBody>
               </td>
