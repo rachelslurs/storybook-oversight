@@ -124,6 +124,10 @@ const DanglingId = styled.code(({ theme }) => ({
 // reading 16px there against 14px on the panel.
 const CleanState = styled.span({ ...inheritSize, '& span': inheritSize });
 
+// A sentence standing where a table would be, for the two prop states that have
+// no rows to show.
+const SectionText = styled.span(inheritSize);
+
 const MissingMark = styled.span(({ theme }) => ({
   ...inheritSize,
   color: theme.fgColor.negative,
@@ -589,14 +593,14 @@ export function ReportView({
             <Heading>Props</Heading>
             {/* The rules do not run in this case. A coverage figure read from
                 the same fields would contradict the finding that says so. */}
-            <span>
+            <SectionText>
               The prop rules did not run: this manifest records props in a shape Oversight does not recognize.
-            </span>
+            </SectionText>
           </>
         ) : propNames.length === 0 ? (
           <>
             <Heading>Props</Heading>
-            <span>No props extracted.</span>
+            <SectionText>No props extracted.</SectionText>
           </>
         ) : (
           <TableScroll>
