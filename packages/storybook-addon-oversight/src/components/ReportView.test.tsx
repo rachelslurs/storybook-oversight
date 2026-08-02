@@ -213,9 +213,11 @@ describe('ReportView report rendering', () => {
         cells[2].querySelector('[role="img"]')?.getAttribute('aria-label'),
       ];
     });
+    // the mark names the prop, so it does not read as an echo of the column
+    // heading a screen reader announces immediately before it
     expect(rows).toEqual([
-      ['label*', 'Yes', 'undocumented'],
-      ['size', 'No', 'documented'],
+      ['label*', 'Yes', 'label is undocumented'],
+      ['size', 'No', 'size is documented'],
     ]);
   });
 

@@ -612,11 +612,14 @@ export function ReportView({
                         {required && <RequiredMark aria-hidden="true">*</RequiredMark>}
                       </th>
                       <td>{required ? 'Yes' : 'No'}</td>
+                      {/* the mark says the whole thing, leading with the prop:
+                          a bare "documented" only echoed the column heading
+                          announced right before it */}
                       <td>
                         {description === null ? (
-                          <UndocumentedIcon role="img" aria-label="undocumented" />
+                          <UndocumentedIcon role="img" aria-label={`${name} is undocumented`} />
                         ) : (
-                          <DocumentedIcon role="img" aria-label="documented" />
+                          <DocumentedIcon role="img" aria-label={`${name} is documented`} />
                         )}
                       </td>
                     </tr>
