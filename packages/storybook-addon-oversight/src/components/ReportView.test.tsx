@@ -216,7 +216,7 @@ describe('ReportView report rendering', () => {
     // the mark names the prop, so it does not read as an echo of the column
     // heading a screen reader announces immediately before it
     expect(rows).toEqual([
-      ['label*', 'Yes', 'label is undocumented'],
+      ['label', 'Yes', 'label is undocumented'],
       ['size', 'No', 'size is documented'],
     ]);
   });
