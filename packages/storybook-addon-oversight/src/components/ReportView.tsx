@@ -220,16 +220,6 @@ const UndocumentedIcon = styled(CrossIcon)(({ theme }) => ({
   color: theme.fgColor.negative,
 }));
 
-/** An asterisk after a required prop's name. The Required column says the same
- *  thing in a word, so this is hidden from a screen reader rather than
- *  announced twice. */
-const RequiredMark = styled.span(({ theme }) => ({
-  ...inheritSize,
-  color: theme.color.negative,
-  fontFamily: theme.typography.fonts.mono,
-  cursor: 'help',
-}));
-
 // A rule name never breaks, so a narrow panel cannot squeeze these columns past
 // their content. The table scrolls inside this rather than spilling out of the
 // section, which clips it: the page itself never scrolls sideways.
@@ -625,13 +615,6 @@ export function ReportView({
                     <tr key={name}>
                       <th scope="row">
                         <PropName>{name}</PropName>
-                        {required && (
-                          // hidden from the tree, and the Required column beside
-                          // it carries the same fact as text
-                          <RequiredMark aria-hidden="true" title="Required">
-                            *
-                          </RequiredMark>
-                        )}
                       </th>
                       <td>{required ? 'Yes' : 'No'}</td>
                       {/* the mark says the whole thing, leading with the prop:
