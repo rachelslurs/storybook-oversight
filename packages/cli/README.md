@@ -70,7 +70,7 @@ Findings are grouped by entry, headed with the entry's component name. When anot
 
 ### Mass failures collapse in text output
 
-A repo-wide extraction failure fires `docgen-missing` once per entry and `story-extraction-error` once per failing story, several per entry, so text output would render hundreds of near-identical findings. When one rule's findings touch at least 10 distinct entries and at least half the manifest's entries, they leave the per-entry groups and render as one line per error signature (the same one-line summary the messages use), stating the count, the share, and the diagnosis:
+A repo-wide extraction failure makes `docgen-missing` fire once per entry and `story-extraction-error` once per failing story, several per entry, so text output would render hundreds of near-identical findings. When one rule's findings touch at least 10 distinct entries and at least half the manifest's entries, they leave the per-entry groups and render as one line per error signature (the same one-line summary the messages use), stating the count, the share, and the diagnosis:
 
 ```
   error  docgen-missing  122 of 123 entries: No component found: We could not detect the component from your story file. Specify meta.component.
