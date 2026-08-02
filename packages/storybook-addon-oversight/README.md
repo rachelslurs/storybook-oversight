@@ -57,7 +57,7 @@ If you enable `features.experimentalReactComponentMeta`, set `expectedExtractor`
 
 `features.experimentalDocgenServer` records the same extractor, but the panel cannot read the ref-based manifest that flag emits, so set `--expected-extractor react-component-meta` on [`oversight-lint`](../cli/README.md) instead. The panel stays unavailable under that flag, tracked in [#50](https://github.com/rachelslurs/storybook-oversight/issues/50).
 
-### Optional: enable the Docs-page block
+### Optional: enable the Docs block
 
 Register the global container in `.storybook/preview.ts` to render Oversight at the bottom of every component Docs page:
 
@@ -86,10 +86,10 @@ The manifest Oversight lints is the _upstream_ artifact: Storybook's MCP `get-do
 
 ## Surfaces
 
-The same diagnostics appear in two places, independently:
+The same findings appear in two places, independently:
 
 - **Addons panel**: an "Oversight" tab on every component's **story** view (Storybook hides addon panels on Docs pages). Registering the addon in `.storybook/main.ts` enables it.
-- **Docs-page block**: the same coverage rendered inline on Docs pages. It is an optional step in the [installation](#optional-enable-the-docs-page-block).
+- **Docs block**: the same coverage rendered inline on Docs pages. It is an optional step in the [installation](#optional-enable-the-docs-block).
 
 ## In CI
 

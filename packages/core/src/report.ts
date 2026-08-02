@@ -32,8 +32,8 @@ export type ComponentReport = {
   manifestDiagnostics: Diagnostic[];
   /** `unrecognized` means the prop payload was not in a shape this build reads,
    *  so `props` is not trustworthy. Renderers must not present prop coverage
-   *  from it: the lint rules are held in that case, and a coverage figure drawn
-   *  from the same fields would contradict the diagnostic saying so. */
+   *  from it: the lint rules do not run in that case, and a coverage figure
+   *  drawn from the same fields would contradict the finding saying so. */
   propShape: 'known' | 'unrecognized';
 };
 

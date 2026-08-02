@@ -486,7 +486,7 @@ function DebuggerFooter({ debuggerUrl, componentId }: { debuggerUrl: string; com
 
 /**
  * Presentational only: a resolved report plus a variant. No manager-api
- * imports, so it runs in both the manager panel and a docs-page block.
+ * imports, so it runs in both the addons panel and the Docs block.
  */
 export function ReportView({
   status,
