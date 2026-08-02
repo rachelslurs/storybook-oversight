@@ -151,15 +151,13 @@ const SEVERITY_STATUS: Record<DiagnosticSeverity, 'negative' | 'warning' | 'neut
 };
 const SEVERITY_RANK: Record<DiagnosticSeverity, number> = { error: 0, warning: 1, info: 2 };
 
-const RowList = styled.ul({ listStyle: 'none', margin: 0, padding: 0 });
-const Row = styled.li({
-  display: 'flex',
-  gap: 8,
-  alignItems: 'baseline',
-  margin: '0 0 8px',
-  '&:last-child': { margin: 0 },
-});
 const FindingBody = styled.div(({ theme }) => ({ color: theme.color.defaultText, lineHeight: 1.4 }));
+// the fix sits under the message it answers, quieter than it
+const FindingFix = styled.div(({ theme }) => ({
+  color: theme.textMutedColor,
+  lineHeight: 1.4,
+  marginTop: 2,
+}));
 const RuleName = styled.code(({ theme }) => ({
   fontFamily: theme.typography.fonts.mono,
   fontSize: '0.92em',
@@ -194,7 +192,7 @@ const RequiredMark = styled.span(({ theme }) => ({
 // prop table, two tabs from this one: no cell borders and no striping, a muted
 // heading, and a rule between rows. Storybook's `ArgsTable` is bound to args,
 // so this is its look rather than the component itself.
-const PropTable = styled.table(({ theme }) => ({
+const ReportTable = styled.table(({ theme }) => ({
   // doubled throughout, because the Docs page styles every table it renders and
   // would otherwise box each cell and stripe the rows
   '&&': {
@@ -295,18 +293,33 @@ function EmptyState({
 function FindingsList({ diagnostics }: { diagnostics: Diagnostic[] }) {
   const sorted = [...diagnostics].sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
   return (
-    <RowList>
-      {sorted.map((diagnostic, index) => (
-        <Row key={`${diagnostic.rule}-${index}`}>
-          <Badge compact status={SEVERITY_STATUS[diagnostic.severity]}>
-            {diagnostic.severity}
-          </Badge>
-          <FindingBody>
-            <RuleName>{diagnostic.rule}</RuleName> {markDanglingIds(diagnostic.message, diagnostic.targets)}
-          </FindingBody>
-        </Row>
-      ))}
-    </RowList>
+    <ReportTable>
+      <thead>
+        <tr>
+          <th scope="col">Severity</th>
+          <th scope="col">Rule</th>
+          <th scope="col">Finding</th>
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map((diagnostic, index) => (
+          <tr key={`${diagnostic.rule}-${index}`}>
+            <td>
+              <Badge compact status={SEVERITY_STATUS[diagnostic.severity]}>
+                {diagnostic.severity}
+              </Badge>
+            </td>
+            <td>
+              <RuleName>{diagnostic.rule}</RuleName>
+            </td>
+            <td>
+              <FindingBody>{markDanglingIds(diagnostic.message, diagnostic.targets)}</FindingBody>
+              {diagnostic.fix ? <FindingFix>{diagnostic.fix}</FindingFix> : null}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </ReportTable>
   );
 }
 
@@ -430,14 +443,13 @@ function DescriptionSection({
       <Heading>Description</Heading>
       {description === null ? (
         <Warning>
-          None. Add JSDoc above the component
+          None.
           {sourceFile ? (
             <>
               {' '}
-              in <FilePath>{sourceFile}</FilePath>
+              The component is in <FilePath>{sourceFile}</FilePath>.
             </>
           ) : null}
-          .
         </Warning>
       ) : (
         <Markdown text={description} LinkComponent={LinkComponent} danglingTargets={danglingTargets} />
@@ -566,7 +578,7 @@ export function ReportView({
             <span>No props extracted.</span>
           </>
         ) : (
-          <PropTable>
+          <ReportTable>
             <thead>
               <tr>
                 <th scope="col">Prop</th>
@@ -595,7 +607,7 @@ export function ReportView({
                 );
               })}
             </tbody>
-          </PropTable>
+          </ReportTable>
         )}
       </Section>
       {storyErrorsShown && <StoryFailuresSection storyFailures={storyFailures} />}

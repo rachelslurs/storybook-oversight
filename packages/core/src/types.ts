@@ -201,4 +201,7 @@ export type Diagnostic = {
   /** For `docgen-missing` / `story-extraction-error`: the manifest error's
    *  `name`, when the entry carried one. Renderers group mass failures by it. */
   errorName?: string;
+  /** What to do about the finding, in one imperative line. Absent on a rule
+   *  that reports a fact rather than a defect (`deprecated-tag`). */
+  fix?: string;
 };
