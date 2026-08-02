@@ -48,18 +48,22 @@ const Heading = styled.div(({ theme }) => ({
   marginBottom: 6,
 }));
 
-// A count of what the section covers belongs on the heading's line, not as a
-// second line under it.
-const SectionHeader = styled.div({
-  display: 'flex',
-  alignItems: 'baseline',
-  justifyContent: 'space-between',
-  gap: 12,
-  marginBottom: 6,
-  // the heading's own bottom margin is the row's now, or it opens a gap inside
-  '& > *': { marginBottom: 0 },
-  // the count reads as one thing, so it wraps as one or not at all
-  '& > span': { whiteSpace: 'nowrap' },
+// The count sits against the table's own heading row, where the Controls panel
+// puts its reset control: outside the table, so it is not read as part of a
+// column header, and positioned onto that row rather than given a line of its
+// own.
+const PropTableFrame = styled.div({ position: 'relative' });
+
+const PropCount = styled.span({
+  position: 'absolute',
+  top: 0,
+  right: 0,
+  // the heading row's own padding and line height, so the badge sits on that
+  // row rather than near it
+  padding: '10px 0',
+  lineHeight: '24px',
+  whiteSpace: 'nowrap',
+  pointerEvents: 'none',
 });
 
 // Warning/error text takes the theme's semantic foreground scale, which is what
@@ -562,55 +566,59 @@ export function ReportView({
         danglingTargets={danglingTargets}
       />
       <Section>
-        <SectionHeader>
-          <Heading>Props</Heading>
-          {propShape !== 'unrecognized' && propNames.length > 0 && (
-            <span>
-              {propNames.length - undocumented.length}/{propNames.length} props documented
-            </span>
-          )}
-        </SectionHeader>
+        <Heading>Props</Heading>
         {propShape === 'unrecognized' ? (
           // The rules do not run in this case. A coverage figure read from the
           // same fields would contradict the finding that says so.
           <span>Prop coverage is unavailable: the manifest&rsquo;s prop payload was not recognized.</span>
         ) : propNames.length === 0 ? (
           <span>No props extracted.</span>
+        ) : undocumented.length === 0 ? (
+          // Nothing to table, so the count is the whole report for this section
+          <Badge compact status="positive">
+            {propNames.length}/{propNames.length} props documented
+          </Badge>
         ) : (
-          <>
-            {undocumented.length > 0 && (
-              <PropTable>
-                <thead>
-                  <tr>
-                    <th scope="col">Prop</th>
-                    <th scope="col">Required</th>
-                    <th scope="col">Missing</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {undocumented.map((name) => {
-                    const required = component.props[name].required;
-                    return (
-                      <tr key={name}>
-                        <td>
-                          <PropName>{name}</PropName>
-                          {required && <RequiredMark aria-hidden="true">*</RequiredMark>}
-                        </td>
-                        <td>{required ? 'Yes' : 'No'}</td>
-                        <td>
-                          {/* the severity stays in the badge's color: an undocumented
+          <PropTableFrame>
+            <PropCount>
+              <Badge
+                compact
+                status={undocumented.some((name) => component.props[name].required) ? 'negative' : 'warning'}
+              >
+                {propNames.length - undocumented.length}/{propNames.length} props documented
+              </Badge>
+            </PropCount>
+            <PropTable>
+              <thead>
+                <tr>
+                  <th scope="col">Prop</th>
+                  <th scope="col">Required</th>
+                  <th scope="col">Missing</th>
+                </tr>
+              </thead>
+              <tbody>
+                {undocumented.map((name) => {
+                  const required = component.props[name].required;
+                  return (
+                    <tr key={name}>
+                      <td>
+                        <PropName>{name}</PropName>
+                        {required && <RequiredMark aria-hidden="true">*</RequiredMark>}
+                      </td>
+                      <td>{required ? 'Yes' : 'No'}</td>
+                      <td>
+                        {/* the severity stays in the badge's color: an undocumented
                               required prop is the error, the rest are warnings */}
-                          <Badge compact status={required ? 'negative' : 'warning'}>
-                            undocumented
-                          </Badge>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </PropTable>
-            )}
-          </>
+                        <Badge compact status={required ? 'negative' : 'warning'}>
+                          undocumented
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </PropTable>
+          </PropTableFrame>
         )}
       </Section>
       {storyErrorsShown && <StoryFailuresSection storyFailures={storyFailures} />}
