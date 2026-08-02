@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 import { DocsContainer, useOf } from '@storybook/addon-docs/blocks';
 import type { DocsContainerProps } from '@storybook/addon-docs/blocks';
-import { ThemeProvider, ensure, getPreferredColorScheme, styled, themes, useTheme } from 'storybook/theming';
+import { ThemeProvider, ensure, styled, themes, useTheme } from 'storybook/theming';
 import { buildReport, describeManifestUnavailable } from 'oversight-core';
 import type { RawManifest } from 'oversight-core';
 import { DEFAULT_DEBUGGER_LINK } from './config';
@@ -17,7 +17,8 @@ import type { ReportViewStatus } from './components/ReportView';
  * follows whatever theme the Docs page is rendered with.
  *
  * The id is set explicitly rather than slugged, so `#oversight` is a stable deep
- * link into any component's Docs page.
+ * link into any component's Docs page. Only one block per page carries it; see
+ * `useAnchorId`.
  */
 const SectionHeading = styled.h2(({ theme }) => ({
   fontSize: `${theme.typography.size.s2 - 1}px`,
@@ -85,6 +86,30 @@ function loadManifest(): Promise<RawManifest | null> {
 // (above), so an early miss just retries when the block renders.
 void loadManifest();
 
+const ANCHOR_ID = 'oversight';
+
+/** Whether a block on this page already owns the anchor. */
+let anchorClaimed = false;
+
+/**
+ * Both documented setups can land on one page: the global container appends a
+ * block and a component's MDX may also place `<Oversight />`. Duplicate DOM ids
+ * are invalid and `getElementById` returns only the first, so the first block to
+ * mount owns `#oversight` and any second one renders without an id.
+ */
+function useAnchorId(): string | undefined {
+  const [id, setId] = useState<string | undefined>(undefined);
+  useLayoutEffect(() => {
+    if (anchorClaimed) return;
+    anchorClaimed = true;
+    setId(ANCHOR_ID);
+    return () => {
+      anchorClaimed = false;
+    };
+  }, []);
+  return id;
+}
+
 type MetaOf = {
   csfFile: { meta: { id?: string; parameters?: { oversight?: OversightConfig } } };
 };
@@ -96,6 +121,7 @@ type MetaOf = {
  * components-manifest feature (e.g. `@storybook/addon-mcp`).
  */
 export function Oversight() {
+  const anchorId = useAnchorId();
   const meta = useOf('meta', ['meta']) as unknown as MetaOf;
   const componentId = meta.csfFile.meta.id;
   const options = meta.csfFile.meta.parameters?.oversight ?? {};
@@ -138,7 +164,7 @@ export function Oversight() {
 
   return (
     <ThemedRoot>
-      <SectionHeading id="oversight">Oversight</SectionHeading>
+      <SectionHeading id={anchorId}>Oversight</SectionHeading>
       <Container>
         {/* compact: autodocs renders the description prose right below us, so
               we show a documented/missing verdict, not the full text. */}
@@ -163,14 +189,14 @@ export function Oversight() {
  *
  * The surrounding theme is inherited whenever the context resolves, which is
  * the case on a Docs page, so a project that themes its Storybook gets a block
- * themed with it. The fallback is only for a context that does not resolve, and
- * it reads the browser's colour preference rather than assuming light, so the
- * block does not come out white on a dark page.
+ * themed with it. The fallback only runs when the context does not resolve, and
+ * it matches what `DocsContainer` itself falls back to for an unset theme, so
+ * the block never disagrees with the page it sits in. Reading the OS preference
+ * here would: the OS is not the page's theme.
  */
 function ThemedRoot({ children }: { children: ReactNode }) {
   const inherited = useTheme();
-  const fallback = getPreferredColorScheme() === 'dark' ? themes.dark : themes.light;
-  const theme = inherited?.typography ? inherited : ensure(fallback);
+  const theme = inherited?.typography ? inherited : ensure(themes.light);
   return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
 }
 
@@ -188,7 +214,8 @@ function ThemedRoot({ children }: { children: ReactNode }) {
  * diagnose. (For per-page control instead, place `<Oversight/>`
  * in an individual MDX rather than using this container.)
  */
-export function OversightDocsContainer({ context, children }: PropsWithChildren<DocsContainerProps>) {
+export function OversightDocsContainer({ children, ...props }: PropsWithChildren<DocsContainerProps>) {
+  const { context } = props;
   let hasComponent = false;
   try {
     context.resolveOf('meta', ['meta']);
@@ -197,7 +224,7 @@ export function OversightDocsContainer({ context, children }: PropsWithChildren<
     // Unattached docs page, so no component meta to resolve.
   }
   return (
-    <DocsContainer context={context}>
+    <DocsContainer {...props}>
       {children}
       {hasComponent && <Oversight />}
     </DocsContainer>

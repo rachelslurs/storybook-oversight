@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { detectRepoRoot, normalizeManifest } from './normalize';
+import { detectExtractorPrefix, detectRepoRoot, normalizeManifest } from './normalize';
 import { resolveManifestRefs } from './resolveRefs';
 import type { RawManifest, RawPayload } from './types';
 
@@ -376,5 +376,54 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
     expect(result.format).toBe('ref');
     expect(result.components).toHaveLength(1);
     expect(result.components[0].storiesFile).toBe('./Button.stories.tsx');
+  });
+});
+
+describe('detectExtractorPrefix', () => {
+  const evidence = (source: string, stories: string) => [{ source, stories }];
+
+  it('strips the single segment react-docgen-typescript prepends', () => {
+    expect(
+      detectExtractorPrefix(evidence('my-project/stories/Badge/Badge.tsx', './stories/Badge/Badge.stories.tsx')),
+    ).toBe('my-project/');
+  });
+
+  it('leaves a genuinely nested source alone, which the docstring promises', () => {
+    // dropping one segment leaves "ui/src/Button", not "src/Button", so nothing vouches for a prefix
+    expect(
+      detectExtractorPrefix(evidence('packages/ui/src/Button/Button.tsx', './src/Button/Button.stories.tsx')),
+    ).toBeNull();
+  });
+
+  it('does not match inside a path segment', () => {
+    expect(
+      detectExtractorPrefix(evidence('app/websrc/Button/Button.tsx', './src/Button/Button.stories.tsx')),
+    ).toBeNull();
+  });
+
+  it('finds nothing to strip when the source is already repo-relative', () => {
+    expect(detectExtractorPrefix(evidence('stories/Badge/Badge.tsx', './stories/Badge/Badge.stories.tsx'))).toBeNull();
+  });
+
+  it('leaves a source that does not sit beside its stories file alone', () => {
+    expect(detectExtractorPrefix(evidence('myproj/src/Button.tsx', './stories/Button.stories.tsx'))).toBeNull();
+  });
+
+  it('strips nothing when entries disagree, rather than trimming some and not others', () => {
+    expect(
+      detectExtractorPrefix([
+        { source: 'a/src/X/X.tsx', stories: './src/X/X.stories.tsx' },
+        { source: 'b/src/Y/Y.tsx', stories: './src/Y/Y.stories.tsx' },
+      ]),
+    ).toBeNull();
+  });
+
+  it('agrees across entries that vouch for the same prefix', () => {
+    expect(
+      detectExtractorPrefix([
+        { source: 'proj/src/X/X.tsx', stories: './src/X/X.stories.tsx' },
+        { source: 'proj/src/Y/Y.tsx', stories: './src/Y/Y.stories.tsx' },
+      ]),
+    ).toBe('proj/');
   });
 });

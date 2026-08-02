@@ -201,28 +201,58 @@ function inspectPropShape(raw: RawManifest): { propShape: 'known' | 'unrecognize
 
 /**
  * `react-docgen-typescript` prefixes its declaration paths with the project
- * directory's own name, so a repo-root detected from them keeps that segment:
+ * directory's own name, so a repo root detected from them keeps that segment:
  * "storybook-addon-oversight/stories/Badge/Badge.tsx" for a file the repo knows
  * as "stories/Badge/Badge.tsx".
  *
  * The entry's own `path` is recorded repo-relative and without that prefix, so
- * it is the evidence: when the stories file's directory appears later in the
- * source path, everything before it is the extractor's addition. Anything the
- * stories path cannot vouch for is left alone, so a consumer whose sources
- * genuinely live under "packages/ui/src" keeps that prefix.
+ * it is the evidence. An entry vouches for a prefix only when dropping ONE
+ * leading segment from the source's directory makes it equal the stories file's
+ * directory: the extractor adds exactly one segment, so a source under
+ * "packages/ui/src" beside stories in "src" leaves "ui/src" and does not match,
+ * and the prefix stays.
+ *
+ * Like the repo root, the prefix is a property of the whole manifest rather than
+ * of one entry, so it is detected across all of them and every voucher has to
+ * agree. A manifest that trimmed some components and not others would print two
+ * different path roots in one run, which is worse than trimming none.
  */
-export function trimExtractorPrefix(sourceFile: string, storiesPath: string): string {
-  const stories = storiesPath.replace(/^\.\//, '');
-  const cut = stories.lastIndexOf('/');
-  if (cut < 0) return sourceFile;
-  const dir = stories.slice(0, cut + 1);
-  const at = sourceFile.indexOf(dir);
-  return at > 0 ? sourceFile.slice(at) : sourceFile;
+export function detectExtractorPrefix(entries: Array<{ source: string; stories: string }>): string | null {
+  let agreed: string | null = null;
+  for (const { source, stories } of entries) {
+    const rel = stories.replace(/^\.\//, '');
+    const storiesDir = rel.slice(0, rel.lastIndexOf('/'));
+    const sourceDir = source.slice(0, source.lastIndexOf('/'));
+    if (!storiesDir || !sourceDir) continue;
+    // already repo-relative: there is nothing the extractor added
+    if (sourceDir === storiesDir) return null;
+    const slash = sourceDir.indexOf('/');
+    if (slash < 0) continue;
+    // dropping one segment has to land exactly on the stories directory
+    if (sourceDir.slice(slash + 1) !== storiesDir) continue;
+    const candidate = sourceDir.slice(0, slash + 1);
+    if (agreed === null) agreed = candidate;
+    else if (agreed !== candidate) return null;
+  }
+  return agreed;
+}
+
+/** Every entry's repo-relative source path beside the stories path that vouches
+ *  for it, which is what `detectExtractorPrefix` reads. */
+function prefixEvidence(raw: RawManifest, repoRoot: string | null): Array<{ source: string; stories: string }> {
+  return Object.values(raw.components ?? {}).flatMap((entry) => {
+    const payload = payloadOf(entry);
+    const sourcePath = payload ? sourcePathOf(payload) : undefined;
+    if (!sourcePath || !entry.path) return [];
+    const source = repoRoot && sourcePath.startsWith(repoRoot) ? sourcePath.slice(repoRoot.length) : sourcePath;
+    return [{ source, stories: entry.path }];
+  });
 }
 
 export function normalizeManifest(raw: RawManifest): NormalizeResult {
   const rawExtractor = recordedExtractor(raw);
   const repoRoot = detectRepoRoot(raw);
+  const extractorPrefix = detectExtractorPrefix(prefixEvidence(raw, repoRoot));
   const format = detectManifestFormat(raw).kind === 'ref' ? 'ref' : 'inline';
   // Scoped to the ref format: react-docgen declares `description` optional on
   // its own prop descriptor, so an inline manifest may legitimately omit it.
@@ -292,7 +322,10 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
         ? sourcePath.slice(repoRoot.length)
         : sourcePath
       : null;
-    const sourceFile = relativeSource ? trimExtractorPrefix(relativeSource, storiesFile) : null;
+    const sourceFile =
+      relativeSource && extractorPrefix && relativeSource.startsWith(extractorPrefix)
+        ? relativeSource.slice(extractorPrefix.length)
+        : relativeSource;
 
     components.push({
       id,
