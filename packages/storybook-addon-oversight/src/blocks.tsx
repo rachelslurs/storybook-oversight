@@ -115,7 +115,7 @@ type MetaOf = {
 };
 
 /**
- * The same diagnostics the Oversight manager panel shows, rendered inline on
+ * The same findings the Oversight addons panel shows, rendered inline on
  * the current component's Docs page.
  * Reads which component it documents from `useOf("meta")`. Requires the
  * components-manifest feature (e.g. `@storybook/addon-mcp`).
@@ -151,7 +151,7 @@ export function Oversight() {
   } else {
     // `buildReport` runs normalize/analyze synchronously in render, so a
     // malformed/unsupported manifest would throw here and crash the Docs page.
-    // Degrade to the error state instead, the same guarantee the manager panel
+    // Degrade to the error state instead, the same guarantee the addons panel
     // makes (never hang or crash on a bad manifest).
     try {
       report = buildReport(manifest, componentId, options);

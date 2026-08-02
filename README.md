@@ -21,7 +21,7 @@ The rules live once, in a shared core, and run two ways: one interactive in Stor
 
 | Package | Use it for |
 | --- | --- |
-| [**storybook-addon-oversight**](./packages/storybook-addon-oversight/README.md) | Lints the manifest live in Storybook: an addon panel on every story and an inline Docs-page block, while you work. |
+| [**storybook-addon-oversight**](./packages/storybook-addon-oversight/README.md) | Lints the manifest live in Storybook: an addon panel on every story and an inline Docs block, while you work. |
 | [**oversight-lint**](./packages/cli/README.md) | Lints the built manifest in CI. Fails the build when a change drops or breaks a component's docs. The command is `oversight`. |
 | [**oversight-lint-action**](https://github.com/rachelslurs/oversight-lint-action) | Runs the CI linter as a GitHub Action, reporting findings as annotations. Lives in its own repo. |
 
