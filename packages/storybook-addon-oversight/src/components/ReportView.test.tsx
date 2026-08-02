@@ -384,6 +384,28 @@ describe('ReportView report rendering', () => {
     expect(first?.textContent?.trim()).toBe('required-prop-undocumented');
   });
 
+  it('marks each section label as a heading, so the report is not skipped', () => {
+    const manifest = {
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ex-doc': {
+          name: 'Doc',
+          path: './Doc.stories.tsx',
+          reactDocgenTypescript: { description: 'Prose.', props: {} },
+        },
+      },
+    } as unknown as RawManifest;
+    const report = buildReport(manifest, 'ex-doc');
+    const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+
+    // bold text is a heading only to someone who can see it
+    const label = [...container.querySelectorAll('*')].find(
+      (el) => el.children.length === 0 && el.textContent?.trim() === 'Description',
+    );
+    expect(label?.getAttribute('role')).toBe('heading');
+    expect(label?.getAttribute('aria-level')).toBe('3');
+  });
+
   it('renders a positive no-findings state for a clean component', () => {
     const manifest = {
       meta: { docgen: 'react-docgen-typescript' },

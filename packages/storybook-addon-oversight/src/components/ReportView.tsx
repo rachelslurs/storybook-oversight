@@ -32,6 +32,15 @@ export type ReportViewProps = {
   unavailableReason?: string;
 };
 
+/**
+ * The Docs page sizes every span and div it does not recognize at 16px, through a
+ * zero-specificity `:where()` rule that inheritance alone cannot beat. An element
+ * setting no size of its own takes that instead of the size its context sets,
+ * so each one here says it inherits. Storybook's own blocks sit inside
+ * `sb-unstyled`, which the rule excludes.
+ */
+const inheritSize = { fontSize: 'inherit' } as const;
+
 const Section = styled.section(({ theme }) => ({
   // no rule between sections: the panel and the block each already draw an edge
   // around the report, and the headings carry the division on their own
@@ -45,19 +54,25 @@ const Section = styled.section(({ theme }) => ({
   color: theme.color.defaultText,
 }));
 
-const Heading = styled.div(({ theme }) => ({
+/**
+ * A section label. Bold text alone is a heading only to someone who can see it,
+ * so this says so: without it the whole report is skipped by heading navigation
+ * on both surfaces. The role rather than an `h3` because the Docs page styles
+ * heading elements heavily and this has to read the same on the panel.
+ */
+const SectionLabel = styled.div(({ theme }) => ({
+  ...inheritSize,
   fontWeight: theme.typography.weight.bold,
   marginBottom: 6,
 }));
 
-/**
- * The Docs page sizes every span it does not recognize at 16px, through a
- * zero-specificity `:where()` rule that inheritance alone cannot beat. A span
- * setting no size of its own takes that instead of the size its context sets,
- * so each one here says it inherits. Storybook's own blocks sit inside
- * `sb-unstyled`, which the rule excludes.
- */
-const inheritSize = { fontSize: 'inherit' } as const;
+function Heading({ children }: { children: ReactNode }) {
+  return (
+    <SectionLabel role="heading" aria-level={3}>
+      {children}
+    </SectionLabel>
+  );
+}
 
 // Error text takes the theme's semantic foreground scale, which is what
 // Storybook's own Badge uses for these statuses. The text-tone colors next to it
