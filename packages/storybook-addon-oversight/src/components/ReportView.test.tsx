@@ -182,6 +182,72 @@ describe('ReportView theming', () => {
   });
 });
 
+describe('ReportView scrollable table regions', () => {
+  const manifest = {
+    meta: { docgen: 'react-docgen-typescript' },
+    components: {
+      'ex-button': {
+        name: 'Button',
+        path: './Button.stories.tsx',
+        reactDocgenTypescript: {
+          description: 'A button.',
+          props: { label: { description: '', required: true, declarations: [] } },
+        },
+      },
+    },
+  } as unknown as RawManifest;
+
+  // Nothing inside either table takes focus, so the scroll container itself
+  // must, or a narrow panel leaves columns a keyboard user can neither reach
+  // nor scroll to (axe: scrollable-region-focusable). And a focused region is
+  // announced by its name, so each table's region needs its own.
+  it('gives every table scroll container a tab stop and its own name', () => {
+    // a mismatched expectation raises a manifest-level finding, so this one
+    // render holds all three tables a report can show
+    const report = buildReport(manifest, 'ex-button', { expectedExtractor: 'react-component-meta' });
+    const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+
+    const regions = [...container.querySelectorAll('[role="region"]')];
+    expect(regions.map((region) => region.getAttribute('aria-label'))).toEqual([
+      'Manifest findings',
+      'Findings',
+      'Props',
+    ]);
+    for (const region of regions) {
+      expect(region.getAttribute('tabindex')).toBe('0');
+      expect(region.querySelector('table')).not.toBeNull();
+    }
+  });
+
+  // The Docs page and the panel are both free to reset the browser's own focus
+  // ring, and a tab stop nobody can see is a keyboard trapdoor, so the region
+  // has to draw a ring of its own in each theme.
+  it.each([
+    ['light', themes.light],
+    ['dark', themes.dark],
+  ])('draws its own focus ring on the region (%s)', (_name, base) => {
+    const theme = ensure(base);
+    const report = buildReport(manifest, 'ex-button');
+    renderWith(theme, <ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+
+    const rules = [...document.styleSheets].flatMap((sheet) => {
+      try {
+        return [...sheet.cssRules].map((rule) => rule.cssText);
+      } catch {
+        return [];
+      }
+    });
+    // the shorthand reads back as longhands, so the check names them
+    const ringed = rules.some(
+      (rule) =>
+        rule.includes(':focus-visible') &&
+        rule.includes('outline-style: solid') &&
+        rule.toLowerCase().includes(`outline-color: ${theme.color.secondary}`.toLowerCase()),
+    );
+    expect(ringed).toBe(true);
+  });
+});
+
 describe('ReportView report rendering', () => {
   it('renders findings and a row per prop for a documented component', () => {
     const manifest = {

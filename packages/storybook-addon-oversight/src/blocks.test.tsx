@@ -1,0 +1,99 @@
+// @vitest-environment happy-dom
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { Oversight } from './blocks';
+
+// `useOf` walks addon-docs' DocsContext and the real manifest source fetches
+// at import time, so both are replaced: the subject here is what the block
+// makes of what it is given, not how the manifest arrives.
+vi.mock('@storybook/addon-docs/blocks', () => ({
+  DocsContainer: (props: { children?: unknown }) => props.children,
+  useOf: () => ({ csfFile: { meta: { id: 'ex-doc' } } }),
+}));
+
+// Each test sets the outcome it needs; `beforeEach` restores a manifest that loads.
+const state = vi.hoisted(() => ({ parseFailed: false, manifest: null as unknown }));
+
+vi.mock('./manifestSource', () => ({
+  createManifestSource: () => ({
+    load: () => Promise.resolve(state.manifest),
+    urlFor: (name: string) => `http://localhost/manifests/${name}`,
+    unavailableReason: () =>
+      state.parseFailed ? 'The components manifest was served but could not be parsed.' : undefined,
+    parseFailed: () => state.parseFailed,
+  }),
+}));
+
+const LOADS = {
+  meta: { docgen: 'react-docgen-typescript' },
+  components: {
+    'ex-doc': {
+      name: 'Doc',
+      path: './Doc.stories.tsx',
+      reactDocgenTypescript: {
+        description:
+          'See [MDN](https://developer.mozilla.org/en-US/docs/Web), [More](?path=/docs/ex-doc--docs), ' +
+          '[Sized](?path=/docs/ex-doc--docs&args=size:lg) and [Deep](?path=/docs/ex-doc--docs#oversight).',
+        props: {},
+      },
+    },
+  },
+};
+
+beforeEach(() => {
+  state.parseFailed = false;
+  state.manifest = LOADS;
+});
+
+afterEach(cleanup);
+
+describe('DocsLink', () => {
+  // The markdown parser admits absolute http(s) targets as well as `?path=`
+  // ones. Rebasing an absolute URL with `./` resolves it to
+  // `<storybook-origin>/https://…`, a 404, and `_top` takes the whole tab
+  // there, out of Storybook.
+  it('rebases ?path= targets onto the root and leaves absolute URLs untouched', async () => {
+    render(<Oversight />);
+
+    const external = await screen.findByRole('link', { name: 'MDN' });
+    expect(external.getAttribute('href')).toBe('https://developer.mozilla.org/en-US/docs/Web');
+    expect(external.getAttribute('target')).toBe('_top');
+    // the Referer sent to a cited third-party site would name the Storybook
+    // host, which may be private
+    expect(external.getAttribute('rel')).toBe('noopener noreferrer');
+
+    // every relative target rebases, whether or not it parses as a story id:
+    // left alone they resolve against `iframe.html` and load the preview frame
+    // as the whole page
+    for (const [name, href] of [
+      ['More', './?path=/docs/ex-doc--docs'],
+      ['Sized', './?path=/docs/ex-doc--docs&args=size:lg'],
+      ['Deep', './?path=/docs/ex-doc--docs#oversight'],
+    ]) {
+      const internal = screen.getByRole('link', { name });
+      expect(internal.getAttribute('href')).toBe(href);
+      expect(internal.getAttribute('target')).toBe('_top');
+      expect(internal.getAttribute('rel')).toBeNull();
+    }
+  });
+});
+
+describe('Oversight manifest states', () => {
+  it('tells a served-but-unparseable manifest apart from a missing one', async () => {
+    state.manifest = null;
+    state.parseFailed = true;
+    render(<Oversight />);
+
+    // the two states both talk about parsing once a reason is set, so the title
+    // is what separates them
+    expect(await screen.findByText('Manifest could not be parsed')).toBeTruthy();
+    expect(screen.queryByText('Components manifest unavailable')).toBeNull();
+  });
+
+  it('keeps the manifest-feature hint when nothing answered', async () => {
+    state.manifest = null;
+    render(<Oversight />);
+
+    expect(await screen.findByText(/@storybook\/addon-mcp/)).toBeTruthy();
+  });
+});

@@ -16,9 +16,18 @@ export type InlineSegment =
 // Order matters: `**` before `*` so bold wins over italic.
 const TOKEN = /\*\*([^*]+)\*\*|`([^`]+)`|\*([^*]+)\*|\[([^\]]+)\]\(([^)]+)\)/g;
 
+/**
+ * A target that already names its own origin, so nothing may rebase it. The
+ * other shape a link can take is relative, and where that resolves depends on
+ * the document doing the resolving.
+ */
+export function isAbsoluteTarget(target: string): boolean {
+  return /^https?:\/\//.test(target);
+}
+
 /** Only these target shapes are treated as links; other `[x](y)` stays text. */
 function isLinkTarget(target: string): boolean {
-  return target.startsWith('?path=/') || /^https?:\/\//.test(target);
+  return target.startsWith('?path=/') || isAbsoluteTarget(target);
 }
 
 export function parseInline(value: string): InlineSegment[] {
