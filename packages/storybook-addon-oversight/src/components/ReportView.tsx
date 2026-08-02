@@ -220,25 +220,16 @@ const UndocumentedIcon = styled(CrossIcon)(({ theme }) => ({
   color: theme.fgColor.negative,
 }));
 
-/** The Controls panel marks a required prop with an asterisk after its name.
- *  The Required column says the same thing in a word, so this is hidden from a
- *  screen reader rather than announced twice. */
-// The mark the args table puts after a required prop's name, in its own
-// treatment: mono, and a help cursor for the tooltip. The color is the one
-// difference. Storybook's `color.negative` holds `#FF4400` for both themes;
-// this scale is `#C23400` on light and `#FF6933` on dark.
+/** An asterisk after a required prop's name. The Required column says the same
+ *  thing in a word, so this is hidden from a screen reader rather than
+ *  announced twice. */
 const RequiredMark = styled.span(({ theme }) => ({
   ...inheritSize,
-  color: theme.fgColor.negative,
+  color: theme.color.negative,
   fontFamily: theme.typography.fonts.mono,
   cursor: 'help',
-  marginLeft: 2,
 }));
 
-// The undocumented props take the treatment the Controls panel gives its own
-// prop table, two tabs from this one: no cell borders and no striping, a muted
-// heading, and a rule between rows. Storybook's `ArgsTable` is bound to args,
-// so this is its look rather than the component itself.
 // A rule name never breaks, so a narrow panel cannot squeeze these columns past
 // their content. The table scrolls inside this rather than spilling out of the
 // section, which clips it: the page itself never scrolls sideways.
