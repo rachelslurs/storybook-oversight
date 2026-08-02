@@ -53,14 +53,24 @@ export const Pointer = styled.span(({ theme }) => ({
   '& a': { color: theme.color.secondary },
 }));
 
+export const Tagline = styled.div(({ theme }) => ({
+  maxWidth: 440,
+  margin: '0.75rem auto 0',
+  fontSize: 16,
+  lineHeight: 1.5,
+  color: theme.textMutedColor,
+  // this was a p holding the size and color, and MDX put its own p inside it,
+  // so the docs stylesheet styled the text and none of it painted. A div takes
+  // the values and any paragraph MDX adds inherits rather than overrides them
+  '& p': { margin: 0, fontSize: 'inherit', lineHeight: 'inherit', color: 'inherit' },
+}));
+
 <Meta title="Overview" />
 
 <div style={{ textAlign: 'center', margin: '2.5rem 0 3rem' }}>
   <img src={icon} width="80" height="80" alt="Oversight" style={{ borderRadius: 18, margin: '0 auto' }} />
   <h1 style={{ margin: '1rem 0 0.25rem' }}>storybook-addon-oversight</h1>
-  <p style={{ fontSize: 16, color: '#64748b', margin: '0.75rem auto 0', maxWidth: 440, lineHeight: 1.5 }}>
-    See what your agent can and can't see: it diagnoses silent failures in your Storybook MCP manifest.
-  </p>
+  <Tagline>See what your agent can and can't see: it diagnoses silent failures in your Storybook MCP manifest.</Tagline>
 </div>
 
 This Storybook dogfoods the addon: `@storybook/addon-mcp` serves the <a href="./manifests/components.html" target="_blank" rel="noreferrer">components manifest</a>, and Oversight lints it.
