@@ -211,9 +211,10 @@ const PropTable = styled.table(({ theme }) => ({
     verticalAlign: 'middle',
   },
   '&& th:last-of-type, && td:last-of-type': { paddingRight: 0 },
-  // the docs stylesheet stripes every other row and the panel does not, so
-  // without this the same table reads two ways on the two surfaces
-  '&& tr': { background: 'none' },
+  // the docs stylesheet stripes every other row and rules the top of each one,
+  // and the panel does neither, so without this the same table reads two ways
+  // on the two surfaces. The rule between rows is the td's, set below
+  '&& tr': { background: 'none', borderTop: 'none' },
   '&& th': {
     color: theme.textMutedColor,
     fontWeight: theme.typography.weight.bold,
@@ -550,13 +551,20 @@ export function ReportView({
       />
       <FindingsSection diagnostics={diagnostics} />
       <Section>
-        <Heading>Props</Heading>
         {propShape === 'unrecognized' ? (
-          // The rules do not run in this case. A coverage figure read from the
-          // same fields would contradict the finding that says so.
-          <span>Prop coverage is unavailable: the manifest&rsquo;s prop payload was not recognized.</span>
+          <>
+            {/* the table names this section through its first column, so the
+                heading is only here for the cases that have no table */}
+            <Heading>Props</Heading>
+            {/* The rules do not run in this case. A coverage figure read from
+                the same fields would contradict the finding that says so. */}
+            <span>Prop coverage is unavailable: the manifest&rsquo;s prop payload was not recognized.</span>
+          </>
         ) : propNames.length === 0 ? (
-          <span>No props extracted.</span>
+          <>
+            <Heading>Props</Heading>
+            <span>No props extracted.</span>
+          </>
         ) : (
           <PropTable>
             <thead>
