@@ -417,13 +417,11 @@ function StoryFailuresSection({ storyFailures }: { storyFailures: ComponentRepor
 function DescriptionSection({
   description,
   sourceFile,
-  name,
   LinkComponent,
   danglingTargets,
 }: {
   description: string | null;
   sourceFile: string | null;
-  name: string;
   LinkComponent?: LinkComponent;
   danglingTargets?: Set<string>;
 }) {
@@ -432,10 +430,11 @@ function DescriptionSection({
       <Heading>Description</Heading>
       {description === null ? (
         <Warning>
-          Missing. The MCP and Docs tab describe {name} as nothing
+          None. Add JSDoc above the component
           {sourceFile ? (
             <>
-              . Add JSDoc in <FilePath>{sourceFile}</FilePath>
+              {' '}
+              in <FilePath>{sourceFile}</FilePath>
             </>
           ) : null}
           .
@@ -545,7 +544,6 @@ export function ReportView({
       <DescriptionSection
         description={component.description}
         sourceFile={component.sourceFile}
-        name={component.name}
         LinkComponent={LinkComponent}
         danglingTargets={danglingTargets}
       />
@@ -558,7 +556,9 @@ export function ReportView({
             <Heading>Props</Heading>
             {/* The rules do not run in this case. A coverage figure read from
                 the same fields would contradict the finding that says so. */}
-            <span>Prop coverage is unavailable: the manifest&rsquo;s prop payload was not recognized.</span>
+            <span>
+              The prop rules did not run: this manifest records props in a shape Oversight does not recognize.
+            </span>
           </>
         ) : propNames.length === 0 ? (
           <>

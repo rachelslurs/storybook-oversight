@@ -4,7 +4,7 @@ import type { ReactElement } from 'react';
 import { cleanup, render } from '@testing-library/react';
 import { ThemeProvider, ensure, themes } from 'storybook/theming';
 import { ReportView } from './ReportView';
-import { buildReport } from 'oversight-core';
+import { buildReport, resolveManifestRefs } from 'oversight-core';
 import type { RawManifest } from 'oversight-core';
 
 // ReportView's `styled` components read `theme.*`, so every render needs a
@@ -89,6 +89,45 @@ describe('ReportView status states', () => {
     const compact = renderView(<ReportView status="no-entry" debuggerUrl={DEBUGGER_URL} variant="compact" />);
     expect(compact.container.textContent).toContain('No manifest entry');
     expect(compact.container.innerHTML).not.toBe(fullHtml);
+  });
+});
+
+describe('ReportView prop shape', () => {
+  // `prop-shape-unrecognized` only runs on the ref format, so reaching this
+  // branch means hydrating a v:1 index whose prop payload carries neither a
+  // string description nor a boolean required.
+  it('says the prop rules did not run when the payload is unrecognized', async () => {
+    const refIndex = {
+      v: 1,
+      meta: { docgen: 'react-component-meta' },
+      components: {
+        'ex-moved': {
+          id: 'ex-moved',
+          name: 'Moved',
+          docgen: { $ref: './docgen/ex-moved.json#/components/ex-moved' },
+          stories: { $ref: './story-docs/ex-moved.json#/components/ex-moved' },
+        },
+      },
+    } as unknown as RawManifest;
+    const resolved = await resolveManifestRefs(refIndex, () =>
+      JSON.stringify({
+        components: {
+          'ex-moved': {
+            path: './Moved.stories.tsx',
+            reactComponentMeta: { description: 'A component.', props: { tone: { kind: 'moved' } } },
+            stories: { 'ex-moved--basic': { id: 'ex-moved--basic', name: 'Basic' } },
+          },
+        },
+      }),
+    );
+
+    const report = buildReport(resolved, 'ex-moved');
+    expect(report.propShape).toBe('unrecognized');
+
+    const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+    expect(container.textContent).toContain('The prop rules did not run');
+    // the table would be a coverage figure read from fields the rules rejected
+    expect(container.querySelector('tbody')).toBeNull();
   });
 });
 
