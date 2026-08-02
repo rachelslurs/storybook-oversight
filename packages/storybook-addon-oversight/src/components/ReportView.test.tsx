@@ -26,6 +26,11 @@ function propsTable(container: HTMLElement) {
 
 const DEBUGGER_URL = 'http://localhost/manifests/components.html';
 
+/** A computed color, as whatever notation the DOM hands back, lowercased. */
+function paintedColor(el: Element, property: 'color' | 'backgroundColor'): string {
+  return getComputedStyle(el)[property].toLowerCase();
+}
+
 afterEach(cleanup);
 
 describe('ReportView status states', () => {
@@ -153,32 +158,26 @@ describe('ReportView theming', () => {
     },
   } as unknown as RawManifest;
 
-  // The headings and the props count set no color of their own, so they take
-  // the color of the section they sit in. When that section painted a
-  // background and set no color, they fell back to the browser's black, which
-  // reads on a white Docs page and disappears on a dark one.
+  // A heading sets no color of its own, so it takes the color of the section it
+  // sits in. When that section painted a background and set no color, headings
+  // fell back to the browser's black, which reads on a white Docs page and
+  // disappears on a dark one.
   it.each([
     ['light', themes.light],
     ['dark', themes.dark],
-  ])('gives the section a text color to go with its background (%s)', (_name, base) => {
+  ])('paints a heading in the theme color, on the theme background (%s)', (_name, base) => {
     const theme = ensure(base);
     const report = buildReport(manifest, 'ex-themed');
-    renderWith(theme, <ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+    const { container } = renderWith(theme, <ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
 
-    const rules = [...document.styleSheets].flatMap((sheet) => {
-      try {
-        return [...sheet.cssRules].map((rule) => rule.cssText);
-      } catch {
-        return [];
-      }
-    });
-    // the section paints the content background, so some rule has to pair that
-    // background with the theme's text color. Nothing else on the page does
-    const paired = rules.some(
-      (rule) =>
-        rule.includes(`background: ${theme.background.content}`) && rule.includes(`color: ${theme.color.defaultText}`),
-    );
-    expect(paired).toBe(true);
+    // measured on the element that paints, not looked up in the stylesheet: a
+    // rule can sit in the sheet and still lose to the page's own
+    const heading = [...container.querySelectorAll('div')].find((el) => el.textContent?.trim() === 'Description');
+    expect(heading).toBeTruthy();
+    expect(paintedColor(heading!, 'color')).toBe(theme.color.defaultText.toLowerCase());
+
+    const section = heading!.closest('section');
+    expect(paintedColor(section!, 'backgroundColor')).toBe(theme.background.content.toLowerCase());
   });
 });
 
