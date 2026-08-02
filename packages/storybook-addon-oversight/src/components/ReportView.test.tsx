@@ -219,6 +219,40 @@ describe('ReportView report rendering', () => {
     ]);
   });
 
+  it('names each row by its rule and its prop, so a cell resolves to more than its column', () => {
+    const manifest = {
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ex-button': {
+          name: 'Button',
+          path: './Button.stories.tsx',
+          reactDocgenTypescript: {
+            description: 'A button.',
+            props: { label: { description: '', required: true, declarations: [] } },
+          },
+        },
+      },
+    } as unknown as RawManifest;
+    const report = buildReport(manifest, 'ex-button');
+    const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+
+    const tables = [...container.querySelectorAll('table')];
+    expect(tables.length).toBe(2);
+    for (const table of tables) {
+      for (const head of table.querySelectorAll('thead th')) {
+        expect(head.getAttribute('scope')).toBe('col');
+      }
+      for (const row of table.querySelectorAll('tbody tr')) {
+        const heading = row.querySelector('th');
+        expect(heading?.getAttribute('scope')).toBe('row');
+        // a cell that names its row is not the row's last cell, and the rule
+        // that flushes the last column right must not reach it
+        expect(heading).not.toBe(row.lastElementChild);
+        expect(getComputedStyle(heading!).paddingRight).toBe('15px');
+      }
+    }
+  });
+
   it('renders a positive no-findings state for a clean component', () => {
     const manifest = {
       meta: { docgen: 'react-docgen-typescript' },

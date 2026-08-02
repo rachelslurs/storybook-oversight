@@ -235,16 +235,21 @@ const ReportTable = styled.table(({ theme }) => ({
     background: 'none',
     verticalAlign: 'middle',
   },
-  '&& th:last-of-type, && td:last-of-type': { paddingRight: 0 },
+  // last-child, not last-of-type: a row whose first cell is a th has exactly one
+  // of them, so last-of-type strips the gap between the row heading and the
+  // column beside it
+  '&& tr > :last-child': { paddingRight: 0 },
   // the docs stylesheet stripes every other row and rules the top of each one,
   // and the panel does neither, so without this the same table reads two ways
   // on the two surfaces. The rule between rows is the td's, set below
   '&& tr': { background: 'none', borderTop: 'none' },
-  '&& th': {
+  '&& thead th': {
     color: theme.textMutedColor,
     fontWeight: theme.typography.weight.bold,
   },
-  '&& td': {
+  // a row heading is a cell that names its row, not a column heading, so it
+  // takes the body treatment
+  '&& tbody th, && tbody td': {
     color: theme.color.defaultText,
     fontWeight: theme.typography.weight.regular,
     borderTop: `1px solid ${theme.appBorderColor}`,
@@ -327,9 +332,11 @@ function FindingsList({ findings }: { findings: Finding[] }) {
                   {finding.severity}
                 </Badge>
               </td>
-              <td>
+              {/* the rule names its row: without this the message and the hint
+                  announce their column and their text and never say which rule */}
+              <th scope="row">
                 <RuleChip>{finding.rule}</RuleChip>
-              </td>
+              </th>
               <td>
                 <FindingBody>{markDanglingIds(finding.message, finding.targets)}</FindingBody>
               </td>
@@ -600,10 +607,10 @@ export function ReportView({
                   const { required, description } = component.props[name];
                   return (
                     <tr key={name}>
-                      <td>
+                      <th scope="row">
                         <PropName>{name}</PropName>
                         {required && <RequiredMark aria-hidden="true">*</RequiredMark>}
-                      </td>
+                      </th>
                       <td>{required ? 'Yes' : 'No'}</td>
                       <td>
                         {description === null ? (
