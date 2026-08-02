@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { addons, useStorybookState } from 'storybook/manager-api';
-import { analyzeManifest, describeManifestUnavailable, resolveComponent } from 'oversight-core';
-import type { ComponentReport, ManifestAnalysis, RawManifest } from 'oversight-core';
+import { analyzeManifest, resolveComponent } from 'oversight-core';
+import type { ComponentReport, ManifestAnalysis } from 'oversight-core';
+import { createManifestSource } from './manifestSource';
 import { DEFAULT_DEBUGGER_LINK } from './config';
 import type { OversightConfig } from './config';
 import type { ReportViewStatus } from './components/ReportView';
@@ -29,43 +30,11 @@ function manifestsBaseUrl(): string {
 }
 
 // The raw manifest is static per page load. Kick the network fetch off the
-// instant the manager bundle evaluates (see the `void loadManifest()` below),
+// instant the manager bundle evaluates (see the `void manifest.load()` below),
 // so the panel/badge don't wait for the first hook mount. Only the manifest is
 // fetched here and no config is read, so it's safe to run before
 // `.storybook/manager.ts` calls `addons.setConfig`.
-let manifestPromise: Promise<RawManifest | null> | undefined;
-
-// The server's own explanation for a failed load (e.g. the experimentalDocgenServer
-// dev-404 body), surfaced in the `unavailable` state so the panel states the real
-// cause instead of guessing. Set on every fetch, read at render time: by the time
-// status is `unavailable`, the fetch that set it has resolved.
-let unavailableReason: string | undefined;
-
-async function fetchManifest(): Promise<RawManifest | null> {
-  try {
-    const response = await fetch(`${manifestsBaseUrl()}components.json`);
-    if (!response.ok) {
-      unavailableReason = describeManifestUnavailable(await response.text().catch(() => ''));
-      return null;
-    }
-    unavailableReason = undefined;
-    return (await response.json()) as RawManifest;
-  } catch {
-    unavailableReason = undefined;
-    return null;
-  }
-}
-
-// A failed fetch is not cached, so a later mount retries instead of being
-// wedged in the `unavailable` state for the session (e.g. if the bundle-eval
-// prefetch raced the dev server's manifest endpoint).
-function loadManifest(): Promise<RawManifest | null> {
-  manifestPromise ??= fetchManifest().then((manifest) => {
-    if (manifest === null) manifestPromise = undefined;
-    return manifest;
-  });
-  return manifestPromise;
-}
+const manifest = createManifestSource((name) => `${manifestsBaseUrl()}${name}`);
 
 // Analysis (normalize → lint) runs once, the first time a hook mounts. By then
 // `.storybook/manager.ts` has applied `addons.setConfig`, so the consumer's
@@ -74,8 +43,8 @@ function loadManifest(): Promise<RawManifest | null> {
 let analysisPromise: Promise<ManifestAnalysis | null> | undefined;
 
 function loadAnalysis(): Promise<ManifestAnalysis | null> {
-  analysisPromise ??= loadManifest().then((manifest) => {
-    if (manifest === null) {
+  analysisPromise ??= manifest.load().then((raw) => {
+    if (raw === null) {
       analysisPromise = undefined; // don't cache failures, retry on next mount
       return null;
     }
@@ -83,14 +52,14 @@ function loadAnalysis(): Promise<ManifestAnalysis | null> {
     // `addons.setConfig({ [ADDON_ID]: { rules, expectedExtractor } })` in
     // .storybook/manager.ts (addon options never reach the manager bundle).
     const options = (addons.getConfig()[ADDON_ID] ?? {}) as OversightConfig;
-    return analyzeManifest(manifest, options);
+    return analyzeManifest(raw, options);
   });
   return analysisPromise;
 }
 
 // Warm the network path at bundle-eval; the config-dependent analysis still
 // waits for the first hook mount.
-void loadManifest();
+void manifest.load();
 
 export function useOversightReport(): ManagerReport {
   const [analysis, setAnalysis] = useState<ManifestAnalysis | null | 'loading' | 'error'>('loading');
@@ -98,11 +67,9 @@ export function useOversightReport(): ManagerReport {
   // which are baked into the module-cached analysis). `getConfig()` is cheap.
   const config = (addons.getConfig()[ADDON_ID] ?? {}) as OversightConfig;
   const base = {
-    debuggerUrl: `${manifestsBaseUrl()}components.html`,
+    debuggerUrl: manifest.urlFor('components.html'),
     showDebuggerLink: config.debuggerLink ?? DEFAULT_DEBUGGER_LINK,
-    // Read at render; meaningful only in the `unavailable` state (by then the
-    // failing fetch has set it).
-    unavailableReason,
+    unavailableReason: manifest.unavailableReason(),
   };
 
   useEffect(() => {
