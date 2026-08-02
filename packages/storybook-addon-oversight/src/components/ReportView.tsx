@@ -13,9 +13,9 @@ export type LinkComponent = ComponentType<{ label: string; target: string }>;
 
 export type ReportViewStatus = 'loading' | 'error' | 'unavailable' | 'no-story' | 'no-entry' | 'ready';
 
-/** "full" renders the description as markdown (the manager panel, with no other
- *  description nearby). "compact" shows a documented/missing verdict (the docs
- *  block, where autodocs renders the prose right beside it). */
+/** Which treatment the nothing-to-show states take. "full" is the manager
+ *  panel, which gets Storybook's centered `EmptyTabContent`. "compact" is the
+ *  docs block, which keeps an inline message a full-height state would dwarf. */
 export type ReportViewVariant = 'full' | 'compact';
 
 export type ReportViewProps = {
@@ -417,14 +417,12 @@ function DescriptionSection({
   description,
   sourceFile,
   name,
-  variant,
   LinkComponent,
   danglingTargets,
 }: {
   description: string | null;
   sourceFile: string | null;
   name: string;
-  variant: ReportViewVariant;
   LinkComponent?: LinkComponent;
   danglingTargets?: Set<string>;
 }) {
@@ -441,13 +439,6 @@ function DescriptionSection({
           ) : null}
           .
         </Warning>
-      ) : variant === 'compact' ? (
-        <span>
-          <Badge compact status="positive">
-            Documented
-          </Badge>{' '}
-          the MCP and Docs page show the JSDoc for this component.
-        </span>
       ) : (
         <Markdown text={description} LinkComponent={LinkComponent} danglingTargets={danglingTargets} />
       )}
@@ -554,7 +545,6 @@ export function ReportView({
         description={component.description}
         sourceFile={component.sourceFile}
         name={component.name}
-        variant={variant}
         LinkComponent={LinkComponent}
         danglingTargets={danglingTargets}
       />
