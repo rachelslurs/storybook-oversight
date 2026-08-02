@@ -50,16 +50,26 @@ const Heading = styled.div(({ theme }) => ({
   marginBottom: 6,
 }));
 
+/**
+ * The Docs page sizes every span it does not recognize at 16px, through a
+ * zero-specificity `:where()` rule that inheritance alone cannot beat. A span
+ * setting no size of its own takes that instead of the size its context sets,
+ * so each one here says it inherits. Storybook's own blocks sit inside
+ * `sb-unstyled`, which the rule excludes.
+ */
+const inheritSize = { fontSize: 'inherit' } as const;
+
 // Error text takes the theme's semantic foreground scale, which is what
 // Storybook's own Badge uses for these statuses. The text-tone colors next to it
 // in the palette read as the same thing but hold one value for both themes, so
 // they met AA on the white panel and left a struck manifest id at 1.64:1 on a
 // dark Docs page.
-const Negative = styled.span(({ theme }) => ({ color: theme.fgColor.negative }));
+const Negative = styled.span(({ theme }) => ({ ...inheritSize, color: theme.fgColor.negative }));
 
 // An empty field, not a problem being reported: the finding below says it is a
 // warning and what to do, so this only has to say the field is empty.
 const Absent = styled.span(({ theme }) => ({
+  ...inheritSize,
   color: theme.textMutedColor,
   fontStyle: 'italic',
 }));
@@ -82,6 +92,7 @@ const Prose = styled.div(({ theme }) => ({
 // link (so it can't navigate to the missing target). The `docs-link-dangling`
 // finding names it; this marks it where you read it.
 const DanglingLink = styled.span(({ theme }) => ({
+  ...inheritSize,
   color: theme.fgColor.negative,
   whiteSpace: 'nowrap',
   '& s': { textDecorationColor: theme.fgColor.negative },
@@ -108,7 +119,13 @@ const DanglingId = styled.code(({ theme }) => ({
   },
 }));
 
+// The badge sizes itself. The two spans around it do not, and the Docs rule
+// matches each one directly, so saying it on the wrapper alone leaves the emoji
+// reading 16px there against 14px on the panel.
+const CleanState = styled.span({ ...inheritSize, '& span': inheritSize });
+
 const MissingMark = styled.span(({ theme }) => ({
+  ...inheritSize,
   color: theme.fgColor.negative,
   marginLeft: 3,
   cursor: 'help',
@@ -205,8 +222,15 @@ const UndocumentedIcon = styled(CrossIcon)(({ theme }) => ({
 /** The Controls panel marks a required prop with an asterisk after its name.
  *  The Required column says the same thing in a word, so this is hidden from a
  *  screen reader rather than announced twice. */
+// The mark the args table puts after a required prop's name, in its own
+// treatment: mono, and a help cursor for the tooltip. The color is the one
+// difference. Storybook's `color.negative` holds `#FF4400` for both themes;
+// this scale is `#C23400` on light and `#FF6933` on dark.
 const RequiredMark = styled.span(({ theme }) => ({
+  ...inheritSize,
   color: theme.fgColor.negative,
+  fontFamily: theme.typography.fonts.mono,
+  cursor: 'help',
   marginLeft: 2,
 }));
 
@@ -355,13 +379,13 @@ function FindingsSection({ findings }: { findings: Finding[] }) {
   return (
     <Section>
       {findings.length === 0 ? (
-        <span>
+        <CleanState>
           <Badge compact status="positive">
             no findings
           </Badge>{' '}
           {/* decorative: the badge beside it already says no findings */}
           <span aria-hidden="true">&#128079;</span>
-        </span>
+        </CleanState>
       ) : (
         <FindingsList findings={findings} />
       )}
@@ -609,7 +633,13 @@ export function ReportView({
                     <tr key={name}>
                       <th scope="row">
                         <PropName>{name}</PropName>
-                        {required && <RequiredMark aria-hidden="true">*</RequiredMark>}
+                        {required && (
+                          // hidden from the tree, and the Required column beside
+                          // it carries the same fact as text
+                          <RequiredMark aria-hidden="true" title="Required">
+                            *
+                          </RequiredMark>
+                        )}
                       </th>
                       <td>{required ? 'Yes' : 'No'}</td>
                       {/* the mark says the whole thing, leading with the prop:
