@@ -226,17 +226,22 @@ const FindingHint = styled.div(({ theme }) => ({
   fontSize: 'inherit',
   lineHeight: 1.4,
 }));
+// Both tables name their rows in the first column, so both take the body color:
+// the rule was muted, which read as an aside next to the prop name beside it.
 const RuleChip = styled.code(({ theme }) => ({
   fontFamily: theme.typography.fonts.mono,
   fontSize: '0.92em',
-  color: theme.textMutedColor,
+  color: theme.color.defaultText,
   // a rule name is an identifier: it wraps as one or not at all, never broken
   // across two lines at a hyphen
   whiteSpace: 'nowrap',
 }));
-const PropName = styled.code(({ theme }) => ({
-  fontFamily: theme.typography.fonts.mono,
-  fontSize: '0.92em',
+// A prop name reads as the args table names its own: the table's own face and
+// size, weighted so the column it heads is scannable. Not a `code` element,
+// which the Docs page gives a mono face and a tinted chip of its own.
+const PropName = styled.span(({ theme }) => ({
+  ...inheritSize,
+  fontWeight: theme.typography.weight.bold,
   color: theme.color.defaultText,
 }));
 
