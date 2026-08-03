@@ -1,5 +1,86 @@
 # storybook-addon-oversight
 
+## 0.4.0
+
+### Minor Changes
+
+- 63d3fb4: One word per thing. The two surfaces are the addons panel and the Docs block, which the addon called the manager panel and the Docs-page block in places. A rule dictates a finding, whose parts are a severity, a rule name, a message and a hint. Finding is the only word for it now: the type was `Diagnostic`, the CLI tally said "problems", and prose said "issues". `oversight-core` is the rules engine.
+
+  The CLI's tally line reads `✖ 5 findings (2 errors, 2 warnings, 1 info)` where it read `5 problems`. Anything matching on that word needs updating.
+
+  The addon README heading is now `Optional: enable the Docs block`, so `#optional-enable-the-docs-page-block` no longer resolves.
+
+### Patch Changes
+
+- 07b4225: Everything a report says with a glyph says it in words too. A dangling `?path=` link in a description was struck through and marked with a warning sign that carried no label, so the mark meant nothing to a screen reader, while the same mark on the ids in a finding message did carry one. Both go through one component now. The tab's count badge read as "Oversight 2"; it reads as "Oversight 2 findings".
+- 744b0e2: Crossing `--max-warnings` says so. The run failed with output identical to a passing one, so a CI job stopped on the ceiling named nothing that had stopped it.
+
+  The GitHub step summary renders a message as text. It is markdown rendered against a repository, so `@deprecated` in a `deprecated-tag` message linked to a GitHub account of that name, and `#12` would have linked to an issue.
+
+  `docgen-missing`'s hint names the causes in the order they are worth checking. It named `typescript.reactDocgen` alone, which told a project that had already set it correctly to set it again, under a message about something else. A story whose `meta` names no component is documented in `docs/troubleshooting.md` as the fifth cause, the one whose fix is in the stories file.
+
+- a46a9ec: Section headings follow the theme on both surfaces. They set no color of their own, and the section painting the background behind them set none either, so they fell back to the browser's black: legible on a light page, and all but invisible in the Docs block on a dark one.
+- 770ac85: A `docs-link-dangling` finding sets each manifest id it names as code, struck through in the same negative as the dead links in the description, with a mark carrying the reason for anyone who cannot see the strikethrough.
+- 3db6ac9: The Docs block renders a component's description the way the panel does, as the prose itself. It showed a "Documented" verdict instead, on the reasoning that the Docs page prints the description higher up. That copy is the plain one: a `docs-link-dangling` finding strikes each dead `?path=` link where it appears in the description, and on this surface that marking had nowhere to land.
+- 81e40b8: A `?path=` redirect in a component description is a link on the Docs block, not plain text. The block passed no link component, and the renderer falls back to the bare label when it has none, so the same redirect navigated from the panel and did nothing on a Docs page. The block links by URL: the manager's version SPA-navigates through `api.selectStory`, which is manager-api and unreachable from the preview iframe the block renders in.
+- 48badba: A file that parses but is not a components manifest exits 2 instead of reporting no findings at exit 0. A job pointed at a stale path passed forever while linting nothing, and the path is a string in a config. A manifest that records no entries still exits 0.
+
+  A GitHub annotation points at the file it is about, and at a path the repository has. Every rule but `story-extraction-error` reports the component's own source, and anchoring on the stories file put the annotation on a file that does not contain the problem, or outside the diff entirely. The path is now resolved from the checkout root as well, so a Storybook living in a package directory annotates `storybook/src/Avatar/Avatar.tsx` rather than `src/Avatar/Avatar.tsx`; GitHub drops an annotation whose path it cannot resolve without reporting anything, and no working-directory setting changes that.
+
+  New rule, `props-unrecorded` (warning): an entry that records no props at all, so the MCP describes the component as taking none. Extraction can drop a prop that carries no JSDoc, which makes an undocumented prop absent exactly when it is undocumented, so `prop-descriptions-missing` cannot see it. `children` typed through a spread is the common case. A component that genuinely takes no props exempts itself with `@oversightIgnore props-unrecorded`.
+
+- b959c99: Every finding carries the one-line hint for its rule, on a new `hint` field, distilled from `docs/troubleshooting.md`. It lives with the rules rather than in a renderer, so the panel and the Docs block give the same answer, and a rule added to the union has to say what to do about itself or fail to compile. `deprecated-tag` has none: it reports a fact rather than a defect. The field is `hint` rather than `fix` because ESLint's `fix` is a machine-applicable edit that `--fix` applies, and this is a sentence to read.
+
+  `oversight-lint` prints it too: a dimmed `hint:` line under each finding, the `hint` field in `--format json`, the second line of each `--format github` annotation, and the Message column of the Actions step summary.
+
+  In the panel and the Docs block the findings read as a table: rule, severity, message, and a hint the last column reveals from a lightbulb, on pointer or on keyboard focus. The lightbulb names itself with the hint text, so the fix is read out whether or not it is opened. Its columns name it, so it stands without a heading, the way the props table does. Both tables in a report share one treatment and one text size, and each scrolls inside its own box rather than spilling out of the section on a narrow panel.
+
+  `component-description-missing` reads `<name> has no description for the MCP or the Docs page to show.` Anything matching on that message string needs updating.
+
+- 3c77733: A link in a description that names its own origin is left alone on the Docs block. It was rebased onto the Storybook root like a `?path=` redirect, so `[MDN](https://developer.mozilla.org/...)` resolved to `<storybook-origin>/https://developer.mozilla.org/...` and took the whole tab there. Relative targets still rebase, including the `?path=` forms carrying `&args=` or a `#hash`, which resolve against `iframe.html` and load the preview frame as the page if left alone. Absolute targets carry `rel="noopener noreferrer"`, so a private Storybook host stays out of the Referer sent to a cited site.
+
+  Each table in a report is a named region with a tab stop. Nothing inside them takes focus, so a table with more columns than room was one a keyboard could neither reach nor scroll.
+
+  A components manifest that is served but will not parse reports that, rather than the hint to enable the manifest feature. The server answered, so the feature is on, and the cause now reaches the console instead of nowhere.
+
+- 8cc7bf0: Warning and error text follows the theme. It used the palette's text-tone colors, which hold one value for both themes, so a struck manifest id in a `docs-link-dangling` finding sat at 1.64:1 on a dark Docs page and the mark beside it at 2.83:1. Both take the semantic foreground scale now, the one Storybook's own badges use, and the struck id takes the tint that goes with it rather than the Docs page's code background.
+- 99542b3: A report reads as one surface. Its sections were separated by a rule each, which drew three boxes inside the box the panel and the Docs block already draw. The headings carry the division instead, on the space between sections alone.
+- 6d1b785: The Docs block now opens with a section heading rather than a caption bar inside the box, so it reads as part of the page. It is the Docs page's own heading component, so it carries the same copy-the-URL control every other heading there has, and it holds `id="oversight"` for a fixed `#oversight` anchor on any component's Docs page. Arriving on that anchor does not scroll the page, which is true of every anchor on a Docs page.
+- 8dd7498: The panel's nothing-to-show states now use Storybook's own `EmptyTabContent`, so an empty Oversight tab reads like every other empty tab in the addons panel. The Docs block keeps its inline message, which suits the page it sits under.
+- 4ed2892: A finding names the props it is about on both surfaces. The panel and the Docs block said how many props were undocumented while the props table below said which were, so reading one meant crossing it against the other. The CLI has always named them.
+
+  The hint opens below its trigger. The Hint column is the last one and its heading sits directly over the first row's lightbulb, so the note covered the word naming what it was.
+
+  `unknown-ignore-rule` says "Nothing is exempted by it" for a single token, which read as a typo inside the message reporting someone else's typo.
+
+- c8fc29a: The props table stands without a heading over it. Its first column is headed `Prop`, which said the same thing twice. The heading stays on the two cases that have no table to say it: a component with no props extracted, and a manifest whose prop payload was not recognized.
+- f14ac96: The Props section lists every prop in a table, in the treatment the Controls panel gives its own: a muted heading over each column, a rule between rows, and no cell borders or striping on either surface. Each row says whether the prop is required, in a word, and whether it is documented, as a tick or a cross carrying its own label rather than a glyph and a color alone.
+- 0386b24: A component with no description reads _None_, in italics, and stops. It named the file the component sits in, which the finding below it already answers with what to do. A clean component reads `no findings` 👏 and stops too.
+- 41cff01: A manifest whose prop payload the rules cannot read says "The prop rules did not run", rather than describing our own state in our own word for the data.
+- 8a9a8a1: A report opens with the component's description, then its findings, then its props. The findings used to come first, which asked the reader to judge what was wrong with a component before seeing what it says it is.
+- df251d6: `@deprecated` in a job-summary message renders as text. Escaping it as an entity did not work: `&#64;deprecated` decodes before GitHub's autolinker runs, so it still linked to an account of that name. Mention-shaped and reference-shaped tokens go in as code spans, which the autolinker leaves alone.
+
+  Every run prints `oversight-lint <version>` on stderr. `--format github` prints only workflow commands and `--format json` only JSON, so a CI log had no way to say which version produced it, and confirming a release meant inferring it from behavior.
+
+  `props-unrecorded`'s hint names the escape hatch. The manifest cannot tell a component whose prop was dropped from one that takes none, so the rule fires on both, and the hint told the reader holding the false positive to document a prop that does not exist without mentioning `@oversightIgnore props-unrecorded`.
+
+  `unknown-ignore-rule`'s hint no longer says "the token" under a message naming several. A hint is one string per rule, so it reads number-neutral instead.
+
+- f96e071: The Docs container passes the theme it is given through to Storybook's own container, instead of dropping it and reverting every Docs page to light. Only one Oversight block per page claims the `#oversight` anchor. A `docs-link-dangling` finding no longer truncates a manifest id that is a prefix of another id it names. The `loading` state renders like every other nothing-to-show state instead of shifting the panel's layout mid-load.
+- 396b740: Every row in a report's tables says what it is about. The prop name and the rule name were plain cells, so a screen reader reading the Documented column announced the column and the verdict and never which prop, and a finding's message and hint said as little. Both are row headings now, in the same treatment the cells beside them take.
+
+  The tick and the cross name the prop with it: `children is documented` where they read `documented`, which only repeated the column heading announced right before them.
+
+- 903a80c: A findings row leads with its rule, then the severity. The rule already headed the row, so it now sits where a row heading belongs, as the prop name does in the table below it.
+
+  The mark beside a struck manifest id is separated from the id by a space. Read aloud they were adjacent, so `data-display-ghost--docs` and the mark's `not in the manifest` ran together as one word. The description already spaced them this way.
+
+- 1752dd9: Each section label in a report is a heading. `Description`, `Manifest`, `Props` and `Extraction` were bold text and nothing more, so heading navigation skipped the whole report on both surfaces.
+
+  They also take the size of the section they sit in. The Docs page sizes every div it does not recognize at 16px, the same rule that was already answered for spans, so a label read a size larger there than on the panel.
+
+- 8a9e806: Spans in the report take the size of what they sit in on a Docs page. The page sizes every span it does not recognize at 16px, so the clean state's emoji rendered larger than the line it sits on.
+
 ## 0.4.0-beta.2
 
 ### Patch Changes
