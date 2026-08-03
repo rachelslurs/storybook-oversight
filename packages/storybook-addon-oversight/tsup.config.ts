@@ -10,7 +10,7 @@ const commonConfig: Options = {
   treeshake: true,
   splitting: true,
   // Provided by Storybook, so externalize rather than bundling or declaring as deps.
-  external: ['react', 'react-dom', '@storybook/icons'],
+  external: ['react', 'react-dom'],
 };
 
 export default defineConfig([

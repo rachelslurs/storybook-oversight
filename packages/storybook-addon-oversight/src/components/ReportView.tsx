@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import type { ComponentType, ReactNode } from 'react';
-import { CheckIcon, CrossIcon } from '@storybook/icons';
+import { CheckIcon, CrossIcon } from './icons';
 import { Badge, EmptyTabContent } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 import type { ComponentReport, Finding, Severity } from 'oversight-core';
