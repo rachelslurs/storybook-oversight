@@ -7,6 +7,7 @@ export type NormalizedComponent = {
   name: string;
   description: string | null; // entry.description ?? payload.description
   sourceFile: string | null; // repo-relative; from payload.filePath ?? payload.definedInFile
+  sourcePath: string | null; // the same path as the manifest recorded it, before any prefix is dropped
   storiesFile: string; // entry.path (always the .stories file)
   props: Record<string, { description: string | null; required: boolean }>;
 };

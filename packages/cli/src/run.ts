@@ -43,11 +43,13 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
   const names = new Map<string, string>();
   const files = new Map<string, string>();
-  const sources = new Map<string, string>();
+  const sources = new Map<string, { recorded: string; display: string }>();
   for (const component of analysis.result.components) {
     names.set(component.id, component.name);
     files.set(component.id, component.storiesFile);
-    if (component.sourceFile) sources.set(component.id, component.sourceFile);
+    if (component.sourceFile && component.sourcePath) {
+      sources.set(component.id, { recorded: component.sourcePath, display: component.sourceFile });
+    }
   }
   for (const failure of analysis.result.failures) {
     names.set(failure.id, failure.name);

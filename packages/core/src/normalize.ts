@@ -332,6 +332,11 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
       name,
       description: text(entry.description) ?? text(payload.description),
       sourceFile,
+      // Kept beside the trimmed one because the trimming is what makes the path
+      // readable and what makes it ambiguous: the extractor records an absolute
+      // path, and that is the only evidence of where a Storybook sits inside a
+      // checkout that holds more than it.
+      sourcePath: sourcePath ?? null,
       storiesFile,
       props,
     });

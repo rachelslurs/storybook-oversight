@@ -21,6 +21,8 @@ export type LintSummary = {
   files: Map<string, string>;
   /** Where the docs a finding is about actually live, when the manifest records
    *  it. An annotation anchored on the stories file lands on a file that does
-   *  not contain the problem. */
-  sources: Map<string, string>;
+   *  not contain the problem. `recorded` is the path as the manifest wrote it,
+   *  which is absolute for the extractors that report one; `display` is the
+   *  trimmed one a message reads. */
+  sources: Map<string, { recorded: string; display: string }>;
 };
