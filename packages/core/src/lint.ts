@@ -52,11 +52,17 @@ const HINT = {
   'extractor-drift': 'Check meta.docgen for the extractor that ran, then set the expectation to match.',
   'component-description-missing': 'Add a JSDoc block above the component.',
   'prop-descriptions-missing': 'Add a JSDoc comment to each undocumented prop.',
+  // Names the escape hatch, because the manifest cannot tell a dropped prop
+  // from a component that takes none: the reader holding the false positive is
+  // the one this sends away, and telling them only to document a prop sends
+  // them to document a prop that does not exist.
   'props-unrecorded':
-    'Give one prop a JSDoc comment and rebuild: if others appear with it, extraction was dropping them.',
+    'Document one prop and rebuild: if others appear with it, extraction was dropping them. If none do, the component takes none and @oversightIgnore props-unrecorded says so.',
   'required-prop-undocumented': 'Add a JSDoc comment to each required prop.',
   'docs-link-dangling': 'Point the link at an id the manifest has, or remove the link.',
-  'unknown-ignore-rule': 'Check the token against the rule names; it is usually a typo.',
+  // Number-neutral: a hint is one string per rule, so it cannot pluralize with
+  // a message that names one token or several.
+  'unknown-ignore-rule': 'Check each token against the rule names; an unrecognized one is usually a typo.',
   'deprecated-tag': null,
   'prop-shape-unrecognized': 'Fix this one first: the prop rules do not run while it fires.',
   'ref-unresolved': "Resolve the entry's $ref before linting.",
