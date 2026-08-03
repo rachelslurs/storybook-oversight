@@ -312,7 +312,7 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Findin
         hint: hintFor('unknown-ignore-rule'),
         severity: 'warning',
         componentId: id,
-        message: `${nameById.get(id) ?? id}'s @oversightIgnore lists unknown rule${unknown.length === 1 ? '' : 's'}: ${unknown.join(', ')}. Nothing is exempted by them.`,
+        message: `${nameById.get(id) ?? id}'s @oversightIgnore lists unknown rule${unknown.length === 1 ? '' : 's'}: ${unknown.join(', ')}. Nothing is exempted by ${unknown.length === 1 ? 'it' : 'them'}.`,
       });
     }
   }

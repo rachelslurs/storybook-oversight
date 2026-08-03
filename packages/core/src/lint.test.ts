@@ -124,6 +124,15 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     const deprecated = lint(withTags({ deprecated: null })).find((d) => d.rule === 'deprecated-tag');
     expect(deprecated?.message).toBe('Old is marked @deprecated.');
 
+    // One unknown token is "it", several are "them": the plural read as a typo
+    // in the message reporting someone else's typo.
+    const one = lint(withTags({ oversightIgnore: 'nope' })).find((d) => d.rule === 'unknown-ignore-rule');
+    expect(one?.message).toBe("Old's @oversightIgnore lists unknown rule: nope. Nothing is exempted by it.");
+    const many = lint(withTags({ oversightIgnore: 'nope alsonope' })).find((d) => d.rule === 'unknown-ignore-rule');
+    expect(many?.message).toBe(
+      "Old's @oversightIgnore lists unknown rules: nope, alsonope. Nothing is exempted by them.",
+    );
+
     const ignored = lint(withTags({ oversightIgnore: null }));
     expect(ignored.filter((d) => d.rule === 'unknown-ignore-rule')).toHaveLength(0);
     // A bare tag exempts every rule, so the undocumented required prop is quiet.

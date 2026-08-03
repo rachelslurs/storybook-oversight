@@ -268,8 +268,11 @@ const HintButton = styled.button(({ theme }) => ({
  *  that comes with the provider. Its accessible name carries the hint text as
  *  well, so the fix reaches a screen reader without opening anything. */
 function HintTrigger({ hint }: { hint: string }) {
+  // Below rather than the default above: the Hint column is the last one and
+  // its heading sits directly over the first row's trigger, so the tooltip
+  // covered the word naming what it was.
   return (
-    <TooltipProvider tooltip={<TooltipNote note={hint} />}>
+    <TooltipProvider placement="bottom" tooltip={<TooltipNote note={hint} />}>
       <HintButton type="button" aria-label={`Hint: ${hint}`}>
         <LightbulbIcon />
       </HintButton>
@@ -472,7 +475,25 @@ function FindingsList({ findings, label }: { findings: Finding[]; label: string 
                 </Badge>
               </td>
               <td>
-                <FindingBody>{markDanglingIds(finding.message, finding.targets)}</FindingBody>
+                <FindingBody>
+                  {markDanglingIds(finding.message, finding.targets)}
+                  {/* The message says how many props are undocumented and the
+                      props table says which are, so the reader crossed one
+                      against the other. The CLI has always named them. */}
+                  {finding.props?.length ? (
+                    <>
+                      {' ('}
+                      props:{' '}
+                      {finding.props.map((name, i) => (
+                        <Fragment key={name}>
+                          {i > 0 && ', '}
+                          <PropName>{name}</PropName>
+                        </Fragment>
+                      ))}
+                      {')'}
+                    </>
+                  ) : null}
+                </FindingBody>
               </td>
               <td>{finding.hint !== undefined && <HintTrigger hint={finding.hint} />}</td>
             </tr>
