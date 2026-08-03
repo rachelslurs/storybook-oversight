@@ -127,6 +127,17 @@ describe('run: exit codes', () => {
     expect((await run(options({ manifestPath: path, maxWarnings: 2 }))).code).toBe(0);
   });
 
+  it('says the warning ceiling was crossed, naming both numbers', async () => {
+    // the one way to fail with output identical to a passing run, so a CI job
+    // stopped on it said nowhere what had stopped it
+    const path = fixture(WARNINGS_ONLY);
+    const passing = await run(options({ manifestPath: path }));
+    const failing = await run(options({ manifestPath: path, maxWarnings: 0 }));
+    expect(passing.stderr).toBe('');
+    expect(failing.stderr).toMatch(/^\d+ warnings? exceeds the maximum of 0\.$/m);
+    expect(failing.stdout).toBe(passing.stdout);
+  });
+
   it('exits 2 on a valid JSON file that is not a manifest, rather than passing green', async () => {
     // parses, reads as zero entries, and used to report "no findings" at exit 0,
     // so a job pointed at a stale path passed forever while linting nothing

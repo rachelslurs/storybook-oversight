@@ -648,6 +648,27 @@ describe('formatStepSummary', () => {
     expect(md).toContain('| Component | Severity | Rule | Message |');
   });
 
+  it('renders markdown syntax in a message as text', () => {
+    // GitHub renders the summary against a repository, so a deprecated-tag
+    // message linked @deprecated to an account of that name and #12 would have
+    // linked to an issue
+    const rendered = formatStepSummary(
+      summaryOf([
+        {
+          rule: 'deprecated-tag',
+          severity: 'info',
+          componentId: 'ui-old',
+          message: 'Old is deprecated: use @new, see #12 and _Card_.',
+        },
+      ]),
+    );
+    expect(rendered).toContain('&#64;new');
+    expect(rendered).toContain('&#35;12');
+    expect(rendered).toContain('&#95;Card&#95;');
+    expect(rendered).not.toContain('@new');
+    expect(rendered).not.toContain('#12');
+  });
+
   it('distinguishes Component cells for entries that share a name (#44)', () => {
     const collide = formatStepSummary(
       summaryOf(

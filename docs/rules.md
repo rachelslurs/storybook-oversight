@@ -19,6 +19,8 @@ A rule is one check. It fires when the manifest meets its condition, and dictate
 | `prop-shape-unrecognized` | error | the prop payload is missing the fields the prop rules read |
 | `ref-unresolved` | warning | a `$ref` on an otherwise-readable component did not resolve |
 
+A required prop with no description trips both prop rules, once as a warning naming every undocumented prop and once as an error naming the required ones. The sets overlap by design: `prop-descriptions-missing` is the whole list, and the error is the subset an agent has to supply a value for. Turning `required-prop-undocumented` off keeps those props in the warning rather than dropping them from the report.
+
 When `prop-shape-unrecognized` fires, `prop-descriptions-missing` and `required-prop-undocumented` do not run. Both read `props[n].description` and `props[n].required`, and a build where those fields have moved would otherwise report every prop in the library as undocumented. The check asks whether the field names still exist anywhere in the manifest, so a prop carrying an empty description still counts as undocumented and is still reported. To keep building through one, set it to `warning`: `--rule prop-shape-unrecognized=warning` on the CLI, or the `rules` map in `.storybook/manager.ts` for the panel.
 
 ## Changing a severity
