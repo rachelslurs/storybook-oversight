@@ -46,7 +46,7 @@ With no argument it reads `storybook-static/manifests/components.json`. In GitHu
 
 `--expected-extractor` states the extractor your `.storybook/main.ts` sets; `extractor-drift` runs only when an expectation is configured, via the flag or the config file. With `features.experimentalReactComponentMeta` or `features.experimentalDocgenServer` enabled the value to state is `react-component-meta`: either flag picks the extractor itself, so the manifest records `react-component-meta` and `typescript.reactDocgen` is never read.
 
-`--format github` emits `::error`/`::warning`/`::notice` annotations; GitHub shows them on the run and the pull request's Checks tab, not beside your changed code (findings have no line numbers, so each anchors to the top of the stories file). Under Actions it also appends a findings table to the job summary, and GitHub caps the annotations at ~10 per type per step.
+`--format github` emits `::error`/`::warning`/`::notice` annotations; GitHub shows them on the run and the pull request's Checks tab, not beside your changed code (findings have no line numbers, so each anchors to the top of its file: the component's source, or the stories file for extraction failures and for entries that record no source). Under Actions it also appends a findings table to the job summary, and GitHub caps the annotations at ~10 per type per step.
 
 ## Output
 
