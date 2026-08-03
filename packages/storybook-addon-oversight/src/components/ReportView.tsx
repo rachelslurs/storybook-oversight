@@ -41,13 +41,22 @@ export type ReportViewProps = {
  */
 const inheritSize = { fontSize: 'inherit' } as const;
 
+/**
+ * The one left rail every kind of report content sits on. Headings, prose and
+ * footer take it as padding on their box; a table cannot, because padding on
+ * its box would also inset the rule under each row, so tables shed it
+ * (`TableScroll`) and each cell restores it. Any of these drifting from the
+ * others reads as a ragged left edge, so they all draw from this value.
+ */
+const CONTENT_INSET = 20;
+
 const Section = styled.section(({ theme }) => ({
   // no rule between sections: the panel and the block each already draw an edge
   // around the report, and the headings carry the division on their own. The
   // space between two sections is twice the vertical value, so it buys
   // separation cheaply and overshoots just as fast; `layoutMargin` is the unit
   // the surrounding UI is spaced on
-  padding: `${theme.layoutMargin}px 16px`,
+  padding: `${theme.layoutMargin}px ${CONTENT_INSET}px`,
   fontSize: theme.typography.size.s2,
   background: theme.background.content,
   // a section carrying its own background has to carry the text color that goes
@@ -191,7 +200,7 @@ const PropList = styled.ul({
 });
 
 const Footer = styled.div(({ theme }) => ({
-  padding: '10px 16px',
+  padding: `10px ${CONTENT_INSET}px`,
   color: theme.textMutedColor,
   fontSize: theme.typography.size.s1,
   '& a': { color: theme.color.secondary },
@@ -247,6 +256,11 @@ const UndocumentedIcon = styled(CrossIcon)(({ theme }) => ({
 // section, which clips it: the page itself never scrolls sideways.
 const TableScroll = styled.div(({ theme }) => ({
   overflowX: 'auto',
+  // the rule under a row reads as the row's own edge only when it runs the
+  // container's full width; inside the section's padding it stops short on
+  // both sides and reads as a boxed inner table instead. So the table bleeds
+  // through the inset here and its cells put the text back on the rail
+  margin: `0 -${CONTENT_INSET}px`,
   // the surrounding page is free to reset the browser's own focus ring, so the
   // region draws one of its own, inset so its own scrolled edge cannot clip it
   '&:focus-visible': {
@@ -285,15 +299,21 @@ const ReportTable = styled.table(({ theme }) => ({
   },
   '&& th, && td': {
     textAlign: 'left',
-    padding: '10px 15px 10px 0',
+    // the leading edge carries all the horizontal space: the first column's
+    // inset is what puts its text on the rail the section shed, and the gap
+    // between two columns stays one value instead of a trailing and a leading
+    // one summing behind the reader's back
+    padding: `10px 0 10px ${CONTENT_INSET}px`,
     border: 'none',
     background: 'none',
     verticalAlign: 'middle',
   },
-  // last-child, not last-of-type: a row whose first cell is a th has exactly one
-  // of them, so last-of-type strips the gap between the row heading and the
-  // column beside it
-  '&& tr > :last-child': { paddingRight: 0 },
+  // the last column has no successor whose leading inset would hold its text
+  // off the container edge, so it carries the trailing inset itself: a hint
+  // sentence ending flush against the edge reads as clipped. last-child, not
+  // last-of-type: a row whose first cell is a th has exactly one of them, so
+  // last-of-type would hit the row heading mid-row
+  '&& tr > :last-child': { paddingRight: CONTENT_INSET },
   // the docs stylesheet stripes every other row and rules the top of each one,
   // and the panel does neither, so without this the same table reads two ways
   // on the two surfaces. The rule between rows is the td's, set below
@@ -301,6 +321,9 @@ const ReportTable = styled.table(({ theme }) => ({
   '&& thead th': {
     color: theme.textMutedColor,
     fontWeight: theme.typography.weight.bold,
+    // bold labels carry more optical weight than the body text below them, so
+    // two headings need more air than two body cells to read as separate
+    paddingRight: 15,
   },
   // a row heading is a cell that names its row, not a column heading, so it
   // takes the body treatment
@@ -320,7 +343,7 @@ const Note = styled.div(({ theme }) => ({
 // Left-aligned and padded like the panel's other content, rather than a
 // centered placeholder, so a real message reads as intentional panel copy.
 const StatusMessage = styled.div(({ theme }) => ({
-  padding: '12px 16px',
+  padding: `12px ${CONTENT_INSET}px`,
   fontSize: theme.typography.size.s2,
   lineHeight: 1.5,
   color: theme.textMutedColor,

@@ -218,6 +218,27 @@ describe('ReportView scrollable table regions', () => {
     }
   });
 
+  // The section's inset, the bleed on the table's scroll region, and each
+  // cell's leading padding are one number read three ways. If they disagree,
+  // either the table's text leaves the rail the rest of the section sits on,
+  // or the rule under each row stops short of the container's edge.
+  it('bleeds the table by exactly the inset its cells restore', () => {
+    const report = buildReport(manifest, 'ex-button');
+    const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+
+    const region = container.querySelector('[role="region"][aria-label="Findings"]')!;
+    const section = region.closest('section')!;
+    const inset = getComputedStyle(section).paddingLeft;
+    expect(inset).toBe('20px');
+    expect(getComputedStyle(region).marginLeft).toBe(`-${inset}`);
+    expect(getComputedStyle(region).marginRight).toBe(`-${inset}`);
+    expect(getComputedStyle(region.querySelector('tbody th')!).paddingLeft).toBe(inset);
+    // the last column has no successor to inset its text off the container
+    // edge, so it carries the trailing inset itself
+    const lastCell = region.querySelector('tbody tr')!.lastElementChild!;
+    expect(getComputedStyle(lastCell).paddingRight).toBe(inset);
+  });
+
   // The Docs page and the panel are both free to reset the browser's own focus
   // ring, and a tab stop nobody can see is a keyboard trapdoor, so the region
   // has to draw a ring of its own in each theme.
@@ -312,10 +333,12 @@ describe('ReportView report rendering', () => {
       for (const row of table.querySelectorAll('tbody tr')) {
         const heading = row.querySelector('th');
         expect(heading?.getAttribute('scope')).toBe('row');
-        // a cell that names its row is not the row's last cell, and the rule
-        // that flushes the last column right must not reach it
+        // a cell that names its row is not the row's last cell, so the
+        // trailing inset reserved for the last column must not reach it; the
+        // gap between it and its neighbor is the neighbor's leading inset
         expect(heading).not.toBe(row.lastElementChild);
-        expect(getComputedStyle(heading!).paddingRight).toBe('15px');
+        expect(getComputedStyle(heading!).paddingRight).toBe('0px');
+        expect(getComputedStyle(heading!.nextElementSibling!).paddingLeft).toBe('20px');
       }
     }
   });
