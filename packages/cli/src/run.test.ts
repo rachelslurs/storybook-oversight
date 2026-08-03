@@ -127,6 +127,22 @@ describe('run: exit codes', () => {
     expect((await run(options({ manifestPath: path, maxWarnings: 2 }))).code).toBe(0);
   });
 
+  it('exits 2 on a valid JSON file that is not a manifest, rather than passing green', async () => {
+    // parses, reads as zero entries, and used to report "no findings" at exit 0,
+    // so a job pointed at a stale path passed forever while linting nothing
+    const path = join(dir, 'wrong-shape.json');
+    writeFileSync(path, JSON.stringify({ hello: 'world' }));
+    const result = await run(options({ manifestPath: path }));
+    expect(result.code).toBe(2);
+    expect(result.stderr).toMatch(/records no `components`/);
+  });
+
+  it('still exits 0 on a manifest that records no entries', async () => {
+    const path = join(dir, 'empty.json');
+    writeFileSync(path, JSON.stringify({ components: {} }));
+    expect((await run(options({ manifestPath: path }))).code).toBe(0);
+  });
+
   it('exits 2 when the manifest is missing', async () => {
     const result = await run(options({ manifestPath: join(dir, 'absent.json') }));
     expect(result.code).toBe(2);
@@ -545,14 +561,16 @@ describe('run: annotations survive the ref format (#51)', () => {
       .map((a) => a.file)
       .sort();
 
-  it('anchors every component finding to a stories file', async () => {
+  it('anchors every component finding to a file it is about', async () => {
     const result = await run(options({ manifestPath: coreFixture('v1/manifests/components.json'), format: 'github' }));
     const anns = annotations(result.stdout);
     expect(anns.length).toBeGreaterThan(0);
     // Every finding this fixture produces is component-scoped, so an unanchored
     // one is a regression rather than a manifest-level finding.
     expect(anns.filter((a) => a.file === null)).toEqual([]);
-    expect(anns.every((a) => a.file?.endsWith('.stories.tsx'))).toBe(true);
+    // every rule here is about the component's own source, not its stories
+    expect(anns.every((a) => a.file?.endsWith('.tsx'))).toBe(true);
+    expect(anns.some((a) => a.file?.endsWith('.stories.tsx'))).toBe(false);
     // Never the `./` the manifest stores, which GitHub would not match.
     expect(anns.some((a) => a.file?.startsWith('./'))).toBe(false);
   });

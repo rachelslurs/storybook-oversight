@@ -52,6 +52,16 @@ export async function hydrateManifest(raw: RawManifest, path: string): Promise<R
         `Upgrade oversight-lint, or build with the Storybook version this one supports.`,
     );
   }
+  // A file can be valid JSON, parse, and still be some other document. Without
+  // this it reaches the normalizer as zero entries and reports "no findings" at
+  // exit 0, so a job pointed at a stale path passes forever while linting
+  // nothing. An empty `components` is a real manifest and still passes.
+  if (raw.components === undefined || raw.components === null || typeof raw.components !== 'object') {
+    throw new ManifestError(
+      `${path} is not a components manifest: it records no \`components\`.\n` +
+        `Check the path. A built manifest is at <output>/manifests/components.json.`,
+    );
+  }
   if (format.kind === 'inline') return raw;
 
   const base = realpathSync(dirname(path));

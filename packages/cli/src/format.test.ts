@@ -46,6 +46,10 @@ const summary: LintSummary = {
     ['ui-card', './stories/Card/Card.stories.tsx'],
     ['ui-old', './stories/Old/Old.stories.tsx'],
   ]),
+  sources: new Map([
+    ['ui-card', 'stories/Card/Card.tsx'],
+    ['ui-old', 'stories/Old/Old.tsx'],
+  ]),
 };
 
 /** A summary whose counts are derived from the findings, for one-off cases. */
@@ -60,6 +64,7 @@ function summaryOf(findings: Finding[], over: Partial<LintSummary> = {}): LintSu
     entryCount: 0,
     names: new Map(),
     files: new Map(),
+    sources: new Map(),
     ...over,
   };
 }
@@ -835,9 +840,11 @@ describe('formatGithub', () => {
     expect(errorLine).toContain('::Card has a required prop. (props: title)');
   });
 
-  it('anchors component findings to the stories file, stripping the ./', () => {
+  it('anchors component findings to the source file, stripping the ./', () => {
+    // the missing JSDoc is in the component, so an annotation on the stories
+    // file lands on a file that does not contain what it reports
     const errorLine = lines.find((l) => l.startsWith('::error '));
-    expect(errorLine).toContain('file=stories/Card/Card.stories.tsx');
+    expect(errorLine).toContain('file=stories/Card/Card.tsx');
     expect(errorLine).not.toContain('./stories');
   });
 

@@ -19,4 +19,8 @@ export type LintSummary = {
   names: Map<string, string>;
   /** componentId -> stories file (repo-relative), the anchor for GitHub annotations. */
   files: Map<string, string>;
+  /** Where the docs a finding is about actually live, when the manifest records
+   *  it. An annotation anchored on the stories file lands on a file that does
+   *  not contain the problem. */
+  sources: Map<string, string>;
 };

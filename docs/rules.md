@@ -12,6 +12,7 @@ A rule is one check. It fires when the manifest meets its condition, and dictate
 | `component-description-missing` | warning | no component description |
 | `prop-descriptions-missing` | warning | props without JSDoc descriptions |
 | `required-prop-undocumented` | error | required props without JSDoc descriptions |
+| `props-unrecorded` | warning | the entry records no props at all, so the MCP describes the component as taking none |
 | `docs-link-dangling` | error | a prose `?path=/docs\|story/…` link targets an id whose component prefix isn't in the manifest |
 | `unknown-ignore-rule` | warning | `@oversightIgnore` lists a token that is not a rule name |
 | `deprecated-tag` | info | a `@deprecated` tag is present |

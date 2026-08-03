@@ -274,6 +274,24 @@ function entryShare(summary: LintSummary): string {
  * the exit-2 malformed-manifest message with a stack trace, and a newline would
  * split a step-summary row or a stylish heading in two.
  */
+/**
+ * Where to anchor an annotation. Every rule but one is about the component's
+ * own source, and pointing at the stories file put the annotation on a file
+ * that does not contain the problem: on a pull request it lands in the wrong
+ * place, and if the stories file is not in the diff it may not render at all.
+ * `story-extraction-error` is the exception, being about a story.
+ */
+function anchorFileOf(summary: LintSummary, rule: string, componentId: string): string {
+  if (rule !== 'story-extraction-error') {
+    const source = summary.sources.get(componentId);
+    if (typeof source === 'string') {
+      const line = (firstNonEmptyLine(source) ?? '').replace(/^\.\//, '');
+      if (line) return line;
+    }
+  }
+  return storiesFileOf(summary, componentId);
+}
+
 function storiesFileOf(summary: LintSummary, componentId: string): string {
   const file = summary.files.get(componentId);
   if (typeof file !== 'string') return '';
@@ -436,7 +454,7 @@ export function formatGithub(summary: LintSummary): string {
     emitted[command] += 1;
 
     const properties = [`title=${encodeProperty(`oversight/${d.rule}`)}`];
-    const anchor = d.componentId === null ? '' : storiesFileOf(summary, d.componentId);
+    const anchor = d.componentId === null ? '' : anchorFileOf(summary, d.rule, d.componentId);
     if (anchor) properties.push(`file=${encodeProperty(anchor)}`);
 
     // The hint rides on a second line (`%0A` once encoded) instead of a
