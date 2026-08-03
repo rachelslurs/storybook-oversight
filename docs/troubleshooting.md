@@ -64,6 +64,22 @@ Only the description is scanned. A `?path=` link in an `@example` or another tag
 
 One story's snippet or docgen extraction failed, and the manifest records it on `stories[].error`. `--format json` carries the full text on the finding's `error` field, which says more than the summary line does.
 
+## `props-unrecorded`
+
+The entry reached the manifest with an empty prop list, so `get-documentation` tells an agent the component accepts nothing.
+
+Usually extraction dropped them rather than the component having none. `react-docgen-typescript` can omit a prop that carries no JSDoc at all, so an undocumented prop is absent exactly when it is undocumented, and `prop-descriptions-missing` cannot see it to report it. `children` typed through a spread (`{ children: ReactNode } & HTMLAttributes<HTMLElement>`) is the common case.
+
+Give one prop a JSDoc comment and rebuild. If others appear alongside it, extraction was dropping them. A component that genuinely takes no props exempts itself:
+
+```ts
+/**
+ * A horizontal rule.
+ *
+ * @oversightIgnore props-unrecorded
+ */
+```
+
 ## `prop-shape-unrecognized` and `ref-unresolved`
 
 Both mean the payload is not the shape the prop rules read, and both report what they expected against what they got. `prop-shape-unrecognized` is manifest-wide, so a build has moved the fields every entry shares. `ref-unresolved` is one component, so a `$ref` on an otherwise-readable entry did not resolve.

@@ -172,6 +172,7 @@ export type RuleName =
   | 'extractor-drift'
   | 'component-description-missing'
   | 'prop-descriptions-missing'
+  | 'props-unrecorded'
   | 'required-prop-undocumented'
   | 'docs-link-dangling'
   | 'unknown-ignore-rule'
