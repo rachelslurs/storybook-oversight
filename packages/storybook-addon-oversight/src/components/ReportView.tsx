@@ -44,9 +44,10 @@ const inheritSize = { fontSize: 'inherit' } as const;
 const Section = styled.section(({ theme }) => ({
   // no rule between sections: the panel and the block each already draw an edge
   // around the report, and the headings carry the division on their own. The
-  // space between two sections is twice this, so it buys separation cheaply and
-  // overshoots just as fast
-  padding: '10px 16px',
+  // space between two sections is twice the vertical value, so it buys
+  // separation cheaply and overshoots just as fast; `layoutMargin` is the unit
+  // the surrounding UI is spaced on
+  padding: `${theme.layoutMargin}px 16px`,
   fontSize: theme.typography.size.s2,
   background: theme.background.content,
   // a section carrying its own background has to carry the text color that goes
