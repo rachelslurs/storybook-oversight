@@ -44,3 +44,19 @@ All changes land through pull requests to `main`.
 Releases are on-demand. Merging a PR with changesets does not publish by itself.
 
 On merge to `main`, [Changesets](https://github.com/changesets/changesets) opens a **Version Packages** PR that consumes the accumulated changeset files, bumps each package independently, and updates the per-package `CHANGELOG.md`. Changesets from several merged PRs accumulate in that one PR, so you can batch them. When you merge the Version Packages PR, the changed packages publish to npm.
+
+### Before releasing a change to the GitHub step summary
+
+The summary is markdown rendered against a repository, so the string the CLI writes and the string a reader sees are different. A release once escaped `@deprecated` as `&#64;deprecated`, which reads as fixed in the file and decodes back into a link to a GitHub account of that name.
+
+Render it through GitHub rather than reading what was emitted:
+
+```bash
+GITHUB_ACTIONS=1 GITHUB_STEP_SUMMARY=/tmp/summary.md \
+  node packages/cli/dist/cli.js storybook-static/manifests/components.json >/dev/null
+
+gh api /markdown -f mode=gfm -f context=<owner>/<repo> \
+  -f text="$(cat /tmp/summary.md)" | grep -c 'user-mention'
+```
+
+Zero is the pass, and a second run proves the check can fail: put an unescaped mention and a reference number that resolves in the repository you pass as `context` into the same document, and confirm both link. A reference to an issue that does not exist passes whether or not the escaping works.
