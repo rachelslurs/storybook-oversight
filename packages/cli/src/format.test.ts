@@ -662,11 +662,30 @@ describe('formatStepSummary', () => {
         },
       ]),
     );
-    expect(rendered).toContain('&#64;new');
-    expect(rendered).toContain('&#35;12');
+    // A code span, not an entity: `&#64;deprecated` decodes before GitHub's
+    // autolinker runs and linked to an account of that name anyway.
+    expect(rendered).toContain('`@new`');
+    expect(rendered).toContain('`#12`');
     expect(rendered).toContain('&#95;Card&#95;');
-    expect(rendered).not.toContain('@new');
-    expect(rendered).not.toContain('#12');
+    expect(rendered).not.toMatch(/(?<!`)@new/);
+    expect(rendered).not.toMatch(/(?<!`)#12/);
+  });
+
+  it('leaves a backtick in a message from opening a code span of its own', () => {
+    const rendered = formatStepSummary(
+      summaryOf([
+        {
+          rule: 'deprecated-tag',
+          severity: 'info',
+          componentId: 'ui-old',
+          message: 'Old is deprecated: use `Card` and see @docs.',
+        },
+      ]),
+    );
+    expect(rendered).toContain('&#96;Card&#96;');
+    expect(rendered).toContain('`@docs`');
+    // the escaped backtick's own digits must not read as a reference
+    expect(rendered).not.toContain('`#96`');
   });
 
   it('distinguishes Component cells for entries that share a name (#44)', () => {

@@ -46,12 +46,20 @@ const MANIFEST_HEADING = 'Manifest';
  * angle brackets a message carries does not touch it.
  */
 function escapeCell(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\|/g, '\\|')
-    .replace(/[@#`*_~[\]]/g, (c) => `&#${c.charCodeAt(0)};`);
+  return (
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\|/g, '\\|')
+      .replace(/`/g, '&#96;')
+      // A code span is the one place GitHub's autolinker leaves alone. An entity
+      // is not: `&#64;deprecated` decodes before the linker runs and became a
+      // link to an account of that name anyway. The lookbehind keeps the `#96`
+      // of an escaped backtick from being read as a reference.
+      .replace(/(?<![&\w])[@#][\w-]+/g, (token) => `\`${token}\``)
+      .replace(/[*_~[\]]/g, (c) => `&#${c.charCodeAt(0)};`)
+  );
 }
 
 /** Distinct manifest entries the findings sit on (manifest-level ones excluded). */

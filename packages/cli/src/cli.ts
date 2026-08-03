@@ -37,6 +37,11 @@ async function main(): Promise<number> {
     return 2;
   }
 
+  // Every format prints something different and `--format github` prints only
+  // workflow commands, so a CI log had no way to say which version ran. stderr
+  // is the one stream every format leaves alone.
+  process.stderr.write(`oversight-lint ${readVersion()}\n`);
+
   const result = await run(config.options);
   if (result.stdout) process.stdout.write(`${result.stdout}\n`);
   if (result.stderr) process.stderr.write(`${result.stderr}\n`);
