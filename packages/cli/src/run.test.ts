@@ -134,7 +134,7 @@ describe('run: exit codes', () => {
     const passing = await run(options({ manifestPath: path }));
     const failing = await run(options({ manifestPath: path, maxWarnings: 0 }));
     expect(passing.stderr).toBe('');
-    expect(failing.stderr).toMatch(/^\d+ warnings? exceeds the maximum of 0\.$/m);
+    expect(failing.stderr).toBe('2 warnings exceeds the maximum of 0.');
     expect(failing.stdout).toBe(passing.stdout);
   });
 
