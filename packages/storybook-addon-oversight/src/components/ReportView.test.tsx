@@ -104,6 +104,36 @@ describe('ReportView status states', () => {
   });
 });
 
+describe('ReportView empty-state treatment', () => {
+  // Both variants say the same words, so the text these tests already assert
+  // stays true whichever branch renders. What separates them is how they are
+  // laid out: the panel gets Storybook's centered EmptyTabContent, the way its
+  // Interactions and a11y panels look, and the block keeps an inline message
+  // because a full-height centered one would dwarf the page it sits under.
+  it('centers the empty state in the panel', () => {
+    const { container } = renderView(<ReportView status="unavailable" debuggerUrl={DEBUGGER_URL} variant="full" />);
+    const painted = getComputedStyle(container.firstElementChild!);
+
+    expect(painted.display).toBe('flex');
+    expect(painted.justifyContent).toBe('center');
+    expect(painted.height).toBe('100%');
+  });
+
+  it('keeps the empty state inline in the docs block', () => {
+    const { container } = renderView(<ReportView status="unavailable" debuggerUrl={DEBUGGER_URL} variant="compact" />);
+    const painted = getComputedStyle(container.firstElementChild!);
+
+    expect(painted.display).toBe('block');
+    expect(painted.height).not.toBe('100%');
+  });
+
+  it('treats an unspecified variant as the panel, which is what Panel relies on', () => {
+    const { container } = renderView(<ReportView status="unavailable" debuggerUrl={DEBUGGER_URL} />);
+
+    expect(getComputedStyle(container.firstElementChild!).display).toBe('flex');
+  });
+});
+
 describe('ReportView prop shape', () => {
   // `prop-shape-unrecognized` only runs on the ref format, so reaching this
   // branch means hydrating a v:1 index whose prop payload carries neither a

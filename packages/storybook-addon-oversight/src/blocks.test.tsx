@@ -79,6 +79,32 @@ describe('DocsLink', () => {
   });
 });
 
+describe('Oversight section anchor', () => {
+  it('gives the section a stable id to link to', async () => {
+    // `Heading` slugs its own id from the text on every render, and this block
+    // renders again when the manifest arrives, so the second pass would take
+    // "oversight-1" and every link naming "#oversight" would land nowhere
+    const { container } = render(<Oversight />);
+    await screen.findByRole('link', { name: 'MDN' });
+
+    expect(container.querySelector('#oversight')).toBeTruthy();
+  });
+
+  it('lets only the first block on a page own the anchor', async () => {
+    // the global container and a hand-placed <Oversight/> can both land on one
+    // page; duplicate ids are invalid and getElementById returns only the first
+    const { container } = render(
+      <>
+        <Oversight />
+        <Oversight />
+      </>,
+    );
+    await screen.findAllByRole('link', { name: 'MDN' });
+
+    expect(container.querySelectorAll('#oversight')).toHaveLength(1);
+  });
+});
+
 describe('Oversight manifest states', () => {
   it('tells a served-but-unparseable manifest apart from a missing one', async () => {
     state.manifest = null;
