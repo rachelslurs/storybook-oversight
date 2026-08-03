@@ -28,6 +28,7 @@
     "report-copy-trim",
     "report-copy",
     "report-section-order",
+    "retest-findings",
     "review-fixes",
     "row-headings",
     "rule-dictates-finding",
