@@ -7,6 +7,6 @@ Every finding carries the one-line hint for its rule, on a new `hint` field, dis
 
 `oversight-lint` prints it too: a dimmed `hint:` line under each finding, the `hint` field in `--format json`, the second line of each `--format github` annotation, and the Message column of the Actions step summary.
 
-In the panel and the Docs block the findings read as a table: rule, severity, message, and hint. Its columns name it, so it stands without a heading, the way the props table does. Both tables in a report share one treatment and one text size, and each scrolls inside its own box rather than spilling out of the section on a narrow panel.
+In the panel and the Docs block the findings read as a table: rule, severity, message, and a hint the last column reveals from a bubble. The bubble names itself with the hint text, so the fix is read out whether or not it is opened. Its columns name it, so it stands without a heading, the way the props table does. Both tables in a report share one treatment and one text size, and each scrolls inside its own box rather than spilling out of the section on a narrow panel.
 
 `component-description-missing` reads `<name> has no description for the MCP or the Docs page to show.` Anything matching on that message string needs updating.

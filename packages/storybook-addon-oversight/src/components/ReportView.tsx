@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import type { ComponentType, ReactNode } from 'react';
-import { CheckIcon, CrossIcon } from './icons';
-import { Badge, EmptyTabContent } from 'storybook/internal/components';
+import { ChatBubbleIcon, CheckIcon, CrossIcon } from './icons';
+import { Badge, EmptyTabContent, TooltipNote, TooltipProvider } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 import type { ComponentReport, Finding, Severity } from 'oversight-core';
 import { summarizeError } from 'oversight-core';
@@ -220,12 +220,45 @@ const FindingBody = styled.div(({ theme }) => ({
   fontSize: 'inherit',
   lineHeight: 1.4,
 }));
-// quieter than the message it answers, so a row reads what happened first
-const FindingHint = styled.div(({ theme }) => ({
+/**
+ * The chat bubble that reveals a finding's hint. A real button rather than a
+ * hover target: the hint is the actionable half of a finding, so it has to be
+ * reachable by keyboard, and its name has to carry the hint text so a screen
+ * reader gets the fix without opening anything. The focus ring is drawn here
+ * because both surfaces are free to reset the browser's own, in the same
+ * color the scroll regions ring themselves with.
+ */
+const HintButton = styled.button(({ theme }) => ({
+  display: 'inline-flex',
+  verticalAlign: 'middle',
+  padding: 2,
+  border: 0,
+  borderRadius: 4,
+  background: 'none',
   color: theme.textMutedColor,
-  fontSize: 'inherit',
-  lineHeight: 1.4,
+  cursor: 'pointer',
+  '&:hover': { color: theme.color.secondary },
+  '&:focus-visible': {
+    outline: `2px solid ${theme.color.secondary}`,
+    color: theme.color.secondary,
+  },
+  '& svg': { display: 'block' },
 }));
+
+/** No hint, no trigger: a disabled bubble would promise an answer that does
+ *  not exist (`deprecated-tag` reports a fact and has nothing to add). */
+function HintTrigger({ hint }: { hint: string }) {
+  // The bubble reveals the hint on pointer. Its accessible name carries the
+  // hint text as well, so the fix reaches a screen reader without opening
+  // anything: the popup is the sighted convenience, not the only copy.
+  return (
+    <TooltipProvider tooltip={<TooltipNote note={hint} />}>
+      <HintButton type="button" aria-label={`Hint: ${hint}`}>
+        <ChatBubbleIcon />
+      </HintButton>
+    </TooltipProvider>
+  );
+}
 // Both tables name their rows in the first column, so both take the body color:
 // the rule was muted, which read as an aside next to the prop name beside it.
 const RuleChip = styled.code(({ theme }) => ({
@@ -423,7 +456,7 @@ function FindingsList({ findings, label }: { findings: Finding[]; label: string 
               <td>
                 <FindingBody>{markDanglingIds(finding.message, finding.targets)}</FindingBody>
               </td>
-              <td>{finding.hint ? <FindingHint>{finding.hint}</FindingHint> : null}</td>
+              <td>{finding.hint !== undefined && <HintTrigger hint={finding.hint} />}</td>
             </tr>
           ))}
         </tbody>

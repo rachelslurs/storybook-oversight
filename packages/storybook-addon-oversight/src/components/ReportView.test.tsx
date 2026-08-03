@@ -393,7 +393,7 @@ describe('ReportView report rendering', () => {
     const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
 
     const findings = [...container.querySelectorAll('table')].find((table) =>
-      [...table.querySelectorAll('th')].some((th) => th.textContent?.trim() === 'Hint'),
+      [...table.querySelectorAll('th')].some((th) => th.textContent?.trim() === 'Severity'),
     );
     expect([...(findings?.querySelectorAll('thead th') ?? [])].map((th) => th.textContent?.trim())).toEqual([
       'Rule',
@@ -405,6 +405,65 @@ describe('ReportView report rendering', () => {
     const first = findings?.querySelector('tbody tr')?.firstElementChild;
     expect(first?.tagName).toBe('TH');
     expect(first?.textContent?.trim()).toBe('required-prop-undocumented');
+  });
+
+  // The hint column is gone; the hint now rides the message cell as a button.
+  // A screen-reader user gets the fix from the button's own name, without
+  // having to open the tooltip it also triggers.
+  it('names the hint trigger with the hint text itself', () => {
+    const manifest = {
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ex-button': {
+          name: 'Button',
+          path: './Button.stories.tsx',
+          reactDocgenTypescript: {
+            description: 'A button.',
+            props: { label: { description: '', required: true, declarations: [] } },
+          },
+        },
+      },
+    } as unknown as RawManifest;
+    const report = buildReport(manifest, 'ex-button');
+    const hint = report.findings.find((d) => d.rule === 'required-prop-undocumented')?.hint;
+    expect(hint).toBeTruthy();
+
+    const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+    const row = [...container.querySelectorAll('tbody tr')].find(
+      (r) => r.querySelector('th')?.textContent?.trim() === 'required-prop-undocumented',
+    )!;
+    const trigger = row.querySelector('button');
+    expect(trigger).not.toBeNull();
+    expect(trigger!.getAttribute('aria-label')).toContain(hint!);
+    // the trigger has the Hint column to itself, so it centres in its row
+    // rather than riding at the end of the message
+    expect(trigger!.closest('td')).toBe(row.lastElementChild);
+    const heads = [...row.closest('table')!.querySelectorAll('thead th')].map((th) => th.textContent?.trim());
+    expect(heads).toEqual(['Rule', 'Severity', 'Message', 'Hint']);
+  });
+
+  it('renders no trigger at all for a finding without a hint', () => {
+    const manifest = {
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ex-old': {
+          name: 'Old',
+          path: './Old.stories.tsx',
+          jsDocTags: { deprecated: 'Use New instead.' },
+          reactDocgenTypescript: { description: 'An old component.', props: {} },
+        },
+      },
+    } as unknown as RawManifest;
+    const report = buildReport(manifest, 'ex-old');
+    expect(report.findings.find((d) => d.rule === 'deprecated-tag')?.hint).toBeUndefined();
+
+    const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+    const row = [...container.querySelectorAll('tbody tr')].find(
+      (r) => r.querySelector('th')?.textContent?.trim() === 'deprecated-tag',
+    )!;
+    // nothing to reveal, so nothing that looks revealable: a disabled button
+    // would promise an answer that does not exist
+    expect(row.querySelector('button')).toBeNull();
   });
 
   it('marks each section label as a heading, so the report is not skipped', () => {
