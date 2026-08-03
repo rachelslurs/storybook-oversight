@@ -47,8 +47,8 @@ const summary: LintSummary = {
     ['ui-old', './stories/Old/Old.stories.tsx'],
   ]),
   sources: new Map([
-    ['ui-card', 'stories/Card/Card.tsx'],
-    ['ui-old', 'stories/Old/Old.tsx'],
+    ['ui-card', { recorded: 'stories/Card/Card.tsx', display: 'stories/Card/Card.tsx' }],
+    ['ui-old', { recorded: 'stories/Old/Old.tsx', display: 'stories/Old/Old.tsx' }],
   ]),
 };
 
@@ -846,6 +846,60 @@ describe('formatGithub', () => {
     const errorLine = lines.find((l) => l.startsWith('::error '));
     expect(errorLine).toContain('file=stories/Card/Card.tsx');
     expect(errorLine).not.toContain('./stories');
+  });
+
+  /** A finding on a component whose recorded source path is `recorded`. */
+  function anchorFor(recorded: string, workspace?: string): string {
+    const before = process.env.GITHUB_WORKSPACE;
+    if (workspace === undefined) delete process.env.GITHUB_WORKSPACE;
+    else process.env.GITHUB_WORKSPACE = workspace;
+    try {
+      const out = formatGithub(
+        summaryOf(
+          [
+            {
+              rule: 'component-description-missing',
+              severity: 'warning',
+              componentId: 'ui-avatar',
+              message: 'Avatar has no description.',
+            },
+          ],
+          {
+            entryCount: 1,
+            names: new Map([['ui-avatar', 'Avatar']]),
+            files: new Map([['ui-avatar', 'src/Avatar/Avatar.stories.tsx']]),
+            sources: new Map([['ui-avatar', { recorded, display: 'src/Avatar/Avatar.tsx' }]]),
+          },
+        ),
+      );
+      return out.split('\n').find((l) => l.startsWith('::warning ')) ?? '';
+    } finally {
+      if (before === undefined) delete process.env.GITHUB_WORKSPACE;
+      else process.env.GITHUB_WORKSPACE = before;
+    }
+  }
+
+  it('anchors from the repository root when the Storybook sits in a package', () => {
+    // GitHub resolves file= against the checkout root whatever the step's
+    // working directory is, so a path relative to the package names a file the
+    // repository does not have there and the annotation is dropped in silence.
+    expect(anchorFor('/home/runner/work/ds/ds/storybook/src/Avatar/Avatar.tsx', '/home/runner/work/ds/ds')).toContain(
+      'file=storybook/src/Avatar/Avatar.tsx',
+    );
+  });
+
+  it("leaves a root-level Storybook's path alone", () => {
+    expect(anchorFor('/home/runner/work/ds/ds/src/Avatar/Avatar.tsx', '/home/runner/work/ds/ds')).toContain(
+      'file=src/Avatar/Avatar.tsx',
+    );
+  });
+
+  it('keeps the trimmed path when the recorded one is outside the checkout', () => {
+    expect(anchorFor('/somewhere/else/Avatar.tsx', '/home/runner/work/ds/ds')).toContain('file=src/Avatar/Avatar.tsx');
+  });
+
+  it('keeps the trimmed path when the manifest records a relative one', () => {
+    expect(anchorFor('src/Avatar/Avatar.tsx', '/home/runner/work/ds/ds')).toContain('file=src/Avatar/Avatar.tsx');
   });
 
   it('anchors an entry keyed by the empty string, clamping its path (#44)', () => {

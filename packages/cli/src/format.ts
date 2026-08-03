@@ -1,3 +1,4 @@
+import { isAbsolute, relative, sep } from 'node:path';
 import { firstNonEmptyLine, summarizeError } from 'oversight-core';
 import type { Finding, RuleName, Severity } from 'oversight-core';
 import type { LintSummary } from './types';
@@ -284,12 +285,35 @@ function entryShare(summary: LintSummary): string {
 function anchorFileOf(summary: LintSummary, rule: string, componentId: string): string {
   if (rule !== 'story-extraction-error') {
     const source = summary.sources.get(componentId);
-    if (typeof source === 'string') {
-      const line = (firstNonEmptyLine(source) ?? '').replace(/^\.\//, '');
+    if (source) {
+      const fromRoot = workspaceRelativeOf(source.recorded);
+      if (fromRoot) return fromRoot;
+      const line = (firstNonEmptyLine(source.display) ?? '').replace(/^\.\//, '');
       if (line) return line;
     }
   }
   return storiesFileOf(summary, componentId);
+}
+
+/**
+ * GitHub resolves an annotation's `file=` against the repository root, so a
+ * Storybook that lives in a package directory names files the checkout does not
+ * have at that path and every annotation is dropped, silently and whatever the
+ * step's working directory is. The absolute path the extractor records is the
+ * only evidence of where the package sits, and it is gone from the trimmed path
+ * a message reads.
+ *
+ * Null rather than a guess when the manifest records a relative path or one
+ * outside the checkout: the trimmed path is then already the best available,
+ * and it is correct for a Storybook at the root.
+ */
+function workspaceRelativeOf(recorded: string): string | null {
+  const line = firstNonEmptyLine(recorded);
+  if (!line || !isAbsolute(line)) return null;
+  const root = process.env.GITHUB_WORKSPACE || process.cwd();
+  const fromRoot = relative(root, line);
+  if (!fromRoot || fromRoot.startsWith('..') || isAbsolute(fromRoot)) return null;
+  return fromRoot.split(sep).join('/');
 }
 
 function storiesFileOf(summary: LintSummary, componentId: string): string {
