@@ -282,17 +282,52 @@ function entryShare(summary: LintSummary): string {
  * place, and if the stories file is not in the diff it may not render at all.
  * `story-extraction-error` is the exception, being about a story.
  */
-function anchorFileOf(summary: LintSummary, rule: string, componentId: string): string {
+function anchorFileOf(summary: LintSummary, rule: string, componentId: string, prefix: string | null): string {
   if (rule !== 'story-extraction-error') {
     const source = summary.sources.get(componentId);
     if (source) {
       const fromRoot = workspaceRelativeOf(source.recorded);
       if (fromRoot) return fromRoot;
       const line = (firstNonEmptyLine(source.display) ?? '').replace(/^\.\//, '');
-      if (line) return line;
+      if (line) return withPrefix(line, prefix);
     }
   }
-  return storiesFileOf(summary, componentId);
+  return withPrefix(storiesFileOf(summary, componentId), prefix);
+}
+
+function withPrefix(path: string, prefix: string | null): string {
+  if (!path || !prefix || path.startsWith(prefix)) return path;
+  return prefix + path;
+}
+
+/**
+ * The path from the checkout root down to whatever the manifest's own paths are
+ * relative to, or null when nothing vouches for one.
+ *
+ * A component's recorded path is absolute and its trimmed path is not, so the
+ * difference between the two is that prefix. Reading it from the entries that
+ * have both is the only way to anchor an entry that has neither: a failed
+ * extraction records no source path at all, and `docgen-missing` is the
+ * annotation a Storybook nested in a package most needs to land.
+ *
+ * Every voucher has to agree, the way the extractor prefix does in
+ * `oversight-core`. A manifest that anchored some annotations from the root and
+ * others from a package would drop half of them and say so nowhere.
+ */
+function detectPackagePrefix(summary: LintSummary): string | null {
+  let agreed: string | null = null;
+  for (const { recorded, display } of summary.sources.values()) {
+    const fromRoot = workspaceRelativeOf(recorded);
+    const trimmed = (firstNonEmptyLine(display) ?? '').replace(/^\.\//, '');
+    if (!fromRoot || !trimmed) continue;
+    let candidate: string | null = null;
+    if (fromRoot === trimmed) candidate = '';
+    else if (fromRoot.endsWith(`/${trimmed}`)) candidate = fromRoot.slice(0, fromRoot.length - trimmed.length);
+    if (candidate === null) continue;
+    if (agreed === null) agreed = candidate;
+    else if (agreed !== candidate) return null;
+  }
+  return agreed;
 }
 
 /**
@@ -468,6 +503,7 @@ export function formatGithub(summary: LintSummary): string {
   const emitted: Record<string, number> = { error: 0, warning: 0, notice: 0 };
   const dropped: Record<string, number> = { error: 0, warning: 0, notice: 0 };
   const lines: string[] = [];
+  const packagePrefix = detectPackagePrefix(summary);
 
   for (const d of summary.findings) {
     const command = GITHUB_COMMAND[d.severity];
@@ -478,7 +514,7 @@ export function formatGithub(summary: LintSummary): string {
     emitted[command] += 1;
 
     const properties = [`title=${encodeProperty(`oversight/${d.rule}`)}`];
-    const anchor = d.componentId === null ? '' : anchorFileOf(summary, d.rule, d.componentId);
+    const anchor = d.componentId === null ? '' : anchorFileOf(summary, d.rule, d.componentId, packagePrefix);
     if (anchor) properties.push(`file=${encodeProperty(anchor)}`);
 
     // The hint rides on a second line (`%0A` once encoded) instead of a
