@@ -52,11 +52,17 @@ Most of the time no description was written. Put a JSDoc block above the compone
 
 When the JSDoc is there and the extractor is `react-component-meta`, check [item 4 under `docgen-missing`](#docgen-missing): an expression default export loses only the description under that extractor, so the failure lands on this rule instead.
 
-## `prop-descriptions-missing` and `required-prop-undocumented`
+## `prop-descriptions-missing`
 
-The props reached the manifest, without descriptions. Put a JSDoc comment on each one. `required-prop-undocumented` is the error of the two because an agent has to supply a required prop and will guess at an undocumented one, so a required prop with no description trips both: the warning lists every undocumented prop and the error lists the required ones inside it.
+The props reached the manifest, without descriptions. Put a JSDoc comment on each one. This warning lists every undocumented prop.
 
-Both rules stop running when `prop-shape-unrecognized` fires, so fix that first if you see it.
+The rule stops running when `prop-shape-unrecognized` fires, so fix that first if you see it.
+
+## `required-prop-undocumented`
+
+The error-severity half of the same problem, because an agent has to supply a required prop and will guess at an undocumented one. A required prop with no description trips this and `prop-descriptions-missing` together: the warning lists every undocumented prop, this error lists the required ones inside it.
+
+The rule stops running when `prop-shape-unrecognized` fires, so fix that first if you see it.
 
 ## `extractor-drift`
 
@@ -90,11 +96,15 @@ Give one prop a JSDoc comment and rebuild. If others appear alongside it, extrac
  */
 ```
 
-## `prop-shape-unrecognized` and `ref-unresolved`
+## `prop-shape-unrecognized`
 
-Both mean the payload is not the shape the prop rules read, and both report what they expected against what they got. `prop-shape-unrecognized` is manifest-wide, so a build has moved the fields every entry shares. `ref-unresolved` is one component, so a `$ref` on an otherwise-readable entry did not resolve.
+The payload is not the shape the prop rules read, and the finding reports what it expected against what it got. This one is manifest-wide, so a build has moved the fields every entry shares. The prop rules do not run while it fires, which is why it is worth fixing before them.
 
 A manifest version this build does not know is refused outright rather than guessed at, so a finding here means the shape changed inside a version that is still recognized.
+
+## `ref-unresolved`
+
+The same mismatch on a single component: a `$ref` on an otherwise-readable entry did not resolve, so the entry never reached the shape the prop rules read. The finding reports what it expected against what it got.
 
 ## `unknown-ignore-rule`
 
