@@ -902,6 +902,54 @@ describe('formatGithub', () => {
     expect(anchorFor('src/Avatar/Avatar.tsx', '/home/runner/work/ds/ds')).toContain('file=src/Avatar/Avatar.tsx');
   });
 
+  /** A failed entry has no payload and so no source path of its own; the
+   *  prefix has to come from an entry that extracted. */
+  function failureAnchorFor(recorded: string, workspace: string): string {
+    const before = process.env.GITHUB_WORKSPACE;
+    process.env.GITHUB_WORKSPACE = workspace;
+    try {
+      const out = formatGithub(
+        summaryOf(
+          [
+            {
+              rule: 'docgen-missing',
+              severity: 'error',
+              componentId: 'ui-kbd',
+              message: 'Docgen extraction failed for Kbd.',
+            },
+          ],
+          {
+            entryCount: 2,
+            names: new Map([
+              ['ui-kbd', 'Kbd'],
+              ['ui-avatar', 'Avatar'],
+            ]),
+            files: new Map([['ui-kbd', 'src/Kbd/Kbd.stories.tsx']]),
+            sources: new Map([['ui-avatar', { recorded, display: 'src/Avatar/Avatar.tsx' }]]),
+          },
+        ),
+      );
+      return out.split('\n').find((l) => l.startsWith('::error ')) ?? '';
+    } finally {
+      if (before === undefined) delete process.env.GITHUB_WORKSPACE;
+      else process.env.GITHUB_WORKSPACE = before;
+    }
+  }
+
+  it('anchors a failed entry from the root, reading the prefix off one that extracted', () => {
+    // docgen-missing is the rule a Storybook nested in a package fires most, and
+    // a failed entry carries no source path to resolve on its own.
+    expect(
+      failureAnchorFor('/home/runner/work/ds/ds/storybook/src/Avatar/Avatar.tsx', '/home/runner/work/ds/ds'),
+    ).toContain('file=storybook/src/Kbd/Kbd.stories.tsx');
+  });
+
+  it('leaves a failed entry alone when the Storybook is at the root', () => {
+    expect(failureAnchorFor('/home/runner/work/ds/ds/src/Avatar/Avatar.tsx', '/home/runner/work/ds/ds')).toContain(
+      'file=src/Kbd/Kbd.stories.tsx',
+    );
+  });
+
   it('anchors an entry keyed by the empty string, clamping its path (#44)', () => {
     const anchored = formatGithub(
       summaryOf([{ rule: 'docgen-missing', severity: 'error', componentId: '', message: 'Widget failed.' }], {
