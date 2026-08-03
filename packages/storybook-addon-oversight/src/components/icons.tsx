@@ -2,7 +2,7 @@ import type { SVGProps } from 'react';
 
 /**
  * The report's glyphs: the tick and cross the props table marks each row with,
- * and the chat bubble that reveals a finding's hint.
+ * and the lightbulb that reveals a finding's hint.
  *
  * Drawn here rather than pulled from an icon package: the manager is given one
  * as a global and the preview bundle is not, so sharing a package between the
@@ -38,10 +38,14 @@ export function CrossIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-export function ChatBubbleIcon(props: SVGProps<SVGSVGElement>) {
+// A suggestion, which is what a hint is: the glyph an editor offers a fix
+// behind. Two strokes rather than a filled bulb and a filament, which turn to
+// mud at 14px.
+export function LightbulbIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base} {...props}>
-      <path d="M12 7a5 5 0 0 1-7.3 4.44L2 12l.56-2.7A5 5 0 1 1 12 7Z" />
+      <path d="M5.2 8.8a3.5 3.5 0 1 1 3.6 0c-.5.4-.7.9-.7 1.5H5.9c0-.6-.2-1.1-.7-1.5Z" />
+      <path d="M5.9 12.2h2.2" />
     </svg>
   );
 }

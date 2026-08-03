@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import type { ComponentType, ReactNode } from 'react';
-import { ChatBubbleIcon, CheckIcon, CrossIcon } from './icons';
+import { CheckIcon, CrossIcon, LightbulbIcon } from './icons';
 import { Badge, EmptyTabContent, TooltipNote, TooltipProvider } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 import type { ComponentReport, Finding, Severity } from 'oversight-core';
@@ -221,7 +221,7 @@ const FindingBody = styled.div(({ theme }) => ({
   lineHeight: 1.4,
 }));
 /**
- * The chat bubble that reveals a finding's hint. A real button rather than a
+ * The lightbulb that reveals a finding's hint. A real button rather than a
  * hover target: the hint is the actionable half of a finding, so it has to be
  * reachable by keyboard, and its name has to carry the hint text so a screen
  * reader gets the fix without opening anything. The focus ring is drawn here
@@ -245,16 +245,16 @@ const HintButton = styled.button(({ theme }) => ({
   '& svg': { display: 'block' },
 }));
 
-/** No hint, no trigger: a disabled bubble would promise an answer that does
+/** No hint, no trigger: a dimmed lightbulb would promise an answer that does
  *  not exist (`deprecated-tag` reports a fact and has nothing to add). */
 function HintTrigger({ hint }: { hint: string }) {
-  // The bubble reveals the hint on pointer. Its accessible name carries the
+  // The lightbulb reveals the hint on pointer. Its accessible name carries the
   // hint text as well, so the fix reaches a screen reader without opening
   // anything: the popup is the sighted convenience, not the only copy.
   return (
     <TooltipProvider tooltip={<TooltipNote note={hint} />}>
       <HintButton type="button" aria-label={`Hint: ${hint}`}>
-        <ChatBubbleIcon />
+        <LightbulbIcon />
       </HintButton>
     </TooltipProvider>
   );
