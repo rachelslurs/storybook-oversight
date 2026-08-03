@@ -43,8 +43,10 @@ const inheritSize = { fontSize: 'inherit' } as const;
 
 const Section = styled.section(({ theme }) => ({
   // no rule between sections: the panel and the block each already draw an edge
-  // around the report, and the headings carry the division on their own
-  padding: '14px 16px',
+  // around the report, and the headings carry the division on their own. The
+  // space between two sections is twice this, so it buys separation cheaply and
+  // overshoots just as fast
+  padding: '10px 16px',
   fontSize: theme.typography.size.s2,
   background: theme.background.content,
   // a section carrying its own background has to carry the text color that goes
@@ -274,7 +276,9 @@ const ReportTable = styled.table(({ theme }) => ({
   // would otherwise box each cell and stripe the rows
   '&&': {
     width: '100%',
-    margin: '8px 0 0',
+    // the section's own padding is the space above a table; a margin here was
+    // for the heading these tables no longer carry
+    margin: 0,
     borderCollapse: 'collapse',
     fontSize: 13,
   },
