@@ -85,7 +85,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
   // Crossing the ceiling was the one way to fail with output identical to a
   // passing run, so a CI job stopped on it said nowhere what had stopped it.
   const stderr = overCeiling
-    ? `${summary.warnings} warning${summary.warnings === 1 ? '' : 's'} exceeds the maximum of ${options.maxWarnings}.\n`
+    ? `${summary.warnings} warning${summary.warnings === 1 ? '' : 's'} exceeds the maximum of ${options.maxWarnings}.`
     : '';
 
   return { code, stdout, stderr, stepSummary };
