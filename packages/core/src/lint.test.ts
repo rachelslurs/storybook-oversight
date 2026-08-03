@@ -256,7 +256,11 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     // finding message and broke the CLI's one-line row.
     const result = normalizeManifest({ meta: { docgen: 'react-docgen-typescript\n' }, components: {} });
     expect(result.extractor).toBe('react-docgen-typescript');
-    expect(lint(result, { expectedExtractor: 'react-docgen-typescript' })).toHaveLength(0);
+    // scoped to the rule under test: these entries carry no props, which is a
+    // finding of its own and not what this case is about
+    expect(
+      lint(result, { expectedExtractor: 'react-docgen-typescript' }).filter((d) => d.rule === 'extractor-drift'),
+    ).toHaveLength(0);
   });
 
   it('does not flag a meta-less manifest whose entries record the extractor', () => {
@@ -267,7 +271,11 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         'ui-b': { name: 'B', path: './b.stories.tsx', reactDocgenTypescript: { description: 'B.', props: {} } },
       },
     });
-    expect(lint(result, { expectedExtractor: 'react-docgen-typescript' })).toHaveLength(0);
+    // scoped to the rule under test: these entries record no props, which is a
+    // finding of its own and not what this case is about
+    expect(
+      lint(result, { expectedExtractor: 'react-docgen-typescript' }).filter((d) => d.rule === 'extractor-drift'),
+    ).toHaveLength(0);
   });
 
   it('flags drift against the extractor inferred from payload keys', () => {
@@ -314,7 +322,7 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     );
   });
 
-  it('skips prop rules on components with no props', () => {
+  it('skips the prop rules on an entry with no props, and says the props are missing', () => {
     const result = normalizeManifest({
       components: {
         a: {
@@ -324,7 +332,28 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         },
       },
     });
-    expect(lint(result)).toHaveLength(0);
+    const findings = lint(result);
+    // the prop rules have nothing to read, so neither fires
+    expect(findings.filter((d) => d.rule.startsWith('prop-') || d.rule === 'required-prop-undocumented')).toHaveLength(
+      0,
+    );
+    // but an entry recording no props at all is the shape of an extraction that
+    // dropped them, which is the case the addon exists to catch
+    expect(findings.map((d) => d.rule)).toEqual(['props-unrecorded']);
+  });
+
+  it('exempts a genuinely propless component through the ignore tag', () => {
+    const result = normalizeManifest({
+      components: {
+        a: {
+          name: 'Rule',
+          path: './rule.stories.tsx',
+          jsDocTags: { oversightIgnore: 'props-unrecorded' },
+          reactDocgenTypescript: { description: 'A horizontal rule.', props: {} },
+        },
+      },
+    });
+    expect(lint(result).filter((d) => d.rule === 'props-unrecorded')).toHaveLength(0);
   });
 
   it('flags a missing component description', () => {

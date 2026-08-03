@@ -526,7 +526,11 @@ describe('ReportView report rendering', () => {
         'ex-clean': {
           name: 'Clean',
           path: './Clean.stories.tsx',
-          reactDocgenTypescript: { description: 'All documented.', props: {} },
+          reactDocgenTypescript: {
+            description: 'All documented.',
+            // a documented prop, so the entry is clean rather than merely empty
+            props: { tone: { description: 'The tone.', required: false, declarations: [] } },
+          },
         },
       },
     } as unknown as RawManifest;

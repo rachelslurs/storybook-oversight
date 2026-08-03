@@ -26,6 +26,7 @@ const RULE_SET = {
   'extractor-drift': true,
   'component-description-missing': true,
   'prop-descriptions-missing': true,
+  'props-unrecorded': true,
   'required-prop-undocumented': true,
   'docs-link-dangling': true,
   'unknown-ignore-rule': true,
@@ -48,6 +49,8 @@ const HINT = {
   'extractor-drift': 'Check meta.docgen for the extractor that ran, then set the expectation to match.',
   'component-description-missing': 'Add a JSDoc block above the component.',
   'prop-descriptions-missing': 'Add a JSDoc comment to each undocumented prop.',
+  'props-unrecorded':
+    'Give one prop a JSDoc comment and rebuild: if others appear with it, extraction was dropping them.',
   'required-prop-undocumented': 'Add a JSDoc comment to each required prop.',
   'docs-link-dangling': 'Point the link at an id the manifest has, or remove the link.',
   'unknown-ignore-rule': 'Check the token against the rule names; it is usually a typo.',
@@ -215,6 +218,26 @@ export function lint(result: NormalizeResult, options: LintOptions = {}): Findin
         severity: 'warning',
         componentId: component.id,
         message: `${component.name} has no description for the MCP or the Docs page to show.`,
+      });
+    }
+
+    // An entry with no props at all is the shape of an extraction that dropped
+    // them, not usually a component that takes none: an undocumented `children`
+    // can be absent from the manifest exactly because it is undocumented, so
+    // `prop-descriptions-missing` cannot see it and the agent is told the
+    // component accepts nothing. A component that genuinely takes no props
+    // exempts itself with `@oversightIgnore props-unrecorded`.
+    if (
+      result.propShape === 'known' &&
+      Object.keys(component.props).length === 0 &&
+      !isIgnored(componentTags.oversightIgnore, 'props-unrecorded')
+    ) {
+      findings.push({
+        rule: 'props-unrecorded',
+        hint: hintFor('props-unrecorded'),
+        severity: 'warning',
+        componentId: component.id,
+        message: `${component.name} records no props, so the MCP describes it as taking none.`,
       });
     }
 
