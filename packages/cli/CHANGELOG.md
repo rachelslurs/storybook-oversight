@@ -1,5 +1,25 @@
 # oversight-lint
 
+## 0.6.0-beta.0
+
+### Minor Changes
+
+- 63d3fb4: One word per thing. The two surfaces are the addons panel and the Docs block, which the addon called the manager panel and the Docs-page block in places. A rule dictates a finding, whose parts are a severity, a rule name, a message and a hint. Finding is the only word for it now: the type was `Diagnostic`, the CLI tally said "problems", and prose said "issues". `oversight-core` is the rules engine.
+
+  The CLI's tally line reads `✖ 5 findings (2 errors, 2 warnings, 1 info)` where it read `5 problems`. Anything matching on that word needs updating.
+
+  The addon README heading is now `Optional: enable the Docs block`, so `#optional-enable-the-docs-page-block` no longer resolves.
+
+### Patch Changes
+
+- b959c99: Every finding carries the one-line hint for its rule, on a new `hint` field, distilled from `docs/troubleshooting.md`. It lives with the rules rather than in a renderer, so the panel and the Docs block give the same answer, and a rule added to the union has to say what to do about itself or fail to compile. `deprecated-tag` has none: it reports a fact rather than a defect. The field is `hint` rather than `fix` because ESLint's `fix` is a machine-applicable edit that `--fix` applies, and this is a sentence to read.
+
+  `oversight-lint` prints it too: a dimmed `hint:` line under each finding, the `hint` field in `--format json`, the second line of each `--format github` annotation, and the Message column of the Actions step summary.
+
+  In the panel and the Docs block the findings read as a table: rule, severity, message, and a hint the last column reveals from a lightbulb, on pointer or on keyboard focus. The lightbulb names itself with the hint text, so the fix is read out whether or not it is opened. Its columns name it, so it stands without a heading, the way the props table does. Both tables in a report share one treatment and one text size, and each scrolls inside its own box rather than spilling out of the section on a narrow panel.
+
+  `component-description-missing` reads `<name> has no description for the MCP or the Docs page to show.` Anything matching on that message string needs updating.
+
 ## 0.5.1
 
 ### Patch Changes
