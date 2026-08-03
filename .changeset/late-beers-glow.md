@@ -1,4 +1,5 @@
 ---
+'oversight-lint': patch
 ---
 
-Cover the manager panel, the tab title and the report hook with unit tests, and pin the docs block's anchor id and the panel's centered empty state. Tests only, so nothing published changes.
+Correct what the README says `--format github` annotations anchor to. They land on the component's source file, falling back to the stories file for extraction failures and for entries that record no source. The previous text said every finding anchored to the stories file.
