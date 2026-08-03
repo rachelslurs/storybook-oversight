@@ -4,47 +4,35 @@
 
 ### Minor Changes
 
-- 63d3fb4: One word per thing. The two surfaces are the addons panel and the Docs block, which the addon called the manager panel and the Docs-page block in places. A rule dictates a finding, whose parts are a severity, a rule name, a message and a hint. Finding is the only word for it now: the type was `Diagnostic`, the CLI tally said "problems", and prose said "issues". `oversight-core` is the rules engine.
+- One word per thing. A rule dictates a finding, whose parts are a severity, a rule name, a message and a hint. Finding is the only word for it now: the type was `Diagnostic`, the tally said "problems", and prose said "issues". `oversight-core` is the rules engine.
 
-  The CLI's tally line reads `✖ 5 findings (2 errors, 2 warnings, 1 info)` where it read `5 problems`. Anything matching on that word needs updating.
+  Two strings consumers might match on changed. The tally line reads `✖ 5 findings (2 errors, 2 warnings, 1 info)` where it read `5 problems`, and `component-description-missing` reads `<name> has no description for the MCP or the Docs page to show.`
 
-  The addon README heading is now `Optional: enable the Docs block`, so `#optional-enable-the-docs-page-block` no longer resolves.
+  The rule reference moved to `docs/rules.md` in the repository, so this package's README links out for it where it used to carry it inline.
 
 ### Patch Changes
 
-- 744b0e2: Crossing `--max-warnings` says so. The run failed with output identical to a passing one, so a CI job stopped on the ceiling named nothing that had stopped it.
+- Every finding carries the one-line hint for its rule, on a new `hint` field distilled from `docs/troubleshooting.md`. It prints as a dimmed `hint:` line under each finding, as the `hint` field in `--format json`, as the second line of each `--format github` annotation, and in the Message column of the Actions step summary. `deprecated-tag` has none: it reports a fact rather than a defect.
 
-  The GitHub step summary renders a message as text. It is markdown rendered against a repository, so `@deprecated` in a `deprecated-tag` message linked to a GitHub account of that name, and `#12` would have linked to an issue.
+- A file that parses but is not a components manifest exits 2 instead of reporting no findings at exit 0. A job pointed at a stale path passed forever while linting nothing, and that path is a string in a config. A manifest that records no entries is still a real manifest and still exits 0.
 
-  `docgen-missing`'s hint names the causes in the order they are worth checking. It named `typescript.reactDocgen` alone, which told a project that had already set it correctly to set it again, under a message about something else. A story whose `meta` names no component is documented in `docs/troubleshooting.md` as the fifth cause, the one whose fix is in the stories file.
+- A GitHub annotation points at the file it is about, at a path the repository has. Every rule but `story-extraction-error` reports the component's own source, and anchoring on the stories file put the annotation on a file that does not contain the problem, or outside the diff entirely. The path resolves from the checkout root as well, so a Storybook living in a package directory annotates `storybook/src/Avatar/Avatar.tsx` rather than `src/Avatar/Avatar.tsx`. GitHub drops an annotation whose path it cannot resolve without reporting anything, and no working-directory setting changes that.
 
-- 48badba: A file that parses but is not a components manifest exits 2 instead of reporting no findings at exit 0. A job pointed at a stale path passed forever while linting nothing, and the path is a string in a config. A manifest that records no entries still exits 0.
+  A failed extraction records no source path of its own, so `docgen-missing` anchors on the stories file and takes the same prefix, read off the entries that did extract.
 
-  A GitHub annotation points at the file it is about, and at a path the repository has. Every rule but `story-extraction-error` reports the component's own source, and anchoring on the stories file put the annotation on a file that does not contain the problem, or outside the diff entirely. The path is now resolved from the checkout root as well, so a Storybook living in a package directory annotates `storybook/src/Avatar/Avatar.tsx` rather than `src/Avatar/Avatar.tsx`; GitHub drops an annotation whose path it cannot resolve without reporting anything, and no working-directory setting changes that.
+- Crossing `--max-warnings` says so, on stderr, naming the count and the ceiling. The run failed with output identical to a passing one, so a CI job stopped on the ceiling named nothing that had stopped it.
 
-  New rule, `props-unrecorded` (warning): an entry that records no props at all, so the MCP describes the component as taking none. Extraction can drop a prop that carries no JSDoc, which makes an undocumented prop absent exactly when it is undocumented, so `prop-descriptions-missing` cannot see it. `children` typed through a spread is the common case. A component that genuinely takes no props exempts itself with `@oversightIgnore props-unrecorded`.
+- The Actions step summary renders a message as text. It is markdown rendered against a repository, so `@deprecated` in a `deprecated-tag` message linked to a GitHub account of that name and `#12` would have linked to an issue. Mention-shaped and reference-shaped tokens go in as code spans, which GitHub's autolinker leaves alone.
 
-- b959c99: Every finding carries the one-line hint for its rule, on a new `hint` field, distilled from `docs/troubleshooting.md`. It lives with the rules rather than in a renderer, so the panel and the Docs block give the same answer, and a rule added to the union has to say what to do about itself or fail to compile. `deprecated-tag` has none: it reports a fact rather than a defect. The field is `hint` rather than `fix` because ESLint's `fix` is a machine-applicable edit that `--fix` applies, and this is a sentence to read.
+- Every run prints `oversight-lint <version>` on stderr. `--format github` prints only workflow commands and `--format json` only JSON, so a CI log had no way to say which version produced it.
 
-  `oversight-lint` prints it too: a dimmed `hint:` line under each finding, the `hint` field in `--format json`, the second line of each `--format github` annotation, and the Message column of the Actions step summary.
+- New rule, `props-unrecorded` (warning): an entry that records no props at all, so the MCP describes the component as taking none. Extraction can drop a prop carrying no JSDoc, which makes an undocumented prop absent exactly when it is undocumented, so `prop-descriptions-missing` cannot see it; `children` typed through a spread is the common case. The manifest cannot tell that apart from a component that genuinely takes no props, so the rule fires on both and its hint names `@oversightIgnore props-unrecorded` for the second.
 
-  In the panel and the Docs block the findings read as a table: rule, severity, message, and a hint the last column reveals from a lightbulb, on pointer or on keyboard focus. The lightbulb names itself with the hint text, so the fix is read out whether or not it is opened. Its columns name it, so it stands without a heading, the way the props table does. Both tables in a report share one treatment and one text size, and each scrolls inside its own box rather than spilling out of the section on a narrow panel.
+- `docgen-missing`'s hint names its causes in the order they are worth checking. It named `typescript.reactDocgen` alone, which told a project that had already set it correctly to set it again, under a message about something else. A story whose `meta` names no component is one of those causes and is the fifth entry under that rule in `docs/troubleshooting.md`, the only one whose fix is in the stories file.
 
-  `component-description-missing` reads `<name> has no description for the MCP or the Docs page to show.` Anything matching on that message string needs updating.
+- `unknown-ignore-rule` reads correctly for one token: `Nothing is exempted by it`, where the plural read as a typo inside a message reporting someone else's typo. Its hint is number-neutral, since one string per rule cannot agree with a message naming one token or several.
 
-- 4ed2892: A finding names the props it is about on both surfaces. The panel and the Docs block said how many props were undocumented while the props table below said which were, so reading one meant crossing it against the other. The CLI has always named them.
-
-  The hint opens below its trigger. The Hint column is the last one and its heading sits directly over the first row's lightbulb, so the note covered the word naming what it was.
-
-  `unknown-ignore-rule` says "Nothing is exempted by it" for a single token, which read as a typo inside the message reporting someone else's typo.
-
-- df251d6: `@deprecated` in a job-summary message renders as text. Escaping it as an entity did not work: `&#64;deprecated` decodes before GitHub's autolinker runs, so it still linked to an account of that name. Mention-shaped and reference-shaped tokens go in as code spans, which the autolinker leaves alone.
-
-  Every run prints `oversight-lint <version>` on stderr. `--format github` prints only workflow commands and `--format json` only JSON, so a CI log had no way to say which version produced it, and confirming a release meant inferring it from behavior.
-
-  `props-unrecorded`'s hint names the escape hatch. The manifest cannot tell a component whose prop was dropped from one that takes none, so the rule fires on both, and the hint told the reader holding the false positive to document a prop that does not exist without mentioning `@oversightIgnore props-unrecorded`.
-
-  `unknown-ignore-rule`'s hint no longer says "the token" under a message naming several. A hint is one string per rule, so it reads number-neutral instead.
+- Source paths in messages are the ones the repository knows. `react-docgen-typescript` prefixes its declaration paths with the project directory's own name, so a file the repository knows as `stories/Badge/Badge.tsx` arrived as `my-project/stories/Badge/Badge.tsx` and every message naming a path named one that does not exist. The segment is detected once across the whole manifest, and only where dropping it lands exactly on the stories file's own directory, so a project whose sources genuinely sit under a nested directory keeps it.
 
 ## 0.6.0-beta.2
 
