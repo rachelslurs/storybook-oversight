@@ -36,6 +36,16 @@ What to do about each finding. Every rule and its default severity is in [Rules]
 
    `react-component-meta` has the same blind spot with a quieter symptom: props extract normally and only the description comes out empty, so you get `component-description-missing` instead of this rule. `react-docgen` resolves both forms and is unaffected.
 
+5. **The story's `meta` names no component.** A stories file whose default export omits `component` gives the extractor nothing to read, and the manifest records the entry with the error rather than a payload. The message says so, and this is the one cause where the fix is in the stories file rather than the component:
+
+   ```ts
+   import { Toolbar } from './Toolbar';
+
+   export default { title: 'Layout/Toolbar', component: Toolbar };
+   ```
+
+   A docs-only entry with no component behind it is better written as an MDX page, which produces no manifest entry at all.
+
 ## `component-description-missing`
 
 Most of the time no description was written. Put a JSDoc block above the component.
@@ -44,7 +54,7 @@ When the JSDoc is there and the extractor is `react-component-meta`, check [item
 
 ## `prop-descriptions-missing` and `required-prop-undocumented`
 
-The props reached the manifest, without descriptions. Put a JSDoc comment on each one. `required-prop-undocumented` is the error of the two because an agent has to supply a required prop and will guess at an undocumented one.
+The props reached the manifest, without descriptions. Put a JSDoc comment on each one. `required-prop-undocumented` is the error of the two because an agent has to supply a required prop and will guess at an undocumented one, so a required prop with no description trips both: the warning lists every undocumented prop and the error lists the required ones inside it.
 
 Both rules stop running when `prop-shape-unrecognized` fires, so fix that first if you see it.
 

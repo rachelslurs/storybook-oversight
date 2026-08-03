@@ -35,9 +35,23 @@ function entriesWord(n: number): string {
 /** The heading manifest-level findings render under, in both text surfaces. */
 const MANIFEST_HEADING = 'Manifest';
 
-/** Markdown table cells are pipe-delimited, so any value in one is escaped. */
+/**
+ * Markdown table cells are pipe-delimited, and GitHub renders the step summary
+ * as markdown against a repository, so a message is live syntax there:
+ * `@deprecated` in a `deprecated-tag` message linked to a GitHub account of
+ * that name, and `#12` would link to an issue.
+ *
+ * Entities rather than backslashes, which render as the character whatever
+ * syntax surrounds them. `<br>` is composed in after this runs, so escaping the
+ * angle brackets a message carries does not touch it.
+ */
 function escapeCell(value: string): string {
-  return value.replace(/\|/g, '\\|');
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\|/g, '\\|')
+    .replace(/[@#`*_~[\]]/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
 /** Distinct manifest entries the findings sit on (manifest-level ones excluded). */

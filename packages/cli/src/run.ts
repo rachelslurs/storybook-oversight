@@ -79,7 +79,14 @@ export async function run(options: RunOptions): Promise<RunResult> {
   const stepSummary = formatStepSummary(summary);
 
   // Errors always fail; warnings fail only past the threshold; info never fails.
-  const code = summary.errors > 0 || summary.warnings > options.maxWarnings ? 1 : 0;
+  const overCeiling = summary.warnings > options.maxWarnings;
+  const code = summary.errors > 0 || overCeiling ? 1 : 0;
 
-  return { code, stdout, stderr: '', stepSummary };
+  // Crossing the ceiling was the one way to fail with output identical to a
+  // passing run, so a CI job stopped on it said nowhere what had stopped it.
+  const stderr = overCeiling
+    ? `${summary.warnings} warning${summary.warnings === 1 ? '' : 's'} exceeds the maximum of ${options.maxWarnings}.\n`
+    : '';
+
+  return { code, stdout, stderr, stepSummary };
 }
