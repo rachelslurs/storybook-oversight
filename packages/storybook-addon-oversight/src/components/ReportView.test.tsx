@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest';
 import type { ReactElement } from 'react';
-import { cleanup, render } from '@testing-library/react';
+import { cleanup, fireEvent, render } from '@testing-library/react';
 import { ThemeProvider, ensure, themes } from 'storybook/theming';
 import { ReportView } from './ReportView';
 import { buildReport, resolveManifestRefs } from 'oversight-core';
@@ -407,9 +407,8 @@ describe('ReportView report rendering', () => {
     expect(first?.textContent?.trim()).toBe('required-prop-undocumented');
   });
 
-  // The hint column is gone; the hint now rides the message cell as a button.
   // A screen-reader user gets the fix from the button's own name, without
-  // having to open the tooltip it also triggers.
+  // having to open the popup it also triggers.
   it('names the hint trigger with the hint text itself', () => {
     const manifest = {
       meta: { docgen: 'react-docgen-typescript' },
@@ -440,6 +439,52 @@ describe('ReportView report rendering', () => {
     expect(trigger!.closest('td')).toBe(row.lastElementChild);
     const heads = [...row.closest('table')!.querySelectorAll('thead th')].map((th) => th.textContent?.trim());
     expect(heads).toEqual(['Rule', 'Severity', 'Message', 'Hint']);
+  });
+
+  // The trigger used to open on pointer only, so a keyboard user could land
+  // on the lightbulb and get nothing back.
+  it('opens the popup on keyboard focus, closes it on blur, and dismisses it on Escape', () => {
+    const manifest = {
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ex-button': {
+          name: 'Button',
+          path: './Button.stories.tsx',
+          reactDocgenTypescript: {
+            description: 'A button.',
+            props: { label: { description: '', required: true, declarations: [] } },
+          },
+        },
+      },
+    } as unknown as RawManifest;
+    const report = buildReport(manifest, 'ex-button');
+    const hint = report.findings.find((d) => d.rule === 'required-prop-undocumented')?.hint;
+    expect(hint).toBeTruthy();
+
+    const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+    const trigger = [...container.querySelectorAll('button')].find((b) =>
+      b.getAttribute('aria-label')?.includes(hint!),
+    )!;
+    // the popup portals to the body so the table's scroll container cannot
+    // clip it, which is where a test has to look for it too
+    const popup = () => [...document.body.children].find((el) => el !== container && el.textContent?.includes(hint!));
+
+    expect(popup()).toBeUndefined();
+    fireEvent.focus(trigger);
+    const shown = popup();
+    expect(shown).toBeTruthy();
+    // a visual duplicate of the button's own accessible name; announced too,
+    // the hint would read twice
+    expect(shown!.getAttribute('aria-hidden')).toBe('true');
+
+    // dismissible without moving focus (WCAG 1.4.13)
+    fireEvent.keyDown(trigger, { key: 'Escape' });
+    expect(popup()).toBeUndefined();
+
+    fireEvent.focus(trigger);
+    expect(popup()).toBeTruthy();
+    fireEvent.blur(trigger);
+    expect(popup()).toBeUndefined();
   });
 
   it('renders no trigger at all for a finding without a hint', () => {

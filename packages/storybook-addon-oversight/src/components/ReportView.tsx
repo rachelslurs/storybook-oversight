@@ -1,7 +1,8 @@
-import { Fragment } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckIcon, CrossIcon, LightbulbIcon } from './icons';
-import { Badge, EmptyTabContent, TooltipNote, TooltipProvider } from 'storybook/internal/components';
+import { Badge, EmptyTabContent, TooltipNote } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 import type { ComponentReport, Finding, Severity } from 'oversight-core';
 import { summarizeError } from 'oversight-core';
@@ -230,33 +231,156 @@ const FindingBody = styled.div(({ theme }) => ({
  */
 const HintButton = styled.button(({ theme }) => ({
   display: 'inline-flex',
+  alignItems: 'center',
   verticalAlign: 'middle',
-  padding: 2,
+  // a 28px box around the 14px glyph: the glyph alone is a fiddly pointer
+  // target next to the icon-only controls elsewhere on the page, which all
+  // offer a hit box this size
+  height: 28,
+  padding: '0 7px',
   border: 0,
   borderRadius: 4,
   background: 'none',
   color: theme.textMutedColor,
   cursor: 'pointer',
-  '&:hover': { color: theme.color.secondary },
+  '&:hover': {
+    color: theme.color.secondary,
+    // the same wash the page's other icon-only controls light up with; from
+    // the token, so both themes keep agreeing on the hue
+    background: `color-mix(in srgb, ${theme.color.secondary} 14%, transparent)`,
+  },
   '&:focus-visible': {
     outline: `2px solid ${theme.color.secondary}`,
+    outlineOffset: 2,
     color: theme.color.secondary,
   },
   '& svg': { display: 'block' },
 }));
 
+// A pointer crossing the table on its way somewhere else should not flash a
+// note over every row it passes, so showing waits. Hiding waits less: just
+// long enough that grazing off the trigger's edge and back does not blink
+// the note.
+const HINT_SHOW_DELAY_MS = 400;
+const HINT_HIDE_DELAY_MS = 200;
+// Above the trigger with a small gap, so the note never sits on the lightbulb
+// the pointer occupies.
+const HINT_GAP = 8;
+
+/**
+ * Positioning only; the note inside carries its own paint. The note cannot
+ * sit inside the row: `TableScroll` scrolls one axis, which makes the
+ * browser clip the other, so anything hanging out of a row is cut off at
+ * the table's edge. Fixed-to-the-viewport in a body-level portal escapes
+ * every scroll container at once. The z-index has to clear whatever either
+ * surface stacks above the report (toolbars, overlays).
+ */
+const HintPopup = styled.div({
+  position: 'fixed',
+  zIndex: 100000,
+  // anchored by the trigger's top-center, so the note hangs above it
+  transform: 'translate(-50%, -100%)',
+  // the note overlays the row above; it must never steal that row's pointer
+  // events, and leaving it hoverable would also let the pointer "land" on it
+  // and fight the trigger's own leave timer
+  pointerEvents: 'none',
+});
+
 /** No hint, no trigger: a dimmed lightbulb would promise an answer that does
  *  not exist (`deprecated-tag` reports a fact and has nothing to add). */
 function HintTrigger({ hint }: { hint: string }) {
-  // The lightbulb reveals the hint on pointer. Its accessible name carries the
-  // hint text as well, so the fix reaches a screen reader without opening
-  // anything: the popup is the sighted convenience, not the only copy.
+  // The lightbulb reveals the hint on pointer or on keyboard focus. Its
+  // accessible name carries the hint text as well, so the fix reaches a
+  // screen reader without opening anything: the popup is the sighted
+  // convenience, not the only copy. The popup is aria-hidden for the same
+  // reason: announced too, the same sentence would read twice.
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
+
+  // The note is one unwrapped line anchored to a trigger that can sit against
+  // the viewport's edge, so centering can hang part of it past that edge,
+  // where a viewport-fixed element is cropped. Its width is only
+  // measurable once it is in the DOM, so it is nudged back inside between
+  // render and paint.
+  useLayoutEffect(() => {
+    const note = popupRef.current;
+    if (anchor === null || note === null) return;
+    const rect = note.getBoundingClientRect();
+    // a zero-width rect means the environment does not lay out (headless DOMs
+    // report every box as empty), and shifting on it never converges: the box
+    // stays at zero wherever it is moved, so each pass asks for another shift
+    if (rect.width === 0) return;
+    let shift = 0;
+    if (rect.right > window.innerWidth - HINT_GAP) shift = window.innerWidth - HINT_GAP - rect.right;
+    // the left edge wins when both overflow: a sentence reads from its start
+    if (rect.left + shift < HINT_GAP) shift = HINT_GAP - rect.left;
+    if (Math.abs(shift) > 0.5) setAnchor({ top: anchor.top, left: anchor.left + shift });
+  }, [anchor]);
+
+  const cancelPending = () => {
+    if (timerRef.current !== undefined) {
+      clearTimeout(timerRef.current);
+      timerRef.current = undefined;
+    }
+  };
+  // a show still pending when the row re-renders away would fire against an
+  // unmounted component
+  useEffect(() => cancelPending, []);
+
+  const open = () => {
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    // read at open, in viewport coordinates: the popup is viewport-fixed, so
+    // the client rect places it correctly however far the page and the table
+    // have scrolled by then
+    setAnchor({ top: rect.top - HINT_GAP, left: rect.left + rect.width / 2 });
+  };
+  const close = () => setAnchor(null);
+  const schedule = (step: () => void, afterMs: number) => {
+    cancelPending();
+    timerRef.current = setTimeout(step, afterMs);
+  };
+
   return (
-    <TooltipProvider tooltip={<TooltipNote note={hint} />}>
-      <HintButton type="button" aria-label={`Hint: ${hint}`}>
+    <>
+      <HintButton
+        ref={buttonRef}
+        type="button"
+        aria-label={`Hint: ${hint}`}
+        onPointerEnter={() => schedule(open, HINT_SHOW_DELAY_MS)}
+        onPointerLeave={() => schedule(close, HINT_HIDE_DELAY_MS)}
+        // no delay on focus: a keyboard user has already singled the trigger
+        // out by landing on it, so there is no pass-through to filter out
+        onFocus={() => {
+          cancelPending();
+          open();
+        }}
+        onBlur={() => {
+          cancelPending();
+          close();
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== 'Escape' || anchor === null) return;
+          // the note must be dismissible without moving focus (WCAG 1.4.13),
+          // and dismissing it must not also fire whatever the surrounding UI
+          // binds to the same key
+          event.stopPropagation();
+          cancelPending();
+          close();
+        }}
+      >
         <LightbulbIcon />
       </HintButton>
-    </TooltipProvider>
+      {anchor !== null &&
+        createPortal(
+          <HintPopup ref={popupRef} aria-hidden="true" style={{ top: anchor.top, left: anchor.left }}>
+            <TooltipNote note={hint} />
+          </HintPopup>,
+          document.body,
+        )}
+    </>
   );
 }
 // Both tables name their rows in the first column, so both take the body color:
