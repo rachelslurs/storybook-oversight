@@ -407,6 +407,38 @@ describe('ReportView report rendering', () => {
     expect(first?.textContent?.trim()).toBe('required-prop-undocumented');
   });
 
+  // The message says how many props are undocumented and the props table says
+  // which are, so a reader had to cross one against the other. The CLI has
+  // always named them and the two surfaces are meant to say the same thing.
+  it('names the props a finding is about', () => {
+    const manifest = {
+      meta: { docgen: 'react-docgen-typescript' },
+      components: {
+        'ex-card': {
+          name: 'Card',
+          path: './Card.stories.tsx',
+          reactDocgenTypescript: {
+            description: 'A card.',
+            props: {
+              title: { description: '', required: true, declarations: [] },
+              elevated: { description: '', required: false, declarations: [] },
+            },
+          },
+        },
+      },
+    } as unknown as RawManifest;
+    const report = buildReport(manifest, 'ex-card');
+    const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
+    const row = [...container.querySelectorAll('tbody tr')].find(
+      (r) => r.querySelector('th')?.textContent?.trim() === 'required-prop-undocumented',
+    );
+    expect(row?.textContent).toContain('(props: title)');
+    const both = [...container.querySelectorAll('tbody tr')].find(
+      (r) => r.querySelector('th')?.textContent?.trim() === 'prop-descriptions-missing',
+    );
+    expect(both?.textContent).toContain('(props: title, elevated)');
+  });
+
   // A screen-reader user gets the fix from the button's own name, without
   // having to open the popup it also triggers.
   it('names the hint trigger with the hint text itself', () => {
