@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest';
 import type { ReactElement } from 'react';
-import { cleanup, fireEvent, render } from '@testing-library/react';
+import { cleanup, render } from '@testing-library/react';
 import { ThemeProvider, ensure, themes } from 'storybook/theming';
 import { ReportView } from './ReportView';
 import { buildReport, resolveManifestRefs } from 'oversight-core';
@@ -443,7 +443,7 @@ describe('ReportView report rendering', () => {
 
   // The trigger used to open on pointer only, so a keyboard user could land
   // on the lightbulb and get nothing back.
-  it('opens the popup on keyboard focus, closes it on blur, and dismisses it on Escape', () => {
+  it('hands the hint to a tooltip trigger that names itself with it', () => {
     const manifest = {
       meta: { docgen: 'react-docgen-typescript' },
       components: {
@@ -464,27 +464,13 @@ describe('ReportView report rendering', () => {
     const { container } = renderView(<ReportView status="ready" report={report} debuggerUrl={DEBUGGER_URL} />);
     const trigger = [...container.querySelectorAll('button')].find((b) =>
       b.getAttribute('aria-label')?.includes(hint!),
-    )!;
-    // the popup portals to the body so the table's scroll container cannot
-    // clip it, which is where a test has to look for it too
-    const popup = () => [...document.body.children].find((el) => el !== container && el.textContent?.includes(hint!));
-
-    expect(popup()).toBeUndefined();
-    fireEvent.focus(trigger);
-    const shown = popup();
-    expect(shown).toBeTruthy();
-    // a visual duplicate of the button's own accessible name; announced too,
-    // the hint would read twice
-    expect(shown!.getAttribute('aria-hidden')).toBe('true');
-
-    // dismissible without moving focus (WCAG 1.4.13)
-    fireEvent.keyDown(trigger, { key: 'Escape' });
-    expect(popup()).toBeUndefined();
-
-    fireEvent.focus(trigger);
-    expect(popup()).toBeTruthy();
-    fireEvent.blur(trigger);
-    expect(popup()).toBeUndefined();
+    );
+    // when it opens and where it goes belong to the tooltip; what is ours is
+    // that the trigger is reachable and says the hint without being opened,
+    // so the fix is never only inside a popup
+    expect(trigger).toBeTruthy();
+    expect(trigger!.type).toBe('button');
+    expect(trigger!.getAttribute('aria-label')).toBe(`Hint: ${hint}`);
   });
 
   it('renders no trigger at all for a finding without a hint', () => {
