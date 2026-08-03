@@ -1,5 +1,27 @@
 # oversight-lint
 
+## 0.6.0-beta.1
+
+### Patch Changes
+
+- 744b0e2: Crossing `--max-warnings` says so. The run failed with output identical to a passing one, so a CI job stopped on the ceiling named nothing that had stopped it.
+
+  The GitHub step summary renders a message as text. It is markdown rendered against a repository, so `@deprecated` in a `deprecated-tag` message linked to a GitHub account of that name, and `#12` would have linked to an issue.
+
+  `docgen-missing`'s hint names the causes in the order they are worth checking. It named `typescript.reactDocgen` alone, which told a project that had already set it correctly to set it again, under a message about something else. A story whose `meta` names no component is documented in `docs/troubleshooting.md` as the fifth cause, the one whose fix is in the stories file.
+
+- 48badba: A file that parses but is not a components manifest exits 2 instead of reporting no findings at exit 0. A job pointed at a stale path passed forever while linting nothing, and the path is a string in a config. A manifest that records no entries still exits 0.
+
+  A GitHub annotation points at the file it is about, and at a path the repository has. Every rule but `story-extraction-error` reports the component's own source, and anchoring on the stories file put the annotation on a file that does not contain the problem, or outside the diff entirely. The path is now resolved from the checkout root as well, so a Storybook living in a package directory annotates `storybook/src/Avatar/Avatar.tsx` rather than `src/Avatar/Avatar.tsx`; GitHub drops an annotation whose path it cannot resolve without reporting anything, and no working-directory setting changes that.
+
+  New rule, `props-unrecorded` (warning): an entry that records no props at all, so the MCP describes the component as taking none. Extraction can drop a prop that carries no JSDoc, which makes an undocumented prop absent exactly when it is undocumented, so `prop-descriptions-missing` cannot see it. `children` typed through a spread is the common case. A component that genuinely takes no props exempts itself with `@oversightIgnore props-unrecorded`.
+
+- 4ed2892: A finding names the props it is about on both surfaces. The panel and the Docs block said how many props were undocumented while the props table below said which were, so reading one meant crossing it against the other. The CLI has always named them.
+
+  The hint opens below its trigger. The Hint column is the last one and its heading sits directly over the first row's lightbulb, so the note covered the word naming what it was.
+
+  `unknown-ignore-rule` says "Nothing is exempted by it" for a single token, which read as a typo inside the message reporting someone else's typo.
+
 ## 0.6.0-beta.0
 
 ### Minor Changes

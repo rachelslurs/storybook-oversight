@@ -1,6 +1,6 @@
 {
   "name": "oversight-lint",
-  "version": "0.6.0-beta.0",
+  "version": "0.6.0-beta.1",
   "description": "Lint your Storybook MCP components manifest in CI. Fails the build when your agent would read missing or broken component docs.",
   "keywords": [
     "storybook",
