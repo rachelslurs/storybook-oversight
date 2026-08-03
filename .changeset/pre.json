@@ -1,0 +1,10 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "oversight-lint": "0.5.1",
+    "oversight-core": "0.0.2",
+    "storybook-addon-oversight": "0.3.1"
+  },
+  "changesets": []
+}

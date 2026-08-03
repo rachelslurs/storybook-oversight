@@ -56,7 +56,7 @@ Check `meta.docgen` in the manifest for what actually ran, then set the expectat
 
 ## `docs-link-dangling`
 
-A `?path=` redirect in a component description points at an id that is not in the manifest. Renaming a story title leaves every link to it dead, which is the usual cause. Point the link at a current id, or drop it.
+A `?path=` redirect in a component description points at an id that is not in the manifest. Renaming a story title leaves every link to it dead, which is the usual cause. Point the link at an id the manifest has, or remove the link.
 
 Only the description is scanned. A `?path=` link in an `@example` or another tag is not checked and does not fire this.
 

@@ -49,7 +49,7 @@ const HINT = {
   'component-description-missing': 'Add a JSDoc block above the component.',
   'prop-descriptions-missing': 'Add a JSDoc comment to each undocumented prop.',
   'required-prop-undocumented': 'Add a JSDoc comment to each required prop.',
-  'docs-link-dangling': 'Point the link at a current id, or drop it.',
+  'docs-link-dangling': 'Point the link at an id the manifest has, or remove the link.',
   'unknown-ignore-rule': 'Check the token against the rule names; it is usually a typo.',
   'deprecated-tag': null,
   'prop-shape-unrecognized': 'Fix this one first: the prop rules do not run while it fires.',
