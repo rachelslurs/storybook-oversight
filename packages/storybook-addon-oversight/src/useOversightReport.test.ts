@@ -10,7 +10,6 @@ import { ADDON_ID } from './constants';
 // job: turning a manifest plus a story id into one of six states.
 const state = vi.hoisted(() => ({
   manifest: null as unknown,
-  loadRejection: undefined as Error | undefined,
   parseFailed: false,
   unavailableReason: undefined as string | undefined,
   storyId: '',
@@ -25,9 +24,13 @@ vi.mock('storybook/manager-api', () => ({
 
 vi.mock('./manifestSource', () => ({
   createManifestSource: () => ({
+    // `load` resolves null for every failure and never rejects, which the real
+    // source promises because both consumers fire it at bundle eval with no
+    // rejection path attached. A mock that rejected would leave that call
+    // unhandled and test a state the addon cannot reach.
     load: () => {
       state.loadCalls += 1;
-      return state.loadRejection ? Promise.reject(state.loadRejection) : Promise.resolve(state.manifest);
+      return Promise.resolve(state.manifest);
     },
     urlFor: (name: string) => `http://localhost/manifests/${name}`,
     unavailableReason: () => state.unavailableReason,
@@ -48,6 +51,11 @@ const MANIFEST = {
     },
   },
 } as unknown as RawManifest;
+
+// Parses as JSON and still throws once normalize reaches into the entry, which
+// is the shape that reaches the hook's error branch: the manifest loaded, so
+// nothing upstream reports a problem.
+const MALFORMED = { components: { 'ex-button': null } } as unknown as RawManifest;
 
 /**
  * The analysis is cached in a module-scoped promise for the session, so every
@@ -70,7 +78,6 @@ async function mount() {
 
 beforeEach(() => {
   state.manifest = MANIFEST;
-  state.loadRejection = undefined;
   state.parseFailed = false;
   state.unavailableReason = undefined;
   state.storyId = 'ex-button--primary';
@@ -161,7 +168,7 @@ describe('useOversightReport manifest states', () => {
 
   it('ends in error, never an endless spinner, when the manifest cannot be analyzed', async () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
-    state.loadRejection = new Error('unsupported manifest');
+    state.manifest = MALFORMED;
     const { result } = await mount();
 
     expect(result.current.status).toBe('error');
