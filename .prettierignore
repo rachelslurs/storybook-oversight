@@ -3,6 +3,11 @@ pnpm-lock.yaml
 node_modules
 storybook-static
 
+# Agent worktrees hold whole copies of this repo, so `pnpm format` reaches into
+# other in-flight branches and rewrites their files. Prettier reads .gitignore
+# too, and this stays for anyone who runs it with --no-ignore-unknown elsewhere.
+.claude
+
 # `changeset version` rewrites these and formats them itself, resolving Prettier
 # from the repo and reading `.prettierrc` but not this file. So listing them here
 # does not keep them unformatted, and `pnpm format` reproduces exactly what the

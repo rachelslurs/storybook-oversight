@@ -30,7 +30,15 @@ function report(title, body) {
  * worth stopping the release for, so that throws rather than skipping.
  */
 async function findPublishedPackages() {
-  const entries = await readdir(packagesDir, { withFileTypes: true });
+  let entries;
+
+  try {
+    entries = await readdir(packagesDir, { withFileTypes: true });
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    return null;
+  }
+
   const directories = entries.filter((entry) => entry.isDirectory());
   directories.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -38,21 +46,44 @@ async function findPublishedPackages() {
 
   for (const entry of directories) {
     const dir = join(packagesDir, entry.name);
+    const manifestPath = join(dir, 'package.json');
     let raw;
 
     try {
-      raw = await readFile(join(dir, 'package.json'), 'utf8');
+      raw = await readFile(manifestPath, 'utf8');
     } catch (error) {
       if (error.code === 'ENOENT') continue;
       throw error;
     }
 
-    const manifest = JSON.parse(raw);
+    let manifest;
+
+    try {
+      manifest = JSON.parse(raw);
+    } catch (error) {
+      // Naming the file beats a bare SyntaxError stack, which is all a release
+      // log would otherwise carry.
+      report('Unreadable package manifest', `${manifestPath} is not valid JSON.\n\n${error.message}`);
+      process.exit(1);
+    }
+
     if (manifest.private) continue;
     packages.push({ dir, manifest });
   }
 
   return packages;
+}
+
+/**
+ * Whether a package ships inside Storybook's manager or preview bundle.
+ *
+ * Read from two independent fields, because the `storybook` block is also what
+ * `checkMetadata` validates. Keying only on that block would mean a package that
+ * lost it read as "not an addon" and skipped the very check that would have
+ * caught the loss, turning a missing block into a passing run.
+ */
+function isAddon({ manifest }) {
+  return Boolean(manifest.storybook) || (manifest.keywords ?? []).includes('storybook-addon');
 }
 
 /**
@@ -63,7 +94,22 @@ async function findPublishedPackages() {
  */
 function checkMetadata({ manifest }) {
   const name = manifest.name ?? '';
-  const displayName = manifest.storybook?.displayName ?? '';
+  const displayName = manifest.storybook?.displayName;
+
+  // An absent block or displayName fails rather than skipping. The gallery reads
+  // both, and the old version of this script threw here for the same reason.
+  if (!displayName) {
+    report(
+      'Missing metadata',
+      dedent`${name} publishes as an addon but has no storybook.displayName in its package.json.
+      The addon gallery reads that block, and an addon without one does not appear.
+
+      For more info, see:
+      https://storybook.js.org/docs/react/addons/addon-catalog#addon-metadata`,
+    );
+
+    return false;
+  }
 
   if (!name.includes('addon-kit') && !displayName.includes('Addon Kit')) return true;
 
@@ -105,11 +151,18 @@ async function checkReadme({ dir, manifest }) {
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
 
+    // Only claim the `files` promise when the manifest actually makes it.
+    const promisesReadme = (manifest.files ?? []).some((pattern) => pattern.includes('README.md'));
+
     report(
       'README missing',
-      dedent`${manifest.name} lists README.md in "files" but does not have one.
-      npm renders a package README frozen at publish time, so this cannot be
-      corrected after the release.`,
+      promisesReadme
+        ? dedent`${manifest.name} lists README.md in "files" but does not have one.
+          npm renders a package README frozen at publish time, so this cannot be
+          corrected after the release.`
+        : dedent`${manifest.name} publishes without a README.md.
+          npm renders a package README frozen at publish time, so a package that
+          ships without one shows an empty page until the next release.`,
     );
 
     return false;
@@ -152,9 +205,20 @@ function checkPeerDependencies({ manifest }) {
 
 const packages = await findPublishedPackages();
 
-// Refuse rather than report a green run over nothing. A moved workspace or a
-// filter that excluded everything would otherwise print a passing summary having
-// checked no packages at all, which is the shape this script exists to remove.
+// A missing directory is the first cause the box below names, so it gets said
+// rather than left to an ENOENT stack trace out of the top-level await.
+if (packages === null) {
+  report(
+    'No packages directory',
+    dedent`Nothing at ${packagesDir}.
+    The workspace layout moved and this script did not move with it.`,
+  );
+  process.exit(1);
+}
+
+// Refuse rather than report a green run over nothing. A filter that excluded
+// everything would otherwise print a passing summary having checked no packages
+// at all, which is the shape this script exists to remove.
 if (packages.length === 0) {
   report(
     'No packages to check',
@@ -175,7 +239,7 @@ for (const pkg of packages) {
   // The metadata and globalized-peer checks only mean something for code that
   // runs inside Storybook's manager or preview bundle. The CLI runs in node in
   // CI, so it gets the README check and nothing else.
-  if (pkg.manifest.storybook) {
+  if (isAddon(pkg)) {
     checks.push('metadata', 'peers');
     if (!checkMetadata(pkg)) exitCode = 1;
     if (!checkPeerDependencies(pkg)) exitCode = 1;
