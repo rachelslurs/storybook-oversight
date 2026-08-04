@@ -7,6 +7,9 @@
 //
 // npm renders a package README frozen at publish time and a published tarball
 // cannot be amended, so a repo-correct package is not a published-correct one.
+//
+// Both tools pack the package for real rather than reading the working tree,
+// and publint packs with `pnpm pack`, which is what `changeset publish` uses.
 
 import chalk from 'chalk';
 import { spawnSync } from 'node:child_process';
@@ -15,51 +18,24 @@ import { findPublishedPackages, repoRoot, report, requirePackages } from './publ
 
 const packages = requirePackages(await findPublishedPackages());
 
-const bin = (name) => join(repoRoot, 'node_modules', '.bin', name);
-
 /**
- * The files `npm publish` would actually ship, straight from npm's own packer
- * rather than from a reimplementation of its `files` semantics.
- */
-function packedFiles(dir, name) {
-  const result = spawnSync('npm', ['pack', '--dry-run', '--json'], { cwd: dir, encoding: 'utf8' });
-
-  if (result.status !== 0) {
-    report('npm pack failed', `${name} could not be packed.\n\n${result.stderr?.trim() ?? ''}`);
-    return null;
-  }
-
-  try {
-    return JSON.parse(result.stdout)[0].files.map((file) => file.path);
-  } catch (error) {
-    report('Unreadable pack output', `Could not read \`npm pack --json\` for ${name}.\n\n${error.message}`);
-    return null;
-  }
-}
-
-/**
- * Every path the manifest points consumers at has to be inside the tarball.
+ * Run one of the packaging tools and hand back what it said.
  *
- * Exact paths, so this needs no glob semantics and cannot fail on a pattern it
- * matched differently than npm-packlist would. `exports` targets and `bin`
- * targets are the two ways a manifest promises a file to a consumer.
+ * A tool that never started is reported as that, rather than as a failure of
+ * the package it was pointed at. `spawnSync` returns `status: null` when the
+ * binary cannot be spawned, and a bare `status !== 0` test would blame the
+ * package and refer the reader to output that was never printed.
  */
-function promisedPaths(manifest) {
-  const promised = new Set();
+function run(tool, args) {
+  const command = join(repoRoot, 'node_modules', '.bin', tool);
+  const result = spawnSync(command, args, { cwd: repoRoot, encoding: 'utf8' });
+  const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
 
-  const collect = (value) => {
-    if (typeof value === 'string') {
-      if (value.startsWith('./')) promised.add(value.slice(2));
-      return;
-    }
-    if (value && typeof value === 'object') Object.values(value).forEach(collect);
-  };
+  if (result.error) {
+    return { started: false, output, error: result.error, command };
+  }
 
-  collect(manifest.exports);
-  collect(manifest.bin);
-  promised.delete('package.json');
-
-  return [...promised].sort();
+  return { started: true, ok: result.status === 0, output };
 }
 
 let exitCode = 0;
@@ -67,46 +43,68 @@ const summary = [];
 
 for (const { dir, manifest } of packages) {
   const name = manifest.name;
-  const files = packedFiles(dir, name);
+  const checks = [];
 
-  if (files === null) {
-    exitCode = 1;
-    continue;
-  }
+  // publint reads the packed tarball and already asserts that every `exports`
+  // and `bin` target exists and survives the `files` filter, naming the
+  // condition key that broke. Re-deriving those paths here would be a weaker
+  // copy of a check running three lines away.
+  const publint = run('publint', [dir]);
 
-  const packed = new Set(files);
-
-  // No README assertion here on purpose. npm force-ships package.json, README
-  // and the `bin` target whatever `files` says, so a check for one in the
-  // tarball cannot fail and would only read like coverage. A README missing
-  // from disk is caught before the build, in prepublish-checks.js.
-  const missing = promisedPaths(manifest).filter((path) => !packed.has(path));
-
-  if (missing.length > 0) {
+  if (!publint.started) {
     report(
-      'Promised file not in the tarball',
-      `${name} points consumers at ${missing.length === 1 ? 'a path' : 'paths'} it does not ship:\n\n` +
-        missing.map((path) => `  ${path}`).join('\n') +
-        '\n\nEither the "files" filter excludes it or the manifest names a path the\nbuild no longer emits.',
+      'publint did not run',
+      `Could not start ${publint.command}.\n\n${publint.error.message}\n\nThis says nothing about ${name}; the tool never inspected it.`,
     );
     exitCode = 1;
+  } else {
+    if (publint.output.trim()) console.log(publint.output.trimEnd());
+    if (!publint.ok) exitCode = 1;
+    checks.push('publint');
   }
 
-  for (const [tool, args] of [
-    ['publint', [dir]],
-    // The packages are ESM only ("type": "module"), so the CJS and node10 rows
-    // are noise rather than findings.
-    ['attw', ['--pack', dir, '--profile', 'esm-only']],
-  ]) {
-    const result = spawnSync(bin(tool), args, { cwd: repoRoot, stdio: 'inherit' });
+  // A package with no `exports`, `main` or `types` publishes no importable
+  // surface, and attw exits 0 on it having checked nothing. Saying "attw" in
+  // the summary for such a package would claim a check that did not happen, so
+  // the expectation is derived from the manifest instead of assumed.
+  const importable = Boolean(manifest.exports ?? manifest.main ?? manifest.types);
 
-    if (result.status !== 0) {
-      report(`${tool} failed for ${name}`, `See the ${tool} output above.`);
+  if (!importable) {
+    checks.push('no importable surface');
+  } else {
+    // The packages are ESM only ("type": "module"), so the CJS and node10 rows
+    // describe a contract they do not offer.
+    const attw = run('attw', ['--pack', dir, '--profile', 'esm-only']);
+
+    if (!attw.started) {
+      report(
+        'attw did not run',
+        `Could not start ${attw.command}.\n\n${attw.error.message}\n\nThis says nothing about ${name}; the tool never inspected it.`,
+      );
       exitCode = 1;
+    } else {
+      if (attw.output.trim()) console.log(attw.output.trimEnd());
+
+      // attw exits 0 on a package it found no types in at all. For a package
+      // that publishes an importable surface, that is the finding, not a pass.
+      if (/does not contain types/i.test(attw.output)) {
+        report(
+          'No types in an importable package',
+          `${name} publishes an importable entry, but attw found no type\n` +
+            'declarations in the tarball at all.\n\n' +
+            'attw exits 0 on a package with no types, so without this the run\n' +
+            'would read as a passing type check.',
+        );
+        exitCode = 1;
+      } else if (!attw.ok) {
+        exitCode = 1;
+      }
+
+      checks.push('attw');
     }
   }
 
-  summary.push(`${name} (${files.length} files)`);
+  summary.push(`${name} (${checks.join(', ')})`);
 }
 
 if (exitCode === 0) {
