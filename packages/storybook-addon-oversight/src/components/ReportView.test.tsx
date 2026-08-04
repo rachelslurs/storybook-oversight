@@ -4,6 +4,7 @@ import type { ReactElement } from 'react';
 import { cleanup, render } from '@testing-library/react';
 import { ThemeProvider, ensure, themes } from 'storybook/theming';
 import { ReportView } from './ReportView';
+import { normalizeColor, paintedColor } from '../testing';
 import { buildReport, resolveManifestRefs } from 'oversight-core';
 import type { RawManifest } from 'oversight-core';
 
@@ -25,11 +26,6 @@ function propsTable(container: HTMLElement) {
 }
 
 const DEBUGGER_URL = 'http://localhost/manifests/components.html';
-
-/** A computed color, as whatever notation the DOM hands back, lowercased. */
-function paintedColor(el: Element, property: 'color' | 'backgroundColor'): string {
-  return getComputedStyle(el)[property].toLowerCase();
-}
 
 afterEach(cleanup);
 
@@ -204,10 +200,10 @@ describe('ReportView theming', () => {
     // rule can sit in the sheet and still lose to the page's own
     const heading = [...container.querySelectorAll('div')].find((el) => el.textContent?.trim() === 'Description');
     expect(heading).toBeTruthy();
-    expect(paintedColor(heading!, 'color')).toBe(theme.color.defaultText.toLowerCase());
+    expect(paintedColor(heading!, 'color')).toBe(normalizeColor(theme.color.defaultText));
 
     const section = heading!.closest('section');
-    expect(paintedColor(section!, 'backgroundColor')).toBe(theme.background.content.toLowerCase());
+    expect(paintedColor(section!, 'backgroundColor')).toBe(normalizeColor(theme.background.content));
   });
 });
 
