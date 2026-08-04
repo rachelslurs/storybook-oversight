@@ -3,11 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { ThemeProvider, ensure, themes } from 'storybook/theming';
 import { Oversight } from './blocks';
-
-/** A computed color, as whatever notation the DOM hands back, lowercased. */
-function paintedColor(el: Element, property: 'color' | 'backgroundColor'): string {
-  return getComputedStyle(el)[property].toLowerCase();
-}
+import { normalizeColor, paintedColor } from './testing';
 
 // `useOf` walks addon-docs' DocsContext and the real manifest source fetches
 // at import time, so both are replaced: the subject here is what the block
@@ -119,21 +115,32 @@ describe('Oversight section anchor', () => {
   });
 });
 
+/**
+ * Names the theme a painted color belongs to, so a failure reads `expected
+ * 'dark' to be 'light'` rather than comparing two hex strings the reader then
+ * has to look up. Asserting the positive and then separately asserting "not the
+ * other one" cannot do this: the positive assertion throws first, so the second
+ * line only ever runs in the case where it was already going to pass.
+ */
+function whichTheme(el: Element): string {
+  const painted = paintedColor(el, 'color');
+  if (painted === normalizeColor(ensure(themes.light).textMutedColor)) return 'light';
+  if (painted === normalizeColor(ensure(themes.dark).textMutedColor)) return 'dark';
+  return painted;
+}
+
+// These assert which theme `ThemedRoot` hands to the block, read off a painted
+// color rather than off the value passed to the provider. They do not establish
+// what the heading looks like on a real Docs page: the `Heading` mock renders
+// without addon-docs' `DocsContent` wrapper, whose `:where(h2)` rule sets a
+// color at the same specificity as `SectionHeading`'s class. Item 2b of #75 is
+// where that gets covered, through autodocs rather than a mocked container.
 describe('ThemedRoot theme', () => {
-  // The block runs on its own emotion instance, so addon-docs' ThemeProvider
-  // context does not reach it and `ThemedRoot` re-provides a theme. Which theme
-  // it picks is the thing under test, read off the heading rather than off the
-  // value handed to the provider.
   it('falls back to light, matching what DocsContainer falls back to', async () => {
     render(<Oversight />);
     await screen.findByRole('link', { name: 'MDN' });
 
-    const heading = screen.getByRole('heading', { name: 'Oversight' });
-
-    expect(paintedColor(heading, 'color')).toBe(ensure(themes.light).textMutedColor.toLowerCase());
-    // Named so the failure says which way it went, rather than only that the
-    // color was not the expected one.
-    expect(paintedColor(heading, 'color')).not.toBe(ensure(themes.dark).textMutedColor.toLowerCase());
+    expect(whichTheme(screen.getByRole('heading', { name: 'Oversight' }))).toBe('light');
   });
 
   // The fallback is meant to run only when the surrounding context does not
@@ -147,9 +154,7 @@ describe('ThemedRoot theme', () => {
     );
     await screen.findByRole('link', { name: 'MDN' });
 
-    const heading = screen.getByRole('heading', { name: 'Oversight' });
-
-    expect(paintedColor(heading, 'color')).toBe(ensure(themes.dark).textMutedColor.toLowerCase());
+    expect(whichTheme(screen.getByRole('heading', { name: 'Oversight' }))).toBe('dark');
   });
 });
 
