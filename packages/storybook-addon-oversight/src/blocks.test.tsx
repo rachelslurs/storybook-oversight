@@ -1,14 +1,28 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
+import { ThemeProvider, ensure, themes } from 'storybook/theming';
 import { Oversight } from './blocks';
+
+/** A computed color, as whatever notation the DOM hands back, lowercased. */
+function paintedColor(el: Element, property: 'color' | 'backgroundColor'): string {
+  return getComputedStyle(el)[property].toLowerCase();
+}
 
 // `useOf` walks addon-docs' DocsContext and the real manifest source fetches
 // at import time, so both are replaced: the subject here is what the block
 // makes of what it is given, not how the manifest arrives.
 vi.mock('@storybook/addon-docs/blocks', () => ({
   DocsContainer: (props: { children?: unknown }) => props.children,
-  Heading: ({ id, children }: { id?: string; children?: unknown }) => <h2 id={id}>{children as never}</h2>,
+  // `className` is forwarded because `SectionHeading` is `styled(Heading)`, and
+  // emotion styles a wrapped component by handing it a generated class. A mock
+  // that drops it renders a heading with none of the block's styling on it, so
+  // nothing about how the heading paints could be asserted at all.
+  Heading: ({ id, className, children }: { id?: string; className?: string; children?: unknown }) => (
+    <h2 id={id} className={className}>
+      {children as never}
+    </h2>
+  ),
   useOf: () => ({ csfFile: { meta: { id: 'ex-doc' } } }),
 }));
 
@@ -102,6 +116,40 @@ describe('Oversight section anchor', () => {
     await screen.findAllByRole('link', { name: 'MDN' });
 
     expect(container.querySelectorAll('#oversight')).toHaveLength(1);
+  });
+});
+
+describe('ThemedRoot theme', () => {
+  // The block runs on its own emotion instance, so addon-docs' ThemeProvider
+  // context does not reach it and `ThemedRoot` re-provides a theme. Which theme
+  // it picks is the thing under test, read off the heading rather than off the
+  // value handed to the provider.
+  it('falls back to light, matching what DocsContainer falls back to', async () => {
+    render(<Oversight />);
+    await screen.findByRole('link', { name: 'MDN' });
+
+    const heading = screen.getByRole('heading', { name: 'Oversight' });
+
+    expect(paintedColor(heading, 'color')).toBe(ensure(themes.light).textMutedColor.toLowerCase());
+    // Named so the failure says which way it went, rather than only that the
+    // color was not the expected one.
+    expect(paintedColor(heading, 'color')).not.toBe(ensure(themes.dark).textMutedColor.toLowerCase());
+  });
+
+  // The fallback is meant to run only when the surrounding context does not
+  // resolve. A ThemedRoot that always fell back would paint a dark Storybook's
+  // docs page with a light block.
+  it('inherits the surrounding theme when there is one', async () => {
+    render(
+      <ThemeProvider theme={ensure(themes.dark)}>
+        <Oversight />
+      </ThemeProvider>,
+    );
+    await screen.findByRole('link', { name: 'MDN' });
+
+    const heading = screen.getByRole('heading', { name: 'Oversight' });
+
+    expect(paintedColor(heading, 'color')).toBe(ensure(themes.dark).textMutedColor.toLowerCase());
   });
 });
 
