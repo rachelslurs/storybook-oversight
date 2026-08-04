@@ -57,6 +57,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # The same gate `pnpm release` runs before publishing. It is here as well
+      # because it imports `storybook/internal/{manager,preview}/globals`, so a
+      # Storybook major that moves those paths makes it throw at import. At
+      # release-only cadence the first symptom would be a red release job after
+      # the Version Packages PR had already merged.
+      - name: Prepublish checks
+        run: pnpm prepublish-checks
+
       - name: Build packages
         run: pnpm build
 
