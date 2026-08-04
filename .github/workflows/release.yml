@@ -104,7 +104,23 @@ jobs:
             npm dist-tag add "$spec" beta
           done
 
+          # Reading straight back returns the pre-write value: the 0.6.2 release
+          # moved beta correctly and then printed beta 0.6.1, which reads as a
+          # failure and is not one. `npm dist-tag add` above is what fails hard;
+          # this only confirms, so a value that never catches up is reported as
+          # caching rather than turned into a red job.
           for spec in $stable; do
             name=${spec%@*}
-            echo "$name now: $(npm view "$name" dist-tags --json | jq -c .)"
+            want=${spec##*@}
+            got=""
+            for _ in $(seq 1 10); do
+              got=$(npm view "$name" dist-tags.beta 2>/dev/null || true)
+              [[ "$got" == "$want" ]] && break
+              sleep 3
+            done
+            if [[ "$got" == "$want" ]]; then
+              echo "$name beta is $got"
+            else
+              echo "$name beta still reads ${got:-unknown}, wanted $want. The tag was set; the registry has not caught up."
+            fi
           done
