@@ -11,5 +11,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "jsx": "react"
-  }
+  },
+  // `include` replaces the base's rather than extending it, so src is repeated.
+  // The extra entry is what puts `React` in scope for the classic transform
+  // during the declaration pass; see types/manager-classic-jsx.d.ts.
+  "include": ["src", "types/manager-classic-jsx.d.ts"]
 }

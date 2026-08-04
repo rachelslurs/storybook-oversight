@@ -1,78 +1,18 @@
 #!/usr/bin/env node
 
-import boxen from 'boxen';
 import chalk from 'chalk';
-import { readdir, readFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { globalPackages as globalManagerPackages } from 'storybook/internal/manager/globals';
 import { globalPackages as globalPreviewPackages } from 'storybook/internal/preview/globals';
 import { dedent } from 'ts-dedent';
+import { findPublishedPackages, report, requirePackages } from './published-packages.js';
 
-// Everything resolves from this file's own location, never from cwd. The release
+// Paths resolve from the script's own location, never from cwd. The release
 // workflow runs `pnpm run release` from the repo root, and reading `./package.json`
 // relative to cwd is why this only ever worked from the addon directory.
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const packagesDir = join(repoRoot, 'packages');
 
 const globalPackages = [...globalManagerPackages, ...globalPreviewPackages];
-
-function report(title, body) {
-  console.error(boxen(`${chalk.red.bold(title)}\n\n${chalk.red(body)}`, { padding: 1, borderColor: 'red' }));
-}
-
-/**
- * Every package under `packages/` that publishes.
- *
- * Derived rather than listed, so a package added later is covered by default
- * instead of being silently skipped. A directory without a `package.json` is not
- * a package and is skipped; one with an unreadable or malformed `package.json` is
- * worth stopping the release for, so that throws rather than skipping.
- */
-async function findPublishedPackages() {
-  let entries;
-
-  try {
-    entries = await readdir(packagesDir, { withFileTypes: true });
-  } catch (error) {
-    if (error.code !== 'ENOENT') throw error;
-    return null;
-  }
-
-  const directories = entries.filter((entry) => entry.isDirectory());
-  directories.sort((a, b) => a.name.localeCompare(b.name));
-
-  const packages = [];
-
-  for (const entry of directories) {
-    const dir = join(packagesDir, entry.name);
-    const manifestPath = join(dir, 'package.json');
-    let raw;
-
-    try {
-      raw = await readFile(manifestPath, 'utf8');
-    } catch (error) {
-      if (error.code === 'ENOENT') continue;
-      throw error;
-    }
-
-    let manifest;
-
-    try {
-      manifest = JSON.parse(raw);
-    } catch (error) {
-      // Naming the file beats a bare SyntaxError stack, which is all a release
-      // log would otherwise carry.
-      report('Unreadable package manifest', `${manifestPath} is not valid JSON.\n\n${error.message}`);
-      process.exit(1);
-    }
-
-    if (manifest.private) continue;
-    packages.push({ dir, manifest });
-  }
-
-  return packages;
-}
 
 /**
  * Whether a package ships inside Storybook's manager or preview bundle.
@@ -203,31 +143,7 @@ function checkPeerDependencies({ manifest }) {
   return offenders.length === 0;
 }
 
-const packages = await findPublishedPackages();
-
-// A missing directory is the first cause the box below names, so it gets said
-// rather than left to an ENOENT stack trace out of the top-level await.
-if (packages === null) {
-  report(
-    'No packages directory',
-    dedent`Nothing at ${packagesDir}.
-    The workspace layout moved and this script did not move with it.`,
-  );
-  process.exit(1);
-}
-
-// Refuse rather than report a green run over nothing. A filter that excluded
-// everything would otherwise print a passing summary having checked no packages
-// at all, which is the shape this script exists to remove.
-if (packages.length === 0) {
-  report(
-    'No packages to check',
-    dedent`Found no publishable packages under ${packagesDir}.
-    Either the workspace layout moved or every package is marked private, and
-    passing without having checked anything is not a result worth trusting.`,
-  );
-  process.exit(1);
-}
+const packages = requirePackages(await findPublishedPackages());
 
 let exitCode = 0;
 const summary = [];

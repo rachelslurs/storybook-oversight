@@ -20,6 +20,10 @@ export default defineConfig([
     platform: 'browser',
     // Storybook re-bundles manager entries; esnext is fine here.
     target: 'esnext',
+    // Nothing imports this in TypeScript, but every entry the `exports` map
+    // publishes is asserted to resolve to declarations, and an entry exempted
+    // by hand is one nobody notices going untyped later.
+    dts: true,
     // Build the manager with the CLASSIC JSX runtime. Storybook's manager
     // globalizes `react` but not `react/jsx-runtime`, so the automatic runtime
     // would bundle a `react/jsx-runtime` from the consumer's React (potentially
@@ -54,5 +58,6 @@ export default defineConfig([
     entry: ['src/preset.ts'],
     platform: 'node',
     target: NODE_TARGET,
+    dts: true,
   },
 ]);

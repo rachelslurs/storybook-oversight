@@ -18,9 +18,11 @@
     "changeset": "changeset",
     "version": "changeset version",
     "prepublish-checks": "node scripts/prepublish-checks.js",
-    "release": "pnpm run prepublish-checks && pnpm -r build && changeset publish"
+    "artifact-checks": "node scripts/artifact-checks.js",
+    "release": "pnpm run prepublish-checks && pnpm -r build && pnpm run artifact-checks && changeset publish"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@changesets/cli": "^2.31.0",
     "@eslint/js": "^9.36.0",
     "@storybook/addon-docs": "^10.5.0",
@@ -45,6 +47,7 @@
     "happy-dom": "^20.10.6",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.6.2",
+    "publint": "^0.3.22",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "storybook": "^10.5.0",
