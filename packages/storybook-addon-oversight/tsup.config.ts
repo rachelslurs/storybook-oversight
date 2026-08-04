@@ -23,7 +23,12 @@ export default defineConfig([
     // Nothing imports this in TypeScript, but every entry the `exports` map
     // publishes is asserted to resolve to declarations, and an entry exempted
     // by hand is one nobody notices going untyped later.
-    dts: true,
+    //
+    // The classic runtime above governs esbuild, which needs `React` in scope
+    // for the transform. Declaration output does not depend on the JSX
+    // transform, so tsc runs with the automatic runtime and never looks for the
+    // `React` that only the injected shim would have supplied.
+    dts: { compilerOptions: { jsx: 'react-jsx' } },
     // Build the manager with the CLASSIC JSX runtime. Storybook's manager
     // globalizes `react` but not `react/jsx-runtime`, so the automatic runtime
     // would bundle a `react/jsx-runtime` from the consumer's React (potentially
