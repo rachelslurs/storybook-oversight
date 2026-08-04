@@ -68,6 +68,12 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      # Reads dist/, so it has to follow the build. Its sibling above reads the
+      # manifests and runs before one. publint and attw both inspect a real
+      # `npm pack` tarball rather than the working tree.
+      - name: Artifact checks
+        run: pnpm artifact-checks
+
       # `pnpm build` typechecks the addon and CLI through their own tsc pass, and
       # skips oversight-core entirely because it has no build. This covers the
       # demo stories from the root tsconfig and then every package, including the

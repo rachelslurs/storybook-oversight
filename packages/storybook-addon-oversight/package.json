@@ -30,15 +30,20 @@
       "types": "./dist/blocks.d.ts",
       "default": "./dist/blocks.js"
     },
-    "./manager": "./dist/manager.js",
-    "./preset": "./dist/preset.js",
+    "./manager": {
+      "types": "./dist/manager.d.ts",
+      "default": "./dist/manager.js"
+    },
+    "./preset": {
+      "types": "./dist/preset.d.ts",
+      "default": "./dist/preset.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
     "dist/**/*",
     "README.md",
-    "*.js",
-    "*.d.ts"
+    "*.js"
   ],
   "scripts": {
     "prebuild": "node -e \"require('node:fs').rmSync('./dist', { recursive: true, force: true })\"",
