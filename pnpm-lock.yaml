@@ -50,6 +50,9 @@ importers:
       boxen:
         specifier: ^8.0.1
         version: 8.0.1
+      chalk:
+        specifier: ^5.6.2
+        version: 5.6.2
       eslint:
         specifier: ^9.36.0
         version: 9.38.0(jiti@2.7.0)
@@ -65,6 +68,9 @@ importers:
       eslint-plugin-storybook:
         specifier: ^10.5.0
         version: 10.5.0(eslint@9.38.0(jiti@2.7.0))(storybook@10.5.0(@types/react@18.3.26)(prettier@3.6.2)(react@18.3.1))(typescript@6.0.3)
+      globals:
+        specifier: ^14.0.0
+        version: 14.0.0
       happy-dom:
         specifier: ^20.10.6
         version: 20.10.6
@@ -107,9 +113,6 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@20.19.23)(happy-dom@20.10.6)(jiti@2.7.0)(lightningcss@1.32.0)
-      zx:
-        specifier: ^8.7.1
-        version: 8.8.5
 
   packages/cli:
     devDependencies:
@@ -3313,11 +3316,6 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
-
-  zx@8.8.5:
-    resolution: {integrity: sha512-SNgDF5L0gfN7FwVOdEFguY3orU5AkfFZm9B5YSHog/UDHv+lvmd82ZAsOenOkQixigwH2+yyH198AwNdKhj+RA==}
-    engines: {node: '>= 12.17.0'}
-    hasBin: true
 
 snapshots:
 
@@ -6717,5 +6715,3 @@ snapshots:
   yallist@3.1.1: {}
 
   yocto-queue@0.1.0: {}
-
-  zx@8.8.5: {}
