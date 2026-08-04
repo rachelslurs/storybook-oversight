@@ -68,3 +68,43 @@ jobs:
           gh api repos/rachelslurs/oversight-lint-action/dispatches \
             -f event_type=oversight-lint-published \
             -f "client_payload[version]=$version"
+
+      # `beta` froze behind `latest` when prerelease mode ended: changeset
+      # publish passed --tag beta from .changeset/pre.json, and leaving pre mode
+      # deleted that file. Anyone on `version: beta` then ran an older build
+      # than the default and nothing said so. This keeps the tag from pointing
+      # backwards again after the next prerelease cycle.
+      #
+      # Runs after Notify on purpose. The publish has already happened by the
+      # time this can fail, so failing first would only withhold the dispatch
+      # and leave the action's pin behind for a tagging problem.
+      - name: Move beta to any stable release
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PUBLISHED: ${{ steps.changesets.outputs.publishedPackages }}
+        run: |
+          set -euo pipefail
+
+          # No name filter: oversight-core is private, so publishedPackages only
+          # ever holds the two published packages and both want the tag moved.
+          # A version carrying a prerelease segment is not a stable release.
+          stable=$(echo "$PUBLISHED" | jq -r '.[] | select(.version | test("-") | not) | "\(.name)@\(.version)"')
+          if [[ -z "$stable" ]]; then
+            echo "Nothing stable in this publish, so beta stays where it is."
+            exit 0
+          fi
+
+          # NPM_TOKEN is scoped to the changesets step, so this needs its own
+          # auth rather than whatever that step left behind.
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> "$HOME/.npmrc"
+
+          for spec in $stable; do
+            echo "Moving beta to $spec"
+            npm dist-tag add "$spec" beta
+          done
+
+          for spec in $stable; do
+            name=${spec%@*}
+            echo "$name now: $(npm view "$name" dist-tags --json | jq -c .)"
+          done
