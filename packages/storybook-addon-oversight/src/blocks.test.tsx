@@ -1,9 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import { ThemeProvider, ensure, themes } from 'storybook/theming';
 import { Oversight } from './blocks';
-import { normalizeColor, paintedColor } from './testing';
+import { DEMO_MANIFEST, whichTheme } from './testing';
 
 // `useOf` walks addon-docs' DocsContext and the real manifest source fetches
 // at import time, so both are replaced: the subject here is what the block
@@ -35,25 +34,9 @@ vi.mock('./manifestSource', () => ({
   }),
 }));
 
-const LOADS = {
-  meta: { docgen: 'react-docgen-typescript' },
-  components: {
-    'ex-doc': {
-      name: 'Doc',
-      path: './Doc.stories.tsx',
-      reactDocgenTypescript: {
-        description:
-          'See [MDN](https://developer.mozilla.org/en-US/docs/Web), [More](?path=/docs/ex-doc--docs), ' +
-          '[Sized](?path=/docs/ex-doc--docs&args=size:lg) and [Deep](?path=/docs/ex-doc--docs#oversight).',
-        props: {},
-      },
-    },
-  },
-};
-
 beforeEach(() => {
   state.parseFailed = false;
-  state.manifest = LOADS;
+  state.manifest = DEMO_MANIFEST;
 });
 
 afterEach(cleanup);
@@ -115,46 +98,20 @@ describe('Oversight section anchor', () => {
   });
 });
 
-/**
- * Names the theme a painted color belongs to, so a failure reads `expected
- * 'dark' to be 'light'` rather than comparing two hex strings the reader then
- * has to look up. Asserting the positive and then separately asserting "not the
- * other one" cannot do this: the positive assertion throws first, so the second
- * line only ever runs in the case where it was already going to pass.
- */
-function whichTheme(el: Element): string {
-  const painted = paintedColor(el, 'color');
-  if (painted === normalizeColor(ensure(themes.light).textMutedColor)) return 'light';
-  if (painted === normalizeColor(ensure(themes.dark).textMutedColor)) return 'dark';
-  return painted;
-}
-
-// These assert which theme `ThemedRoot` hands to the block, read off a painted
-// color rather than off the value passed to the provider. They do not establish
-// what the heading looks like on a real Docs page: the `Heading` mock renders
-// without addon-docs' `DocsContent` wrapper, whose `:where(h2)` rule sets a
-// color at the same specificity as `SectionHeading`'s class. Item 2b of #75 is
-// where that gets covered, through autodocs rather than a mocked container.
+// Asserts which theme `ThemedRoot` hands the block, read off a painted color
+// rather than off the value passed to the provider. It does not establish what
+// the heading looks like on a real Docs page: the `Heading` mock renders without
+// addon-docs' `DocsContent` wrapper, whose `:where(h2)` rule sets a color at the
+// same specificity as `SectionHeading`'s class. Item 2b of #75 covers that,
+// through autodocs rather than a mocked container.
+//
+// The inherited case is in blocks.theme-dark.test.tsx, which explains why.
 describe('ThemedRoot theme', () => {
   it('falls back to light, matching what DocsContainer falls back to', async () => {
     render(<Oversight />);
     await screen.findByRole('link', { name: 'MDN' });
 
     expect(whichTheme(screen.getByRole('heading', { name: 'Oversight' }))).toBe('light');
-  });
-
-  // The fallback is meant to run only when the surrounding context does not
-  // resolve. A ThemedRoot that always fell back would paint a dark Storybook's
-  // docs page with a light block.
-  it('inherits the surrounding theme when there is one', async () => {
-    render(
-      <ThemeProvider theme={ensure(themes.dark)}>
-        <Oversight />
-      </ThemeProvider>,
-    );
-    await screen.findByRole('link', { name: 'MDN' });
-
-    expect(whichTheme(screen.getByRole('heading', { name: 'Oversight' }))).toBe('dark');
   });
 });
 

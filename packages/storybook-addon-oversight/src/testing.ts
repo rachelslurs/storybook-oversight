@@ -1,6 +1,41 @@
 // Test-only helpers. Not an entry point: nothing in tsup.config.ts builds this,
 // so it never reaches dist or the published tarball.
 
+import { ensure, themes } from 'storybook/theming';
+
+/**
+ * A manifest whose one component carries the link shapes the block has to
+ * handle. Shared so the theme cases, which live in separate files, describe the
+ * same page.
+ */
+export const DEMO_MANIFEST = {
+  meta: { docgen: 'react-docgen-typescript' },
+  components: {
+    'ex-doc': {
+      name: 'Doc',
+      path: './Doc.stories.tsx',
+      reactDocgenTypescript: {
+        description:
+          'See [MDN](https://developer.mozilla.org/en-US/docs/Web), [More](?path=/docs/ex-doc--docs), ' +
+          '[Sized](?path=/docs/ex-doc--docs&args=size:lg) and [Deep](?path=/docs/ex-doc--docs#oversight).',
+        props: {},
+      },
+    },
+  },
+};
+
+/**
+ * Names the theme a painted color belongs to, so a failure reads `expected
+ * 'dark' to be 'light'` rather than comparing two hex strings the reader then
+ * has to look up.
+ */
+export function whichTheme(el: Element): string {
+  const painted = paintedColor(el, 'color');
+  if (painted === normalizeColor(ensure(themes.light).textMutedColor)) return 'light';
+  if (painted === normalizeColor(ensure(themes.dark).textMutedColor)) return 'dark';
+  return painted;
+}
+
 /**
  * A computed color, normalized so the comparison does not depend on how the DOM
  * implementation writes it down.
