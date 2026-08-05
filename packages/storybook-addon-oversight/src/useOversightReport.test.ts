@@ -20,6 +20,12 @@ const state = vi.hoisted(() => ({
 vi.mock('storybook/manager-api', () => ({
   addons: { getConfig: () => state.config },
   useStorybookState: () => ({ storyId: state.storyId }),
+  // Consumed at module eval by the manifest load the hook builds; the load
+  // itself is behind the manifestSource mock below, so throwing "not
+  // registered" here is never reached and only satisfies the import.
+  getService: () => {
+    throw new Error('No registered service with id "core/docgen" exists in this environment.');
+  },
 }));
 
 vi.mock('./manifestSource', () => ({
