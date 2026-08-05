@@ -2,25 +2,22 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, waitFor } from '@testing-library/react';
 import { createManifestSource } from './manifestSource';
+import type { ManifestLoadOutcome } from './manifestSource';
 
-// The hook reads only these two members of manager-api; mocking them keeps the
-// test on the code under test instead of on Storybook's manager runtime.
+// The hook reads these members of manager-api; mocking them keeps the test on
+// the code under test instead of on Storybook's manager runtime. `getService`
+// throws the way an unregistered service does, which is how every world
+// without `experimentalDocgenServer` reads.
 vi.mock('storybook/manager-api', () => ({
   addons: { getConfig: () => ({}) },
   useStorybookState: () => ({ storyId: 'button--primary' }),
+  getService: () => {
+    throw new Error('No registered service with id "core/docgen" exists in this environment.');
+  },
 }));
 
-// Only `ok`, `text`, and `json` are read from a response, so hand-rolled stubs
-// keep each test's failure mode explicit instead of relying on fetch internals.
-function okResponse(body: string): Response {
-  return { ok: true, text: async () => body, json: async () => JSON.parse(body) as unknown } as Response;
-}
-
-function notOkResponse(body: string): Response {
-  return { ok: false, text: async () => body, json: async () => JSON.parse(body) as unknown } as Response;
-}
-
-const MANIFEST = JSON.stringify({ v: 0, components: {} });
+const MANIFEST = { v: 0, components: {} };
+const urlFor = (name: string) => `/manifests/${name}`;
 
 function silenceConsoleError() {
   return vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -32,87 +29,77 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('createManifestSource failure split', () => {
-  it('a 200 with an unparseable body is a parse failure, logged, with a truthful reason', async () => {
-    const errorSpy = silenceConsoleError();
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => okResponse('<!doctype html><html>proxy error page</html>')),
+// The transport behind the load (fetch, ref resolution, service fallback) is
+// manifestLoad's and tested there; these tests pin the source's own policy:
+// the cache, the retry-after-failure, and the failure accounting.
+describe('createManifestSource policy', () => {
+  it('reports the outcome the load carried: reason and parse flag, read after settle', async () => {
+    const load = vi.fn(
+      async (): Promise<ManifestLoadOutcome> => ({
+        manifest: null,
+        parseFailed: true,
+        unavailableReason: 'The components manifest was served but could not be parsed.',
+      }),
     );
-    const source = createManifestSource((name) => `/manifests/${name}`);
+    const source = createManifestSource({ load, urlFor });
 
     await expect(source.load()).resolves.toBeNull();
     expect(source.parseFailed()).toBe(true);
     expect(source.unavailableReason()).toContain('could not be parsed');
-    // The generic "enable addon-mcp" guess must never render for this class.
-    expect(source.unavailableReason()).not.toContain('addon-mcp');
-    expect(errorSpy).toHaveBeenCalledWith(
-      expect.stringContaining('[storybook-addon-oversight]'),
-      expect.any(SyntaxError),
-    );
   });
 
-  it('a rejected fetch is genuinely unavailable: no reason, no parse flag, no addon log', async () => {
+  it('a failure is never cached: the next load retries and recovery clears the stale diagnosis', async () => {
+    const load = vi
+      .fn<() => Promise<ManifestLoadOutcome>>()
+      .mockResolvedValueOnce({ manifest: null, parseFailed: true, unavailableReason: 'truncated write' })
+      .mockResolvedValueOnce({ manifest: MANIFEST });
+    const source = createManifestSource({ load, urlFor });
+
+    await expect(source.load()).resolves.toBeNull();
+    await expect(source.load()).resolves.toEqual(MANIFEST);
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(source.parseFailed()).toBe(false);
+    expect(source.unavailableReason()).toBeUndefined();
+  });
+
+  it('a successful load is cached: one load per page', async () => {
+    const load = vi.fn(async (): Promise<ManifestLoadOutcome> => ({ manifest: MANIFEST }));
+    const source = createManifestSource({ load, urlFor });
+
+    await source.load();
+    await source.load();
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('a load that breaks its no-reject contract degrades to unavailable, logged, and still retries', async () => {
     const errorSpy = silenceConsoleError();
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => {
-        throw new TypeError('Failed to fetch');
-      }),
-    );
-    const source = createManifestSource((name) => `/manifests/${name}`);
+    const load = vi
+      .fn<() => Promise<ManifestLoadOutcome>>()
+      .mockRejectedValueOnce(new Error('loader bug'))
+      .mockResolvedValueOnce({ manifest: MANIFEST });
+    const source = createManifestSource({ load, urlFor });
 
     await expect(source.load()).resolves.toBeNull();
     expect(source.parseFailed()).toBe(false);
     expect(source.unavailableReason()).toBeUndefined();
-    expect(errorSpy).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('[storybook-addon-oversight]'), expect.any(Error));
+    await expect(source.load()).resolves.toEqual(MANIFEST);
   });
 
-  it('a non-OK response keeps the server’s own explanation, not the parse diagnosis', async () => {
-    const reason = 'Manifest "components" is not available in dev when experimentalDocgenServer is enabled.';
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => notOkResponse(reason)),
-    );
-    const source = createManifestSource((name) => `/manifests/${name}`);
-
-    await expect(source.load()).resolves.toBeNull();
-    expect(source.parseFailed()).toBe(false);
-    expect(source.unavailableReason()).toContain('experimentalDocgenServer');
-  });
-
-  it('a parse failure is never cached: the next load refetches and can recover', async () => {
-    silenceConsoleError();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(okResponse('{"v":0,"compo')) // truncated write
-      .mockResolvedValueOnce(okResponse(MANIFEST));
-    vi.stubGlobal('fetch', fetchMock);
-    const source = createManifestSource((name) => `/manifests/${name}`);
-
-    await expect(source.load()).resolves.toBeNull();
-    await expect(source.load()).resolves.toEqual({ v: 0, components: {} });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    // The recovery must also clear the stale diagnosis.
-    expect(source.parseFailed()).toBe(false);
-    expect(source.unavailableReason()).toBeUndefined();
-  });
-
-  it('a successful load is cached: one fetch per page', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(okResponse(MANIFEST));
-    vi.stubGlobal('fetch', fetchMock);
-    const source = createManifestSource((name) => `/manifests/${name}`);
-
-    await source.load();
-    await source.load();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+  it('urlFor is the injected resolver, untouched by the load', () => {
+    const load = vi.fn(async (): Promise<ManifestLoadOutcome> => ({ manifest: MANIFEST }));
+    const source = createManifestSource({ load, urlFor });
+    expect(source.urlFor('components.html')).toBe('/manifests/components.html');
+    expect(load).not.toHaveBeenCalled();
   });
 });
 
 describe('useOversightReport failure routing', () => {
-  // The module under test caches at module scope and warms the fetch at eval,
+  // The module under test caches at module scope and warms the load at eval,
   // so each test needs a fresh module registry and its fetch stub in place
-  // BEFORE the import.
+  // BEFORE the import. These run the real load chain (manifestLoad behind the
+  // source), so the routing they pin is end to end: the mocked `getService`
+  // above answers the service fallback with "not registered".
   async function renderStatus() {
     vi.resetModules();
     const { useOversightReport } = await import('./useOversightReport');
@@ -126,13 +113,15 @@ describe('useOversightReport failure routing', () => {
     silenceConsoleError();
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => okResponse('<!doctype html>')),
+      vi.fn(
+        async () => ({ ok: true, text: async () => '<!doctype html>', json: async () => JSON.parse('<') }) as Response,
+      ),
     );
     const { getByTestId } = await renderStatus();
     await waitFor(() => expect(getByTestId('status').textContent).toBe('error'));
   });
 
-  it('keeps a network failure in the unavailable state', async () => {
+  it('keeps a network failure in the unavailable state when the services are not registered either', async () => {
     silenceConsoleError();
     vi.stubGlobal(
       'fetch',
@@ -141,6 +130,8 @@ describe('useOversightReport failure routing', () => {
       }),
     );
     const { getByTestId } = await renderStatus();
-    await waitFor(() => expect(getByTestId('status').textContent).toBe('unavailable'));
-  });
+    // The service fallback retries its resolution window (6 x 250ms) before
+    // settling, so this wait outlasts it.
+    await waitFor(() => expect(getByTestId('status').textContent).toBe('unavailable'), { timeout: 5000 });
+  }, 10000);
 });

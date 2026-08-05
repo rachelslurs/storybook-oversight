@@ -12,6 +12,11 @@ function getAbsolutePath(value: string): string {
 const config: StorybookConfig = {
   // Keep the demo's chrome clean (no "what's new" toast) for a public showcase.
   core: { disableWhatsNewNotifications: true },
+  // `STORYBOOK_DOCGEN_SERVER=1` in front of any storybook command runs the demo
+  // with the docgen server on: dev serves no manifest (the addon reads the
+  // service API instead), and a build writes the v:1 ref manifest. The default
+  // stays off so the published demo matches what most consumers run.
+  ...(process.env.STORYBOOK_DOCGEN_SERVER === '1' ? { features: { experimentalDocgenServer: true } } : {}),
   stories: ['../stories/**/*.mdx', '../stories/**/*.stories.@(ts|tsx)'],
   addons: [
     getAbsolutePath('@storybook/addon-docs'),

@@ -5,6 +5,9 @@ import type { DocsContainerProps } from '@storybook/addon-docs/blocks';
 import { ThemeProvider, ensure, styled, themes, useTheme } from 'storybook/theming';
 import { buildReport } from 'oversight-core';
 import type { RawManifest } from 'oversight-core';
+import { getService } from 'storybook/preview-api';
+import { createManifestLoad } from './manifestLoad';
+import type { GetService } from './manifestLoad';
 import { createManifestSource } from './manifestSource';
 import { DEFAULT_DEBUGGER_LINK } from './config';
 import type { OversightConfig } from './config';
@@ -47,13 +50,20 @@ const Container = styled.div(({ theme }) => ({
   '& > :last-child': { borderBottom: 'none' },
 }));
 
-// The fetched manifest is cached across block instances (one fetch per page),
+// The loaded manifest is cached across block instances (one load per page),
 // but the per-component analysis is NOT. Each block runs `buildReport` with its
 // OWN page's lint options.
 //
 // URLs resolve against the iframe document (dropping `iframe.html`), correct at
-// the root and under a subpath deploy.
-const manifest = createManifestSource((name) => new URL(`manifests/${name}`, document.baseURI).href);
+// the root and under a subpath deploy. The load owns the transport: fetch, v:1
+// ref resolution, and the service-API fallback for dev under
+// `experimentalDocgenServer`, through the preview runtime's `getService` (the
+// cast widens its typed service-id parameter to the structural seam).
+const resolveManifestUrl = (name: string) => new URL(`manifests/${name}`, document.baseURI).href;
+const manifest = createManifestSource({
+  urlFor: resolveManifestUrl,
+  load: createManifestLoad({ resolveUrl: resolveManifestUrl, getService: getService as GetService }),
+});
 
 // Warm the network path when the blocks bundle evaluates (preview-iframe load),
 // so opening a Docs page doesn't wait on a cold fetch. Failures aren't cached,
