@@ -110,6 +110,36 @@ const EMPTY_STATES = [
   'Select a story to see its coverage.',
 ];
 
+// The block's data path is a fetch plus an effect plus `buildReport`, and
+// @testing-library/dom's default is 1000ms with nothing here raising it. A
+// loaded CI runner can exceed that, and the timeout message is identical to the
+// one a genuinely missing manifest produces.
+const FINDING_TIMEOUT = 10_000;
+
+/**
+ * Every empty state means zero finding rows, so a missing row times out before
+ * anything else can run. The timeout says only that a row is absent, which is
+ * also what a renamed `title:` in `stories/Card/Card.stories.tsx` looks like,
+ * since the manifest key is derived from it. Name the state the block actually
+ * rendered instead.
+ */
+async function findFindingRow(canvas: ReturnType<typeof within>, rule: string) {
+  try {
+    const header = await canvas.findByRole('rowheader', { name: rule }, { timeout: FINDING_TIMEOUT });
+    return header.closest('tr');
+  } catch (err) {
+    const shown = EMPTY_STATES.find((state) => canvas.queryByText(state));
+    if (shown) {
+      throw new Error(
+        `the block rendered "${shown}" instead of findings for ${COMPONENT_ID}. ` +
+          `Check that storybook-static/manifests/components.json has that id, ` +
+          `which comes from the title in stories/Card/Card.stories.tsx.`,
+      );
+    }
+    throw err;
+  }
+}
+
 async function assertDocsBlock(canvasElement: HTMLElement, theme: StorybookTheme) {
   const canvas = within(canvasElement);
 
@@ -117,24 +147,15 @@ async function assertDocsBlock(canvasElement: HTMLElement, theme: StorybookTheme
   // rule id is the row header, so it is also the row's accessible name.
   // Assertions read the whole row's text: the block appends the prop names in
   // a separate element from the message, so no single node holds the sentence.
-  const findingRow = async (rule: string) => (await canvas.findByRole('rowheader', { name: rule })).closest('tr');
-
-  const required = await findingRow('required-prop-undocumented');
+  const required = await findFindingRow(canvas, 'required-prop-undocumented');
   await expect(required?.textContent).toContain('error');
   await expect(required?.textContent).toContain('Card has required prop without documentation.');
   await expect(required?.textContent).toContain('title');
 
-  const descriptions = await findingRow('prop-descriptions-missing');
+  const descriptions = await findFindingRow(canvas, 'prop-descriptions-missing');
   await expect(descriptions?.textContent).toContain('warning');
   await expect(descriptions?.textContent).toContain('Card has 2 undocumented props.');
   await expect(descriptions?.textContent).toContain('elevated');
-
-  // Findings being present is not proof the manifest arrived, but an empty
-  // state still renders a heading, so the color assertions below would pass on
-  // a run where the fetch 404'd. Rule the empty states out by name.
-  for (const state of EMPTY_STATES) {
-    await expect(canvas.queryByText(state)).not.toBeInTheDocument();
-  }
 
   // The point of running this in a browser at all. On a real Docs page the
   // heading descends from addon-docs' `DocsContent`, whose
