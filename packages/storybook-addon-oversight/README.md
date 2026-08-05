@@ -162,8 +162,9 @@ This package lives in the [Oversight monorepo](../../README.md). Build and test 
 
 ```bash
 pnpm install
+pnpm exec playwright install chromium  # once, for the story tests
 pnpm -r build
-pnpm -r test
+pnpm test        # or pnpm test:unit to skip the browser
 ```
 
 See [CONTRIBUTING.md](../../CONTRIBUTING.md) for the PR and release workflow.

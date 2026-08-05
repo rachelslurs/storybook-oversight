@@ -81,19 +81,43 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      # The `storybook` vitest project runs the demo's stories in headless
-      # chromium. Only that browser is installed; the project pins chromium and
-      # pulling the other two would triple the download for nothing.
-      - name: Install Playwright chromium
-        run: pnpm exec playwright install --with-deps chromium
-
-      # Runs the unit projects and the story project under one exit code, and
-      # builds the demo Storybook on the way in, which is where the components
-      # manifest the docs-block story reads comes from. That subsumes the
-      # separate Build Storybook step this replaced.
+      # Runs before the demo build so a broken demo cannot hide a package
+      # regression. These are the three node projects; the browser ones are two
+      # steps down.
       #
       # Still after `pnpm build`: cli.test.ts drives packages/cli/dist/cli.js and
       # skips rather than fails when it is absent, so running tests earlier would
-      # drop those assertions without turning anything red.
-      - name: Run tests
-        run: pnpm test
+      # drop those 11 assertions without turning anything red.
+      - name: Run unit tests
+        run: pnpm test:unit
+
+      # The `storybook` vitest project runs the demo's stories in headless
+      # chromium. Only that browser is installed; the project names chromium and
+      # nothing else, so pulling the other two would triple the download for
+      # nothing. Cached on the resolved playwright version, since the binary
+      # changes only when that devDependency moves.
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.pw.outputs.version }}
+
+      # `--with-deps` installs system libraries outside the cached path, so it
+      # runs either way; the browser download is what the cache skips.
+      - name: Install Playwright chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # `storybook build` directly rather than `pnpm build-storybook`, whose
+      # `build:addon` would delete and rebuild the dist that `pnpm build` above
+      # already produced. This is also where the components manifest the
+      # docs-block story reads comes from.
+      - name: Build Storybook
+        run: pnpm exec storybook build
+
+      - name: Run story tests
+        run: pnpm test:storybook

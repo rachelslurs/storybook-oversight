@@ -22,5 +22,9 @@
   // at the repo root) can extract JSDoc from the demo components. `.storybook`
   // is omitted: preview.ts imports the built addon, which does not exist when a
   // typecheck runs.
-  "include": ["stories"]
+  // The two test configs are named explicitly, matching how each package's
+  // tsconfig lists its own config files. They decide how every test runs and
+  // were otherwise in no compilation unit at all, so a renamed option after a
+  // vitest bump would have passed `pnpm typecheck` and failed at run time.
+  "include": ["stories", "vitest.config.ts", "vitest.storybook.config.ts"]
 }

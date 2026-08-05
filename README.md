@@ -57,8 +57,10 @@ packages/
 
 ```bash
 pnpm install
+pnpm exec playwright install chromium  # once, for the story tests
 pnpm -r build        # build every package (tsc typecheck + tsup bundle)
-pnpm -r test         # unit tests across core, addon, and cli
+pnpm test            # unit projects, then the demo's stories in a browser
+pnpm test:unit       # just the unit projects, no build, no browser
 pnpm lint
 pnpm build-storybook # build the addon, then the demo Storybook
 pnpm storybook       # run the demo at http://localhost:6006
