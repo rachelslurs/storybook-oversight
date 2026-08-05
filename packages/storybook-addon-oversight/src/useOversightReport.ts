@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { addons, useStorybookState } from 'storybook/manager-api';
+import { addons, getService, useStorybookState } from 'storybook/manager-api';
 import { analyzeManifest, resolveComponent } from 'oversight-core';
 import type { ComponentReport, ManifestAnalysis } from 'oversight-core';
+import { createManifestLoad } from './manifestLoad';
+import type { GetService } from './manifestLoad';
 import { createManifestSource } from './manifestSource';
 import { DEFAULT_DEBUGGER_LINK } from './config';
 import type { OversightConfig } from './config';
@@ -32,9 +34,18 @@ function manifestsBaseUrl(): string {
 // The raw manifest is static per page load. Kick the network fetch off the
 // instant the manager bundle evaluates (see the `void manifest.load()` below),
 // so the panel/badge don't wait for the first hook mount. Only the manifest is
-// fetched here and no config is read, so it's safe to run before
+// loaded here and no config is read, so it's safe to run before
 // `.storybook/manager.ts` calls `addons.setConfig`.
-const manifest = createManifestSource((name) => `${manifestsBaseUrl()}${name}`);
+//
+// The load owns the transport: fetch, v:1 ref resolution, and the service-API
+// fallback for dev under `experimentalDocgenServer`. `getService` is the
+// manager runtime's; the cast widens its typed service-id parameter to the
+// structural seam. The docs block passes the preview runtime's.
+const resolveManifestUrl = (name: string) => `${manifestsBaseUrl()}${name}`;
+const manifest = createManifestSource({
+  urlFor: resolveManifestUrl,
+  load: createManifestLoad({ resolveUrl: resolveManifestUrl, getService: getService as GetService }),
+});
 
 // Analysis (normalize → lint) runs once, the first time a hook mounts. By then
 // `.storybook/manager.ts` has applied `addons.setConfig`, so the consumer's
