@@ -81,8 +81,19 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Run unit tests
-        run: pnpm test
+      # The `storybook` vitest project runs the demo's stories in headless
+      # chromium. Only that browser is installed; the project pins chromium and
+      # pulling the other two would triple the download for nothing.
+      - name: Install Playwright chromium
+        run: pnpm exec playwright install --with-deps chromium
 
-      - name: Build Storybook
-        run: pnpm build-storybook
+      # Runs the unit projects and the story project under one exit code, and
+      # builds the demo Storybook on the way in, which is where the components
+      # manifest the docs-block story reads comes from. That subsumes the
+      # separate Build Storybook step this replaced.
+      #
+      # Still after `pnpm build`: cli.test.ts drives packages/cli/dist/cli.js and
+      # skips rather than fails when it is absent, so running tests earlier would
+      # drop those assertions without turning anything red.
+      - name: Run tests
+        run: pnpm test
