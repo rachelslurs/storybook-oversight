@@ -136,11 +136,18 @@ jobs:
   # newer React major the README also promises, each on its own runner so a pin
   # failure in one cannot mask a pass in the other.
   #
-  # The floor entry is what found the declared range wrong in the first place.
-  # The peers said `^10.3.0`, and on 10.3 and 10.4 the Docs block takes the
-  # whole Docs page down; #94 narrowed the range to `^10.5.0` and #93 tracks the
-  # cause. Keep `storybook:` below equal to whatever the addon's
-  # `peerDependencies` declares, or this job stops meaning anything.
+  # The floor is read from the addon's `peerDependencies` rather than restated
+  # here, and the print step below fails when the install does not match it. A
+  # literal would go stale the moment the range moves, and a floor entry testing
+  # a version the package no longer claims is worse than no floor entry: it is
+  # green and it is wrong.
+  #
+  # It also pins the whole Storybook family, `@storybook/addon-vitest` included.
+  # Pinning only storybook, react-vite and addon-docs leaves addon-vitest to drag
+  # a second `@storybook/addon-docs` in behind them, and two copies mean two
+  # emotion instances and a blank Docs page. That is #93, and reading the
+  # resulting failure as "the addon does not support this version" is exactly the
+  # mistake that produced the wrong peer range in the first place.
   compat:
     name: compat (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -149,14 +156,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # The declared peer floor, pinned exactly, on the React major the
-          # lockfile already uses, so a failure here is about the Storybook
-          # version and nothing else. It reads as a duplicate of `build` only
-          # while the lockfile still resolves 10.5.0; the two diverge the moment
-          # a Storybook release is taken, and this entry is what keeps the
-          # published range honest when they do.
+          # `floor` means "read the range out of the addon's package.json", on
+          # the React major the lockfile already uses, so a failure here is about
+          # the Storybook version and nothing else.
           - name: storybook-floor
-            storybook: '10.5.0'
+            storybook: floor
             react: '18'
           # An empty `storybook` means "whatever the lockfile resolves". Naming a
           # version here instead would freeze this entry on it, and the job would
@@ -190,35 +194,54 @@ jobs:
       # flag to be allowed to. The runner is ephemeral, so the rewrite is thrown
       # away with it.
       - name: Pin matrix versions
+        id: pin
         run: |
           set -euo pipefail
+          want='${{ matrix.storybook }}'
+          if [[ "$want" == "floor" ]]; then
+            # The declared range, minus its caret. Read here so the matrix and the
+            # published metadata cannot disagree.
+            want=$(node -p "require('./packages/storybook-addon-oversight/package.json').peerDependencies.storybook.replace(/^[^0-9]*/,'')")
+            echo "Floor read from peerDependencies: $want"
+          fi
+          echo "storybook=$want" >> "$GITHUB_OUTPUT"
+
           pkgs=(react@^${{ matrix.react }} react-dom@^${{ matrix.react }})
-          if [[ -n "${{ matrix.storybook }}" ]]; then
+          if [[ -n "$want" ]]; then
+            # Every Storybook package that can pull `@storybook/addon-docs` in,
+            # addon-vitest included. Leaving one unpinned is what produces two
+            # copies and a blank Docs page.
             pkgs+=(
-              storybook@${{ matrix.storybook }}
-              @storybook/react-vite@${{ matrix.storybook }}
-              @storybook/addon-docs@${{ matrix.storybook }}
+              "storybook@$want"
+              "@storybook/react-vite@$want"
+              "@storybook/addon-docs@$want"
+              "@storybook/addon-vitest@$want"
             )
           fi
           pnpm add -w -D "${pkgs[@]}"
 
-      # Mandatory, not diagnostic. A pin that silently failed to take reads
-      # exactly like one that took, and every step below would still go green
-      # against whatever the lockfile happened to already have. Reads from
-      # node_modules so this prints what actually resolved, not what was
-      # requested above.
-      #
-      # `@storybook/addon-vitest` and `@storybook/addon-mcp` are deliberately left
-      # unpinned, so the floor entry runs a mixed graph: the pinned Storybook
-      # beside whatever those resolve to. That is a realistic consumer situation
-      # and the thing most likely to break the floor build, so both are printed.
-      # Reading the pinned lines alone would leave the actual cause off the log.
-      - name: Print resolved versions
+      # Asserts, and does not merely print. The comment that used to sit here
+      # called the print mandatory and then only echoed, which is the same green
+      # log it warns about. A pin that failed to take now turns the job red on the
+      # step that names it.
+      - name: Check resolved versions
         run: |
+          set -euo pipefail
           for pkg in storybook @storybook/react-vite @storybook/addon-docs \
             @storybook/addon-vitest @storybook/addon-mcp react react-dom; do
             echo "$pkg: $(node -p "require('$pkg/package.json').version")"
           done
+
+          want='${{ steps.pin.outputs.storybook }}'
+          if [[ -n "$want" ]]; then
+            got=$(node -p "require('storybook/package.json').version")
+            [[ "$got" == "$want" ]] || { echo "::error::storybook resolved $got, wanted $want"; exit 1; }
+          fi
+
+          major=$(node -p "require('react/package.json').version.split('.')[0]")
+          [[ "$major" == "${{ matrix.react }}" ]] || {
+            echo "::error::react resolved major $major, wanted ${{ matrix.react }}"; exit 1;
+          }
 
       - name: Build packages
         run: pnpm build
@@ -250,9 +273,10 @@ jobs:
       - name: Build Storybook
         run: pnpm exec storybook build
 
-      # No `pnpm test:storybook` here: `@storybook/addon-vitest@10.3.0` peers
-      # `@vitest/browser-playwright@^4.0.0`, which this workspace does not
-      # have, so the floor entry would fail on peer resolution for a reason
+      # No `pnpm test:storybook` here: the floor entry now pins
+      # `@storybook/addon-vitest` along with the rest of the family, and older
+      # releases of it peer `@vitest/browser-playwright@^4.0.0`, which this
+      # workspace does not have. That would fail on peer resolution for a reason
       # that has nothing to do with the addon under test. No `pnpm typecheck`
       # either: the react-19 entry pins `react@^19` over the workspace's
       # `@types/react@^18`, so a type error there would be grading the demo's

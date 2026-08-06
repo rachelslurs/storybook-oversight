@@ -31,7 +31,7 @@
 // The fallback stays guarded by the unit tests.
 
 import { spawn } from 'node:child_process';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import chalk from 'chalk';
 import { chromium } from 'playwright';
@@ -40,7 +40,7 @@ import { repoRoot, report } from './published-packages.js';
 
 const STATIC_DIR = join(repoRoot, 'storybook-static');
 const PORT = Number(process.env.OVERSIGHT_DOCS_PORT ?? 6107);
-const BASE = `http://localhost:${PORT}`;
+const BASE = `http://127.0.0.1:${PORT}`;
 
 // Findings come from a fetch, an effect and `buildReport`, so no row is there on first
 // paint. Matches the story suite's allowance for a loaded CI runner.
@@ -73,29 +73,80 @@ const storyUrl = (id) => `${BASE}/?path=/story/${id}`;
  * devDependency and gets the content types right, which the block's fetch of
  * `manifests/components.json` depends on.
  *
- * Two of its behaviors this has to work around. It binds `[::1]` only, so `localhost`
- * resolves and `127.0.0.1` does not connect. And it serves the SPA shell with a 200 for
- * any unknown path, so "got a response" never means "got the file", which is what the
- * content-type check in the readiness poll below is for.
+ * `--host 127.0.0.1` because vite otherwise binds `[::1]` only, which reaches this process
+ * through Node's happy-eyeballs and would not reach an older one. And note it serves the
+ * SPA shell with a 200 for any unknown path, so "got a response" never means "got the
+ * file", which is what the content-type check in the readiness poll is for.
+ *
+ * stderr is piped rather than dropped. The failure that matters is `--strictPort` losing
+ * the port: the child dies immediately, and with its output discarded the only symptom
+ * used to be a 30-second timeout that read like a slow build.
  */
 function serveStaticBuild() {
-  return spawn(
+  const child = spawn(
     join(repoRoot, 'node_modules/.bin/vite'),
-    ['preview', '--outDir', 'storybook-static', '--port', String(PORT), '--strictPort'],
-    { cwd: repoRoot, stdio: 'ignore' },
+    ['preview', '--outDir', 'storybook-static', '--host', '127.0.0.1', '--port', String(PORT), '--strictPort'],
+    { cwd: repoRoot, stdio: ['ignore', 'ignore', 'pipe'] },
   );
+
+  const state = { child, exited: false, code: null, stderr: '' };
+  child.stderr?.on('data', (chunk) => {
+    state.stderr += String(chunk);
+  });
+  child.on('exit', (code) => {
+    state.exited = true;
+    state.code = code;
+  });
+  child.on('error', (error) => {
+    state.exited = true;
+    state.stderr += error.message;
+  });
+
+  return state;
 }
 
-async function waitForServer() {
+/**
+ * Wait for OUR server, and prove it is ours.
+ *
+ * Readiness alone is not enough. When the port is already held, `--strictPort` makes the
+ * child exit at once and every check below then runs against whatever else is listening:
+ * another checkout, another worktree, or an orphan from an interrupted run. A foreign
+ * build that happens to be good would make a broken local one pass, which is the exact
+ * failure the freshness guard exists to prevent and cannot see, because it reads the disk
+ * while the checks read a socket.
+ *
+ * So: fail the moment the child dies, and compare the served index against the one on
+ * disk before trusting anything served on this port.
+ */
+async function waitForServer(server) {
   const deadline = Date.now() + SERVER_TIMEOUT;
 
   while (Date.now() < deadline) {
+    if (server.exited) {
+      throw new Error(
+        `the preview server exited (code ${server.code}) instead of serving ${BASE}.\n` +
+          `  Port ${PORT} is most likely already in use. Set OVERSIGHT_DOCS_PORT to pick another.\n` +
+          (server.stderr.trim() ? `  vite said: ${server.stderr.trim().slice(0, 300)}` : ''),
+      );
+    }
+
     try {
       const res = await fetch(`${BASE}/index.json`);
       // A 200 alone would also be satisfied by the SPA fallback's HTML.
-      if (res.ok && (res.headers.get('content-type') ?? '').includes('json')) return;
-    } catch {
-      // Not listening yet.
+      if (res.ok && (res.headers.get('content-type') ?? '').includes('json')) {
+        const served = await res.text();
+        const onDisk = readFileSync(join(STATIC_DIR, 'index.json'), 'utf8');
+        if (served.trim() !== onDisk.trim()) {
+          throw new Error(
+            `${BASE} is serving a different build than ${STATIC_DIR}.\n` +
+              '  Something else is on this port. Set OVERSIGHT_DOCS_PORT to pick another.',
+          );
+        }
+        return;
+      }
+    } catch (error) {
+      // A mismatch is a verdict, not a not-listening-yet.
+      if (error.message.includes('serving a different build')) throw error;
     }
 
     await new Promise((resolve) => setTimeout(resolve, 250));
@@ -202,12 +253,14 @@ async function checkDocsBlock(page) {
   // theme.
   const theme = ensure(themes.light);
 
-  await page.goto(docsUrl(CARD_DOCS), { waitUntil: 'domcontentloaded' });
-
   const docsContent = page.locator('.sbdocs-content');
   const heading = docsContent.getByRole('heading', { name: /Oversight$/ });
 
+  // Inside the check, not before it. A navigation that throws outside one escapes `main`
+  // and takes every failure already collected with it, so a run that had found something
+  // real would report only the timeout.
   await check(`the Docs page mounts parameters.docs.container (${CARD_DOCS})`, async () => {
+    await page.goto(docsUrl(CARD_DOCS), { waitUntil: 'domcontentloaded' });
     await docsContent.first().waitFor({ state: 'visible', timeout: FINDING_TIMEOUT });
     await heading.first().waitFor({ state: 'visible', timeout: FINDING_TIMEOUT });
   });
@@ -220,6 +273,15 @@ async function checkDocsBlock(page) {
     const painted = await heading.first().evaluate((el) => getComputedStyle(el).color);
     const muted = await asPainted(page, theme.textMutedColor);
     const defaultText = await asPainted(page, theme.color.defaultText);
+
+    // The comparison below only discriminates while these two differ. If a Storybook theme
+    // change ever made them equal, both assertions would pass against anything and this
+    // check would quietly stop testing the tie it was written for.
+    assert(
+      muted !== defaultText,
+      `textMutedColor and color.defaultText both paint ${muted}, so this check cannot tell ` +
+        'which rule won. It needs two distinguishable tokens.',
+    );
 
     // Print the painted value on failure, not just the expectation. That value is the
     // evidence that the DocsContent ancestor is present and took over, which is the one
@@ -248,16 +310,16 @@ async function checkDocsBlock(page) {
 }
 
 async function checkManagerPanel(page) {
-  // A story, not a Docs page, because Storybook renders no addon panel region on a Docs
-  // entry at all: not this one, not Controls. Not because of the `match` predicate in
-  // `manager.tsx`, which is inert for `types.PANEL` and documented as such there.
-  await page.goto(storyUrl(CARD_STORY), { waitUntil: 'domcontentloaded' });
-
   // Locators are scoped to the main frame, so nothing here can accidentally read the
   // preview iframe's copy of a finding. This is the manager document.
   const tab = page.getByRole('tab', { name: /Oversight/ });
 
   await check('the manager boots and the addon registers its panel', async () => {
+    // A story, not a Docs page, because Storybook renders no addon panel region on a Docs
+    // entry at all: not this one, not Controls. Not because of the `match` predicate in
+    // `manager.tsx`, which is inert for `types.PANEL` and documented as such there.
+    await page.goto(storyUrl(CARD_STORY), { waitUntil: 'domcontentloaded' });
+
     try {
       await tab.first().waitFor({ state: 'visible', timeout: MANAGER_TIMEOUT });
     } catch {
@@ -282,8 +344,15 @@ const ADDON_BUNDLE = join(repoRoot, 'packages/storybook-addon-oversight/dist/blo
  * The gate reads `storybook-static`, which inlines the addon from `dist`. When a build
  * fails partway, `dist` is newer than the site that was built from it, and the run silently
  * grades the previous build: a mutation looks reverted, a fix looks unshipped, and the
- * result is confidently wrong either way. `tsc` runs before `tsup` in the addon's build,
- * so a type error is enough to produce exactly that state.
+ * result is confidently wrong either way. The state this catches is an addon build that
+ * succeeded followed by a `storybook build` that failed or was never run. A type error
+ * does not produce it, because the addon's `prebuild` deletes `dist` first, which leaves
+ * it absent and lands on the branch above.
+ *
+ * `dist` is the only input compared. `storybook-static` is also built from `stories/` and
+ * `.storybook/`, and editing those and running this on its own still grades the old site.
+ * Running it through `pnpm test`, or after `pnpm exec storybook build`, is what makes the
+ * whole set current.
  */
 function requireFreshBuild() {
   if (!existsSync(join(STATIC_DIR, 'index.json'))) {
@@ -318,14 +387,70 @@ function requireFreshBuild() {
   }
 }
 
+/**
+ * Refuse when `@storybook/addon-docs` resolves more than once.
+ *
+ * `storybook/theming` is emotion, and emotion's theme context is per module instance. With
+ * two copies of addon-docs in one build, the `ThemeProvider` the preview sets up belongs to
+ * one instance and the components this addon renders belong to the other, so those read an
+ * undefined theme and every `theme.*` interpolation throws. The Docs page does not degrade,
+ * it goes blank, and the errors name neither this addon nor the duplicate.
+ *
+ * No version matrix finds this, because it is not a version problem: it is two versions at
+ * once. It is how #93 was misread as "the addon does not work on Storybook 10.3", after a
+ * matrix pinned three packages and left `@storybook/addon-vitest` to drag in a second
+ * addon-docs behind them.
+ *
+ * Only the workspace's own `node_modules` directories are scanned, which is where pnpm puts
+ * the second copy when two ranges disagree.
+ */
+function requireSingleAddonDocs() {
+  const roots = [repoRoot];
+  const packagesDir = join(repoRoot, 'packages');
+
+  if (existsSync(packagesDir)) {
+    for (const entry of readdirSync(packagesDir, { withFileTypes: true })) {
+      if (entry.isDirectory()) roots.push(join(packagesDir, entry.name));
+    }
+  }
+
+  const found = [];
+
+  for (const root of roots) {
+    const manifest = join(root, 'node_modules/@storybook/addon-docs/package.json');
+    if (!existsSync(manifest)) continue;
+    const { version } = JSON.parse(readFileSync(manifest, 'utf8'));
+    found.push({ manifest, version });
+  }
+
+  if (found.length > 1) {
+    report(
+      'More than one @storybook/addon-docs',
+      `${found.map(({ manifest, version }) => `${version}  ${manifest.replace(`${repoRoot}/`, '')}`).join('\n')}\n\n` +
+        'Two copies mean two emotion instances, so the Docs page renders blank and the\n' +
+        'errors blame addon-docs rather than whatever pulled the second copy in. Pin the\n' +
+        'whole Storybook family to one version, or add a pnpm.overrides entry.',
+    );
+    process.exit(2);
+  }
+}
+
 async function main() {
   requireFreshBuild();
+  requireSingleAddonDocs();
 
   const server = serveStaticBuild();
   let browser;
 
+  // An interrupted run used to leave `vite preview` holding the port, and the next run in
+  // any checkout would then quietly adopt it. Handled here rather than only in `finally`,
+  // which a signal never reaches.
+  const stop = () => server.child.kill();
+  process.on('SIGINT', stop);
+  process.on('SIGTERM', stop);
+
   try {
-    await waitForServer();
+    await waitForServer(server);
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
 
@@ -333,7 +458,9 @@ async function main() {
     await checkManagerPanel(page);
   } finally {
     await browser?.close();
-    server.kill();
+    server.child.kill();
+    process.off('SIGINT', stop);
+    process.off('SIGTERM', stop);
   }
 
   if (failures.length > 0) {
@@ -348,4 +475,15 @@ async function main() {
   for (const name of passed) console.log(`  ${chalk.green('·')} ${name}`);
 }
 
-await main();
+// Anything escaping `main` goes through `report` rather than a bare stack, so a navigation
+// that throws cannot discard the failures already collected.
+try {
+  await main();
+} catch (error) {
+  const collected = failures.map(({ name, message }) => `${name}\n  ${message}`).join('\n\n');
+  report(
+    'Built Storybook checks could not finish',
+    `${error.message}${collected ? `\n\nAlready found:\n\n${collected}` : ''}`,
+  );
+  process.exit(failures.length > 0 ? 1 : 2);
+}

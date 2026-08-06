@@ -39,11 +39,13 @@ function manifestsBaseUrl(): string {
 // `.storybook/manager.ts` calls `addons.setConfig`.
 //
 // The load owns the transport: fetch, v:1 ref resolution, and the service-API
-// fallback for dev under `experimentalDocgenServer`. `getService` shipped in
-// storybook 10.5 and the peers allow 10.3, so it is read indirectly rather
-// than as a named import a bundler would refuse; where it is undefined the
-// load stays fetch-only, which is all those versions serve anyway. This is
-// the manager runtime's; the docs block reads the preview's.
+// fallback for dev under `experimentalDocgenServer`. Storybook added
+// `getService` in 10.5, so it may not exist on this manager runtime; reading
+// it as a named import would have a bundler refuse the whole build the
+// moment the consumer's storybook lacks it, so it is read indirectly
+// instead. Where it comes back undefined the load stays fetch-only, which is
+// all such a runtime can serve anyway. This is the manager runtime's; the
+// docs block reads the preview's.
 const getService = (managerApi as Record<string, unknown>)['getService'] as GetService | undefined;
 const resolveManifestUrl = (name: string) => `${manifestsBaseUrl()}${name}`;
 const manifest = createRuntimeManifestSource({ resolveUrl: resolveManifestUrl, getService });
