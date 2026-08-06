@@ -6,5 +6,8 @@ build-storybook.log
 .DS_Store
 .env
 .eslintcache
-# Local working notes for Claude Code, deliberately untracked for now.
-CLAUDE.md
+# Local working notes for Claude Code, deliberately untracked for now. Anchored:
+# a nested CLAUDE.md governs its own directory and should be committed, so an
+# unanchored pattern would silently drop it from `git add`.
+# Also listed in .prettierignore, which is what keeps `pnpm lint` off it.
+/CLAUDE.md
