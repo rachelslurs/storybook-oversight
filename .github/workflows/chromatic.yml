@@ -1,0 +1,79 @@
+name: Chromatic
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Snapshots are billed, so a superseded run's are wasted. One build per ref,
+# and cancel the older one rather than letting both photograph the same thing.
+concurrency:
+  group: chromatic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chromatic:
+    runs-on: ubuntu-latest
+    if: "github.event_name == 'pull_request' || (!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci'))"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # `onlyChanged` diffs against the baseline commit to decide what to
+          # re-photograph, so it needs real history. A shallow clone makes it
+          # fall back to snapshotting everything, which is the bill this flag
+          # exists to avoid.
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js 20.19
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # The token is a repository secret, so it is absent on forks and before it
+      # has been added at all. Both cases skip with a notice rather than failing
+      # a contributor on something they cannot fix, which also lets this file
+      # land before the Chromatic project exists.
+      - name: Is Chromatic configured?
+        id: cfg
+        env:
+          TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+        run: |
+          if [[ -n "$TOKEN" ]]; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo '::notice::CHROMATIC_PROJECT_TOKEN is not set, so no snapshots were taken.'
+          fi
+
+      # The same build the rest of CI checks, rather than letting the action run
+      # its own: a snapshot of a different build would not be evidence about the
+      # one that ships. `storybook build` directly, not `pnpm build-storybook`,
+      # whose `build:addon` would delete and rebuild the dist just produced.
+      - name: Build addon
+        if: steps.cfg.outputs.ready == 'true'
+        run: pnpm build
+
+      - name: Build Storybook
+        if: steps.cfg.outputs.ready == 'true'
+        run: pnpm exec storybook build
+
+      # `autoAcceptChanges: main` because review belongs on the pull request. A
+      # change that has already merged is accepted by definition, and without
+      # this the baseline never advances and every later build diffs against a
+      # commit nobody is going to review.
+      - name: Publish to Chromatic
+        if: steps.cfg.outputs.ready == 'true'
+        uses: chromaui/action@v18
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          storybookBuildDir: storybook-static
+          onlyChanged: true
+          autoAcceptChanges: main
