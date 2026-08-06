@@ -19,3 +19,15 @@ CHANGELOG.md
 # reflowing these only rewrites prose someone chose the shape of. Scoped to the
 # entries: `config.json` stays formatted.
 .changeset/*.md
+
+# Local working notes, untracked. .gitignore keeps it out of git and Prettier
+# reads that too, but the formatting exemption belongs here: this file is the
+# reason `pnpm lint` stays green if CLAUDE.md is ever tracked, and someone
+# removing the .gitignore line would otherwise turn the lint job red with
+# nothing near the edit explaining why.
+/CLAUDE.md
+
+# Editor state, matching eslint.config.js. Neither is tracked, and a lint gate
+# that fails on a local IDE file is reporting on something that is not the repo.
+.idea
+.vscode
