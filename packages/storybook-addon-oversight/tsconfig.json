@@ -15,6 +15,11 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    // `src/preset.ts` is the one Node-side file in an otherwise browser package:
+    // it resolves `@storybook/addon-docs` from two vantage points to catch a
+    // duplicate install. Without this, the dts pass fails on `node:module` and
+    // `process` in a clean install, where nothing else drags @types/node in.
+    "types": ["node"],
     // tsup's dts pass injects a default `baseUrl`, which TS 6 flags as
     // deprecated; silence it (the main `tsc` typecheck is unaffected).
     "ignoreDeprecations": "6.0"
