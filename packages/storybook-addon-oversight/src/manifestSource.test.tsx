@@ -6,8 +6,8 @@ import type { ManifestLoadOutcome } from './manifestSource';
 
 // The hook reads these members of manager-api; mocking them keeps the test on
 // the code under test instead of on Storybook's manager runtime. `getService`
-// throws the way an unregistered service does, which is how every world
-// without `experimentalDocgenServer` reads.
+// throws the way an unregistered service does, which is what every project
+// without `experimentalDocgenServer` serves.
 vi.mock('storybook/manager-api', () => ({
   addons: { getConfig: () => ({}) },
   useStorybookState: () => ({ storyId: 'button--primary' }),

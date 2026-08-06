@@ -11,11 +11,10 @@ import type { ManifestLoad, ManifestLoadOutcome, ManifestSource } from './manife
  *    through; a ref (v:1) index gets its `$ref`s resolved by fetching the
  *    per-component files over the same transport, which is how a static build
  *    made with `experimentalDocgenServer` reads.
- * 2. When the fetch fails, ask the runtime's service API instead. Dev under
- *    the flag is the one world where that is the only source: the manifest
- *    route 404s on purpose, and the same flag registers the services, so
- *    "are the services registered" is the branch condition rather than a
- *    string match on the server's message.
+ * 2. When the fetch fails, ask the runtime's service API instead. In dev
+ *    under the flag, that is the only source there is: the manifest route
+ *    404s on purpose, and the same flag registers the services, so
+ *    "are the services registered" decides whether synthesis can answer.
  *
  * The synthesized manifest is fed through core's ref resolver with the nodes
  * inlined, so the lifting and the keyed-stories conversion are the same code
