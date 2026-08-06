@@ -223,7 +223,23 @@ function renderedText(page, surface) {
 const failures = [];
 const passed = [];
 
+/** Set once the run owns a server, so checks can tell a dead one from a real failure. */
+let activeServer = null;
+
 async function check(name, run) {
+  // A server that died mid-run makes every remaining check fail on its own timeout, and
+  // six timeouts read like six regressions. Say what actually happened, once, and stop
+  // spending 10 to 30 seconds each proving it again.
+  if (activeServer?.exited) {
+    failures.push({
+      name,
+      message:
+        `the preview server exited (code ${activeServer.code}) partway through the run, so this ` +
+        `check never had anything to read.${activeServer.stderr.trim() ? ` vite said: ${activeServer.stderr.trim().slice(0, 200)}` : ''}`,
+    });
+    return;
+  }
+
   try {
     await run();
     passed.push(name);
@@ -488,6 +504,7 @@ async function main() {
 
   const nonce = writeNonce();
   const server = serveStaticBuild();
+  activeServer = server;
   let browser;
 
   // An interrupted run used to leave `vite preview` holding the port, and the next run in
