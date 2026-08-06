@@ -31,7 +31,7 @@
 // The fallback stays guarded by the unit tests.
 
 import { spawn } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import chalk from 'chalk';
 import { chromium } from 'playwright';
@@ -105,8 +105,11 @@ function serveStaticBuild() {
   return state;
 }
 
+/** Marks a refusal as a verdict rather than a not-listening-yet. */
+class NotOurServer extends Error {}
+
 /**
- * Wait for OUR server, and prove it is ours.
+ * Wait for OUR server, and prove it is serving THIS directory.
  *
  * Readiness alone is not enough. When the port is already held, `--strictPort` makes the
  * child exit at once and every check below then runs against whatever else is listening:
@@ -115,15 +118,20 @@ function serveStaticBuild() {
  * failure the freshness guard exists to prevent and cannot see, because it reads the disk
  * while the checks read a socket.
  *
- * So: fail the moment the child dies, and compare the served index against the one on
- * disk before trusting anything served on this port.
+ * Proof is a nonce written into `storybook-static` and fetched back. An earlier version
+ * compared the served `index.json` against the one on disk, which does not discriminate:
+ * that file holds story ids, titles and tags and no asset hashes, so two builds of the
+ * same tree are byte-identical. A worktree on another branch serving on this port sailed
+ * through it, which is the first case this docstring names. Fetching back a file only
+ * this process just wrote is the difference between "serving something that looks like
+ * ours" and "serving ours".
  */
-async function waitForServer(server) {
+async function waitForServer(server, nonce) {
   const deadline = Date.now() + SERVER_TIMEOUT;
 
   while (Date.now() < deadline) {
     if (server.exited) {
-      throw new Error(
+      throw new NotOurServer(
         `the preview server exited (code ${server.code}) instead of serving ${BASE}.\n` +
           `  Port ${PORT} is most likely already in use. Set OVERSIGHT_DOCS_PORT to pick another.\n` +
           (server.stderr.trim() ? `  vite said: ${server.stderr.trim().slice(0, 300)}` : ''),
@@ -131,28 +139,38 @@ async function waitForServer(server) {
     }
 
     try {
-      const res = await fetch(`${BASE}/index.json`);
+      const res = await fetch(`${BASE}/${nonce.name}`);
       // A 200 alone would also be satisfied by the SPA fallback's HTML.
       if (res.ok && (res.headers.get('content-type') ?? '').includes('json')) {
-        const served = await res.text();
-        const onDisk = readFileSync(join(STATIC_DIR, 'index.json'), 'utf8');
-        if (served.trim() !== onDisk.trim()) {
-          throw new Error(
-            `${BASE} is serving a different build than ${STATIC_DIR}.\n` +
-              '  Something else is on this port. Set OVERSIGHT_DOCS_PORT to pick another.',
+        const served = (await res.text()).trim();
+        if (served !== nonce.body) {
+          throw new NotOurServer(
+            `${BASE} answered ${nonce.name} with something this run did not write.\n` +
+              `  It is serving a directory other than ${STATIC_DIR}.\n` +
+              '  Set OVERSIGHT_DOCS_PORT to pick another port.',
           );
         }
         return;
       }
+
+      // A served SPA shell means someone else is on the port: our own server has the
+      // file, so it would have answered with it.
+      if (res.ok) {
+        throw new NotOurServer(
+          `${BASE} answered ${nonce.name} with the SPA shell rather than the file this run\n` +
+            `  just wrote into ${STATIC_DIR}. Another server is on port ${PORT}.\n` +
+            '  Set OVERSIGHT_DOCS_PORT to pick another port.',
+        );
+      }
     } catch (error) {
-      // A mismatch is a verdict, not a not-listening-yet.
-      if (error.message.includes('serving a different build')) throw error;
+      if (error instanceof NotOurServer) throw error;
+      // Anything else is the server not being up yet.
     }
 
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
 
-  throw new Error(`${BASE} did not serve index.json within ${SERVER_TIMEOUT}ms.`);
+  throw new Error(`${BASE} did not serve ${nonce.name} within ${SERVER_TIMEOUT}ms.`);
 }
 
 /**
@@ -397,12 +415,19 @@ function requireFreshBuild() {
  * it goes blank, and the errors name neither this addon nor the duplicate.
  *
  * No version matrix finds this, because it is not a version problem: it is two versions at
- * once. It is how #93 was misread as "the addon does not work on Storybook 10.3", after a
- * matrix pinned three packages and left `@storybook/addon-vitest` to drag in a second
- * addon-docs behind them.
+ * once. It is how #93 was misread as "the addon does not work on Storybook 10.3".
  *
- * Only the workspace's own `node_modules` directories are scanned, which is where pnpm puts
- * the second copy when two ranges disagree.
+ * Distinct realpaths, not distinct paths. Under pnpm's isolated linker the same install
+ * appears at several paths that are all symlinks into one `.pnpm` directory: one module,
+ * many names. Counting paths refuses those, and this refusal exits 2, so it would break
+ * the build of anyone whose linker is not the hoisted one this repo happens to set.
+ * Realpaths still catch the case that matters, including two peer-suffixed `.pnpm`
+ * directories at the same version, which really are two instances.
+ *
+ * Only the workspace's own `node_modules` directories are scanned. A conflicting
+ * transitive dependent nests the second copy under itself instead, which this never
+ * reaches; nothing in this graph depends on addon-docs today, so that is a limit rather
+ * than a live gap.
  */
 function requireSingleAddonDocs() {
   const roots = [repoRoot];
@@ -414,43 +439,79 @@ function requireSingleAddonDocs() {
     }
   }
 
-  const found = [];
+  const byRealpath = new Map();
 
   for (const root of roots) {
     const manifest = join(root, 'node_modules/@storybook/addon-docs/package.json');
     if (!existsSync(manifest)) continue;
+
+    const real = realpathSync(manifest);
+    if (byRealpath.has(real)) continue;
+
     const { version } = JSON.parse(readFileSync(manifest, 'utf8'));
-    found.push({ manifest, version });
+    byRealpath.set(real, { manifest, version });
   }
 
-  if (found.length > 1) {
+  if (byRealpath.size > 1) {
+    const listed = [...byRealpath.values()]
+      .map(({ manifest, version }) => `${version}  ${manifest.replace(`${repoRoot}/`, '')}`)
+      .join('\n');
+
     report(
       'More than one @storybook/addon-docs',
-      `${found.map(({ manifest, version }) => `${version}  ${manifest.replace(`${repoRoot}/`, '')}`).join('\n')}\n\n` +
-        'Two copies mean two emotion instances, so the Docs page renders blank and the\n' +
+      `${listed}\n\n` +
+        'Two copies mean two theme contexts, so the Docs page renders blank and the\n' +
         'errors blame addon-docs rather than whatever pulled the second copy in. Pin the\n' +
-        'whole Storybook family to one version, or add a pnpm.overrides entry.',
+        'whole Storybook family to one version, or add an overrides entry.',
     );
     process.exit(2);
   }
+}
+
+/**
+ * A file only this run could have written, so fetching it back proves the server is
+ * serving this directory. Lives in `storybook-static`, which is gitignored and rebuilt.
+ */
+function writeNonce() {
+  const nonce = {
+    name: `.oversight-gate-${process.pid}.json`,
+    body: JSON.stringify({ pid: process.pid, at: Date.now() }),
+  };
+
+  writeFileSync(join(STATIC_DIR, nonce.name), nonce.body);
+  return nonce;
 }
 
 async function main() {
   requireFreshBuild();
   requireSingleAddonDocs();
 
+  const nonce = writeNonce();
   const server = serveStaticBuild();
   let browser;
 
   // An interrupted run used to leave `vite preview` holding the port, and the next run in
   // any checkout would then quietly adopt it. Handled here rather than only in `finally`,
   // which a signal never reaches.
-  const stop = () => server.child.kill();
+  //
+  // It exits rather than only killing the child. Installing a listener replaces Node's
+  // default terminate, so stopping at the kill would make the gate survive Ctrl-C, run
+  // every remaining check against a dead server, and end in a red box that reads like a
+  // regression. 130 is the conventional code for terminated-by-SIGINT.
+  const stop = () => {
+    server.child.kill();
+    try {
+      rmSync(join(STATIC_DIR, nonce.name), { force: true });
+    } catch {
+      // Interrupted cleanup is best-effort.
+    }
+    process.exit(130);
+  };
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
 
   try {
-    await waitForServer(server);
+    await waitForServer(server, nonce);
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
 
@@ -459,6 +520,7 @@ async function main() {
   } finally {
     await browser?.close();
     server.child.kill();
+    rmSync(join(STATIC_DIR, nonce.name), { force: true });
     process.off('SIGINT', stop);
     process.off('SIGTERM', stop);
   }

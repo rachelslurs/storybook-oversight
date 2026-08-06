@@ -142,12 +142,14 @@ jobs:
   # a version the package no longer claims is worse than no floor entry: it is
   # green and it is wrong.
   #
-  # It also pins the whole Storybook family, `@storybook/addon-vitest` included.
-  # Pinning only storybook, react-vite and addon-docs leaves addon-vitest to drag
-  # a second `@storybook/addon-docs` in behind them, and two copies mean two
-  # emotion instances and a blank Docs page. That is #93, and reading the
-  # resulting failure as "the addon does not support this version" is exactly the
-  # mistake that produced the wrong peer range in the first place.
+  # It also pins the whole Storybook family and forces one version graph-wide,
+  # because a partial pin can leave two copies of `@storybook/addon-docs`
+  # resolved at once, and two copies mean two theme contexts and a blank Docs
+  # page. That is #93, and reading the resulting failure as "the addon does not
+  # support this version" is the mistake that produced the wrong peer range in
+  # the first place. `@storybook/addon-vitest` is pinned along with the rest as
+  # cheap insurance rather than because it is known to pull addon-docs in: it
+  # declares no dependency on it at any version involved.
   compat:
     name: compat (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -188,8 +190,9 @@ jobs:
         run: pnpm install
 
       # `pnpm.overrides`, not `pnpm add`. `pnpm add` sets the root's direct
-      # dependencies and stops there, which leaves peer resolution free to install
-      # a second `@storybook/addon-docs` under the addon package: pinning four
+      # dependencies and stops there, which leaves peer resolution free to
+      # materialize a second `@storybook/addon-docs` under a workspace package
+      # whose own peer range the pinned root no longer satisfies. Pinning four
       # packages by hand still produced a 10.5.0 nested beside the pinned 10.3.0,
       # and the duplicate check caught it. An override applies to the whole graph,
       # so the family collapses to one version and one copy.
@@ -246,10 +249,15 @@ jobs:
             echo "$pkg: $(node -p "require('$pkg/package.json').version")"
           done
 
+          # The whole family, not just `storybook`. Pinning the family is the point,
+          # and asserting one member would stay green if an override silently stopped
+          # applying to the others: the devDependency edits alone would satisfy it.
           want='${{ steps.pin.outputs.storybook }}'
           if [[ -n "$want" ]]; then
-            got=$(node -p "require('storybook/package.json').version")
-            [[ "$got" == "$want" ]] || { echo "::error::storybook resolved $got, wanted $want"; exit 1; }
+            for pkg in storybook @storybook/react-vite @storybook/addon-docs @storybook/addon-vitest; do
+              got=$(node -p "require('$pkg/package.json').version")
+              [[ "$got" == "$want" ]] || { echo "::error::$pkg resolved $got, wanted $want"; exit 1; }
+            done
           fi
 
           major=$(node -p "require('react/package.json').version.split('.')[0]")
@@ -287,11 +295,18 @@ jobs:
       - name: Build Storybook
         run: pnpm exec storybook build
 
-      # No `pnpm test:storybook` here: the floor entry now pins
-      # `@storybook/addon-vitest` along with the rest of the family, and older
-      # releases of it peer `@vitest/browser-playwright@^4.0.0`, which this
-      # workspace does not have. That would fail on peer resolution for a reason
-      # that has nothing to do with the addon under test. No `pnpm typecheck`
+      # No `pnpm test:storybook` here: `@storybook/addon-vitest` peers
+      # `@vitest/browser-playwright@^4.0.0` at every version this matrix pins,
+      # and this workspace does not have it, so the run would fail on peer
+      # resolution for a reason that has nothing to do with the addon under
+      # test. That is true of the current version too, not only older ones.
+      #
+      # The floor build also logs `Import "getService" will always be undefined`
+      # from the manager bundle. That is correct at 10.3: the API arrived in 10.5
+      # and `useOversightReport.ts` reads it indirectly so a bundler cannot
+      # refuse the build, leaving the load fetch-only. Not a warning to fix.
+      #
+      # No `pnpm typecheck`
       # either: the react-19 entry pins `react@^19` over the workspace's
       # `@types/react@^18`, so a type error there would be grading the demo's
       # types, not this addon. This step is what actually exercises the pinned
