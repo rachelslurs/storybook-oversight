@@ -164,6 +164,14 @@ jobs:
           - name: storybook-floor
             storybook: floor
             react: '18'
+          # The middle of the declared range. The floor and the lockfile cover the
+          # two ends and would both stay green while a minor in between broke, and
+          # `0.6.1` tells consumers 10.4 works, so something has to keep saying so.
+          # A literal is right here: this is a specific version, not a boundary that
+          # moves with the metadata.
+          - name: storybook-10-4
+            storybook: '10.4.6'
+            react: '18'
           # An empty `storybook` means "whatever the lockfile resolves". Naming a
           # version here instead would freeze this entry on it, and the job would
           # go on reporting a React 19 pass against a Storybook the repo had long
@@ -212,15 +220,18 @@ jobs:
           fi
           echo "storybook=$want" >> "$GITHUB_OUTPUT"
 
+          # Overrides go in `pnpm-workspace.yaml`, which is where pnpm 10 reads them.
+          # The `pnpm` field in package.json still applies today but pnpm already
+          # warns that it is no longer read, and if a release makes that true the
+          # devDependency edits alone would still satisfy a single-package check.
+          # That is why the step below asserts the whole family.
           WANT="$want" REACT='${{ matrix.react }}' node -e "
             const fs = require('node:fs');
             const want = process.env.WANT;
             const react = process.env.REACT;
-            const manifest = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            const overrides = { ...(manifest.pnpm?.overrides ?? {}) };
 
-            overrides.react = '^' + react;
-            overrides['react-dom'] = '^' + react;
+            const overrides = { react: '^' + react, 'react-dom': '^' + react };
+            const manifest = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 
             if (want) {
               for (const name of ['storybook', '@storybook/react-vite', '@storybook/addon-docs', '@storybook/addon-vitest']) {
@@ -231,8 +242,14 @@ jobs:
 
             manifest.devDependencies.react = '^' + react;
             manifest.devDependencies['react-dom'] = '^' + react;
-            manifest.pnpm = { ...(manifest.pnpm ?? {}), overrides };
             fs.writeFileSync('package.json', JSON.stringify(manifest, null, 2) + '\n');
+
+            // Appended rather than parsed: this file has no top-level \`overrides\`
+            // key to merge with, and the runner is thrown away after the job.
+            const block = Object.entries(overrides)
+              .map(([name, range]) => '  ' + JSON.stringify(name) + ': ' + JSON.stringify(range))
+              .join('\n');
+            fs.appendFileSync('pnpm-workspace.yaml', '\noverrides:\n' + block + '\n');
             console.log('overrides:', JSON.stringify(overrides));
           "
           pnpm install --no-frozen-lockfile
