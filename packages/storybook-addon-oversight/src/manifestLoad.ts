@@ -1,6 +1,8 @@
 import { describeManifestUnavailable, detectManifestFormat, resolveManifestRefs } from 'oversight-core';
 import type { RawManifest, RawStory } from 'oversight-core';
-import type { ManifestLoad, ManifestLoadOutcome } from './manifestSource';
+import { belongsToComponent } from './componentId';
+import { createManifestSource } from './manifestSource';
+import type { ManifestLoad, ManifestLoadOutcome, ManifestSource } from './manifestSource';
 
 /**
  * Builds a runtime's manifest transport, one strategy behind both surfaces:
@@ -92,16 +94,27 @@ function refLoaderFor(indexUrl: URL): (relativePath: string) => Promise<string> 
   };
 }
 
-/**
- * Service registration lands just after the runtime's modules evaluate (about
- * half a second in the runs recorded on #50), and the consumers warm the load
- * at bundle eval, so the first resolution gets a short retry window instead of
- * reading a race as "flag off". Tests inject a shorter window.
- */
 export type ServiceRetry = { attempts: number; delayMs: number };
-const DEFAULT_SERVICE_RETRY: ServiceRetry = { attempts: 6, delayMs: 250 };
+const REGISTRATION_RETRY: ServiceRetry = { attempts: 6, delayMs: 250 };
+const SINGLE_ATTEMPT: ServiceRetry = { attempts: 1, delayMs: 0 };
 
-async function resolveService(getService: GetService, id: string, retry: ServiceRetry): Promise<unknown> {
+/**
+ * How long to wait for service registration. The retry exists for one race:
+ * the consumers warm the load at bundle eval, before a flag-on runtime has
+ * registered its services (about half a second in the runs recorded on #50).
+ * The registry cannot tell "not yet" apart from "never" (both throw the same
+ * missing-service error), so waiting unconditionally stalled the unavailable
+ * state by the whole window for everyone without the flag. The dev server's
+ * 404 body naming the flag is the evidence that waiting can pay off. The hint
+ * gates patience only, never reachability: without it, the one immediate
+ * attempt still synthesizes whenever the services are already registered.
+ */
+function retryFor(reason: string | undefined): ServiceRetry {
+  return reason !== undefined && /experimentalDocgenServer/i.test(reason) ? REGISTRATION_RETRY : SINGLE_ATTEMPT;
+}
+
+async function resolveService(getService: GetService | undefined, id: string, retry: ServiceRetry): Promise<unknown> {
+  if (!getService) return undefined;
   for (let attempt = 0; attempt < retry.attempts; attempt += 1) {
     try {
       return getService(id);
@@ -142,12 +155,10 @@ async function indexEntryTags(indexJsonUrl: URL): Promise<IndexEntryTag[] | null
   }
 }
 
-/** Same prefix matching the panel uses to pair a story with its component:
- *  the index holds story and docs ids, the services component ids. */
+/** The index holds story and docs ids, the services component ids; the
+ *  pairing rule is the panel's own, shared through `belongsToComponent`. */
 function hasManifestTaggedEntry(componentId: string, entries: IndexEntryTag[]): boolean {
-  return entries.some(
-    (entry) => (entry.id === componentId || entry.id.startsWith(`${componentId}--`)) && entry.tags.includes('manifest'),
-  );
+  return entries.some((entry) => belongsToComponent(entry.id, componentId) && entry.tags.includes('manifest'));
 }
 
 /** The synthesized entry before core lifts it: `docgen` holds the service's
@@ -162,7 +173,7 @@ type SynthesizedEntry = {
 };
 
 async function synthesizeFromServices(
-  getService: GetService,
+  getService: GetService | undefined,
   indexUrl: URL,
   retry: ServiceRetry,
 ): Promise<RawManifest | null> {
@@ -170,35 +181,35 @@ async function synthesizeFromServices(
   const allComponents = queryOf(docgen, 'docgenForAllComponents');
   if (!allComponents) return null;
 
-  let all: unknown;
-  try {
-    all = await allComponents.loaded();
-  } catch (err) {
+  // The three reads are independent, so they run concurrently: the findings
+  // paint after the slowest of them, not after their sum.
+  const allPromise = allComponents.loaded().catch((err: unknown) => {
     // The service exists but its whole-index read failed (observed in static
     // builds, where the query's load needs a live server). The fetch already
     // failed to get here, so this is a real unavailable, worth its evidence.
     console.error('[storybook-addon-oversight] the docgen service could not read the component index', err);
-    return null;
-  }
-  if (!isRecord(all)) return null;
-
-  // Not registered in every runtime (the manager lacks it at storybook 10.5,
-  // with registration announced). Its absence costs story snippets and
-  // story-level errors, not the manifest, and docgen resolving above means the
-  // registry is up, so there is nothing to wait for.
-  const storyDocs = await resolveService(getService, 'core/story-docs', { attempts: 1, delayMs: 0 });
-  const allStoryDocs = queryOf(storyDocs, 'storyDocsForAllComponents');
-  let storyNodes: Record<string, unknown> = {};
-  if (allStoryDocs) {
+    return undefined;
+  });
+  // story-docs is not registered in every runtime (the manager lacks it at
+  // storybook 10.5, with registration announced). Its absence costs story
+  // snippets and story-level errors, not the manifest, and docgen resolving
+  // above means the registry is up, so there is nothing to wait for.
+  const storyNodesPromise = (async (): Promise<Record<string, unknown>> => {
+    const storyDocs = await resolveService(getService, 'core/story-docs', SINGLE_ATTEMPT);
+    const allStoryDocs = queryOf(storyDocs, 'storyDocsForAllComponents');
+    if (!allStoryDocs) return {};
     try {
       const loaded = await allStoryDocs.loaded();
-      if (isRecord(loaded)) storyNodes = loaded;
+      return isRecord(loaded) ? loaded : {};
     } catch {
       // Same degradation as an unregistered service.
+      return {};
     }
-  }
+  })();
+  const taggedPromise = indexEntryTags(new URL('../index.json', indexUrl));
 
-  const tagged = await indexEntryTags(new URL('../index.json', indexUrl));
+  const [all, storyNodes, tagged] = await Promise.all([allPromise, storyNodesPromise, taggedPromise]);
+  if (!isRecord(all)) return null;
 
   const components: Record<string, SynthesizedEntry> = {};
   for (const [id, node] of Object.entries(all)) {
@@ -217,6 +228,13 @@ async function synthesizeFromServices(
     components[id] = entry;
   }
 
+  // A filter that stripped every component is not an empty project: the
+  // services reported components and the index refused them all the manifest
+  // tag. An empty manifest here read as "nothing to lint" and swallowed the
+  // server's refusal; null keeps the unavailable state and its reason, which
+  // point at the manifest configuration instead of at every component.
+  if (Object.keys(components).length === 0 && Object.keys(all).length > 0) return null;
+
   // Core's resolver lifts the inline docgen node and converts the keyed
   // stories, the same paths a resolved ref leaf takes. Nothing here carries a
   // `$ref`, so a loader call means a service payload smuggled one in, and
@@ -228,7 +246,7 @@ async function synthesizeFromServices(
 
 export function createManifestLoad(io: {
   resolveUrl: (name: string) => string;
-  getService: GetService;
+  getService: GetService | undefined;
   serviceRetry?: ServiceRetry;
 }): ManifestLoad {
   return async () => {
@@ -239,8 +257,26 @@ export function createManifestLoad(io: {
       if (detectManifestFormat(fetched.raw).kind !== 'ref') return { manifest: fetched.raw };
       return { manifest: await resolveManifestRefs(fetched.raw, refLoaderFor(indexUrl)) };
     }
-    const synthesized = await synthesizeFromServices(io.getService, indexUrl, io.serviceRetry ?? DEFAULT_SERVICE_RETRY);
+    const synthesized = await synthesizeFromServices(
+      io.getService,
+      indexUrl,
+      io.serviceRetry ?? retryFor(fetched.reason),
+    );
     if (synthesized) return { manifest: synthesized };
     return { manifest: null, unavailableReason: fetched.reason };
   };
+}
+
+/**
+ * The one composition both surfaces use: the resolver names sibling manifest
+ * URLs and the load owns the transport. Kept here so the next load option
+ * lands in one place instead of once per bundle. `getService` may be
+ * undefined: storybook below 10.5 has none, and the load then stays
+ * fetch-only, which is all those versions serve anyway.
+ */
+export function createRuntimeManifestSource(io: {
+  resolveUrl: (name: string) => string;
+  getService: GetService | undefined;
+}): ManifestSource {
+  return createManifestSource({ urlFor: io.resolveUrl, load: createManifestLoad(io) });
 }

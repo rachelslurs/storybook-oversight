@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { addons, getService, useStorybookState } from 'storybook/manager-api';
+import { addons, useStorybookState } from 'storybook/manager-api';
+import * as managerApi from 'storybook/manager-api';
 import { analyzeManifest, resolveComponent } from 'oversight-core';
 import type { ComponentReport, ManifestAnalysis } from 'oversight-core';
-import { createManifestLoad } from './manifestLoad';
+import { belongsToComponent } from './componentId';
+import { createRuntimeManifestSource } from './manifestLoad';
 import type { GetService } from './manifestLoad';
-import { createManifestSource } from './manifestSource';
 import { DEFAULT_DEBUGGER_LINK } from './config';
 import type { OversightConfig } from './config';
 import type { ReportViewStatus } from './components/ReportView';
@@ -38,14 +39,14 @@ function manifestsBaseUrl(): string {
 // `.storybook/manager.ts` calls `addons.setConfig`.
 //
 // The load owns the transport: fetch, v:1 ref resolution, and the service-API
-// fallback for dev under `experimentalDocgenServer`. `getService` is the
-// manager runtime's; the cast widens its typed service-id parameter to the
-// structural seam. The docs block passes the preview runtime's.
+// fallback for dev under `experimentalDocgenServer`. `getService` shipped in
+// storybook 10.5 and the peers allow 10.3, so it is read indirectly rather
+// than as a named import a bundler would refuse; where it is undefined the
+// load stays fetch-only, which is all those versions serve anyway. This is
+// the manager runtime's; the docs block reads the preview's.
+const getService = (managerApi as Record<string, unknown>)['getService'] as GetService | undefined;
 const resolveManifestUrl = (name: string) => `${manifestsBaseUrl()}${name}`;
-const manifest = createManifestSource({
-  urlFor: resolveManifestUrl,
-  load: createManifestLoad({ resolveUrl: resolveManifestUrl, getService: getService as GetService }),
-});
+const manifest = createRuntimeManifestSource({ resolveUrl: resolveManifestUrl, getService });
 
 // Analysis (normalize → lint) runs once, the first time a hook mounts. By then
 // `.storybook/manager.ts` has applied `addons.setConfig`, so the consumer's
@@ -122,7 +123,7 @@ export function useOversightReport(): ManagerReport {
   // so index lookups return undefined even while the story renders.
   const componentId = [...analysis.result.components, ...analysis.result.failures]
     .map((entry) => entry.id)
-    .find((id) => storyId === id || storyId.startsWith(`${id}--`));
+    .find((id) => belongsToComponent(storyId, id));
   if (componentId === undefined) return { status: 'no-entry', ...base };
 
   return { status: 'ready', report: resolveComponent(analysis, componentId), ...base };
