@@ -61,11 +61,11 @@ const Container = styled.div(({ theme }) => ({
 // the root and under a subpath deploy. The load owns the transport: fetch, v:1
 // ref resolution, and the service-API fallback for dev under
 // `experimentalDocgenServer`, through the preview runtime's `getService`.
-// That export shipped in storybook 10.5 and the peers allow 10.3; this bundle
-// is compiled by the consumer's own build, where a named import of an export
-// their storybook lacks fails the whole build, so it is read indirectly.
-// Where it is undefined the load stays fetch-only, which is all those
-// versions serve anyway.
+// Storybook added that export in 10.5, but this bundle is compiled by the
+// consumer's own build, where a named import of an export their storybook
+// lacks fails the whole build, so it is read indirectly. Where it comes back
+// undefined the preview runtime doesn't expose the service API, and the load
+// stays fetch-only, which is all such a runtime can serve anyway.
 const getService = (previewApi as Record<string, unknown>)['getService'] as GetService | undefined;
 const resolveManifestUrl = (name: string) => new URL(`manifests/${name}`, document.baseURI).href;
 const manifest = createRuntimeManifestSource({ resolveUrl: resolveManifestUrl, getService });

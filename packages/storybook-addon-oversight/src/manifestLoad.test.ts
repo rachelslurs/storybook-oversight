@@ -395,7 +395,7 @@ describe('createManifestLoad service fallback', () => {
     expect(outcome.unavailableReason).toContain('experimentalDocgenServer');
   });
 
-  it('stays fetch-only when the runtime has no getService, as on storybook 10.3 and 10.4', async () => {
+  it('stays fetch-only when the runtime has no getService', async () => {
     refusedFetch(() => undefined);
     const load = createManifestLoad({ resolveUrl, getService: undefined });
 
