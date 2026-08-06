@@ -167,13 +167,23 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-/** Card's two findings, wherever they are being rendered. */
+/**
+ * Card's two findings, wherever they are being rendered.
+ *
+ * `visible`, not `attached`. `AddonPanel` hides an inactive panel with the `hidden`
+ * attribute rather than unmounting it, so the rows stay in the DOM either way and
+ * `attached` would pass for a panel nobody can see. Asserting on what the reader gets is
+ * the point of running this in a browser at all.
+ *
+ * It is not what catches a wrong `match` predicate: that one is inert for `types.PANEL`,
+ * so no assertion here can see it. See the comment in `manager.tsx`.
+ */
 async function assertCardFindings(page, surface) {
   for (const [rule, fragments] of CARD_FINDINGS) {
     const header = page.getByRole('rowheader', { name: rule });
 
     try {
-      await header.first().waitFor({ state: 'attached', timeout: FINDING_TIMEOUT });
+      await header.first().waitFor({ state: 'visible', timeout: FINDING_TIMEOUT });
     } catch {
       throw new Error(`no "${rule}" row. The ${surface} rendered: ${await renderedText(page, surface)}`);
     }
@@ -198,8 +208,8 @@ async function checkDocsBlock(page) {
   const heading = docsContent.getByRole('heading', { name: /Oversight$/ });
 
   await check(`the Docs page mounts parameters.docs.container (${CARD_DOCS})`, async () => {
-    await docsContent.first().waitFor({ state: 'attached', timeout: FINDING_TIMEOUT });
-    await heading.first().waitFor({ state: 'attached', timeout: FINDING_TIMEOUT });
+    await docsContent.first().waitFor({ state: 'visible', timeout: FINDING_TIMEOUT });
+    await heading.first().waitFor({ state: 'visible', timeout: FINDING_TIMEOUT });
   });
 
   await check("the real DocsContext resolves Card's findings", async () => {
@@ -229,7 +239,7 @@ async function checkDocsBlock(page) {
     // SPA shell, when the container never mounted, or when nothing has rendered yet;
     // asserting the page is really there first makes the absence mean what it claims:
     // the container ran and `resolveOf` threw, so it chose not to render the block.
-    await page.locator('.sbdocs-content').first().waitFor({ state: 'attached', timeout: FINDING_TIMEOUT });
+    await page.locator('.sbdocs-content').first().waitFor({ state: 'visible', timeout: FINDING_TIMEOUT });
     await page.waitForTimeout(1_000);
 
     const blocks = await page.getByRole('heading', { name: /Oversight$/ }).count();
@@ -238,11 +248,9 @@ async function checkDocsBlock(page) {
 }
 
 async function checkManagerPanel(page) {
-  // A story, not a Docs page, because the manager renders no addon panel region at all on
-  // a Docs entry: not this one, not Controls, not Actions. Note this is NOT because of the
-  // `match: ({ viewMode }) => viewMode === 'story'` in `manager.tsx`. Building that line as
-  // `'docs'` instead leaves the tab exactly where it was on the story URL, so the line has
-  // no observable effect on either surface and is not what makes this URL the right one.
+  // A story, not a Docs page, because Storybook renders no addon panel region on a Docs
+  // entry at all: not this one, not Controls. Not because of the `match` predicate in
+  // `manager.tsx`, which is inert for `types.PANEL` and documented as such there.
   await page.goto(storyUrl(CARD_STORY), { waitUntil: 'domcontentloaded' });
 
   // Locators are scoped to the main frame, so nothing here can accidentally read the
