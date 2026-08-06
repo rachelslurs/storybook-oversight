@@ -138,7 +138,7 @@ jobs:
   #
   # The floor entry is what found the declared range wrong in the first place.
   # The peers said `^10.3.0`, and on 10.3 and 10.4 the Docs block takes the
-  # whole Docs page down; #94 narrows the range to `^10.5.0` and #93 tracks the
+  # whole Docs page down; #94 narrowed the range to `^10.5.0` and #93 tracks the
   # cause. Keep `storybook:` below equal to whatever the addon's
   # `peerDependencies` declares, or this job stops meaning anything.
   compat:
