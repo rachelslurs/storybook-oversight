@@ -11,7 +11,7 @@
     "test:unit": "vitest run",
     "test:storybook": "vitest run --config vitest.storybook.config.ts",
     "typecheck": "tsc -p tsconfig.json && pnpm -r typecheck",
-    "lint": "eslint --cache .",
+    "lint": "eslint --cache . && prettier --check .",
     "lint:fix": "eslint --cache . --fix",
     "format": "prettier --write .",
     "storybook": "storybook dev -p 6006",

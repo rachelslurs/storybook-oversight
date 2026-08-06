@@ -6,3 +6,5 @@ build-storybook.log
 .DS_Store
 .env
 .eslintcache
+# Local working notes for Claude Code, deliberately untracked for now.
+CLAUDE.md
