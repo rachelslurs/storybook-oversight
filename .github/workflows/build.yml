@@ -119,5 +119,143 @@ jobs:
       - name: Build Storybook
         run: pnpm exec storybook build
 
+      # Reads storybook-static, so it has to follow the build above, and needs
+      # the chromium installed two steps up. It covers the two surfaces nothing
+      # else reaches. `@storybook/addon-vitest` pushes `**/*.mdx` into
+      # `test.exclude` unconditionally, so `pnpm test:storybook` below cannot run
+      # a Docs entry at any configuration; and story tests execute inside the
+      # preview, so none of them can see the manager the panel renders into.
+      - name: Check the built Storybook
+        run: pnpm built-storybook-checks
+
       - name: Run story tests
         run: pnpm test:storybook
+
+  # The `build` job above installs whatever the lockfile resolved, on React 18,
+  # and nothing else. These two entries cover the declared peer floor and the
+  # newer React major the README also promises, each on its own runner so a pin
+  # failure in one cannot mask a pass in the other.
+  #
+  # The floor entry is what found the range wrong in the first place: the peers
+  # said `^10.3.0`, and on 10.3 and 10.4 the Docs block takes the whole page
+  # down. The range now says `^10.5.0` and this job holds it to that.
+  compat:
+    name: compat (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    if: "github.event_name == 'pull_request' || (!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci'))"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The declared peer floor, pinned exactly, on the React major the
+          # lockfile already uses, so a failure here is about the Storybook
+          # version and nothing else. It reads as a duplicate of `build` only
+          # while the lockfile still resolves 10.5.0; the two diverge the moment
+          # a Storybook release is taken, and this entry is what keeps the
+          # published range honest when they do.
+          - name: storybook-floor
+            storybook: '10.5.0'
+            react: '18'
+          # An empty `storybook` means "whatever the lockfile resolves". Naming a
+          # version here instead would freeze this entry on it, and the job would
+          # go on reporting a React 19 pass against a Storybook the repo had long
+          # since moved off.
+          - name: react-19
+            storybook: ''
+            react: '19'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js 20.19
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # `-w` targets the workspace root, where storybook and react are direct
+      # devDependencies. No `--no-frozen-lockfile` here: that is an option of
+      # `pnpm install`, and `pnpm add` rejects it outright with "Unknown option".
+      # `pnpm add` rewrites the lockfile as part of what it does, so it needs no
+      # flag to be allowed to. The runner is ephemeral, so the rewrite is thrown
+      # away with it.
+      - name: Pin matrix versions
+        run: |
+          set -euo pipefail
+          pkgs=(react@^${{ matrix.react }} react-dom@^${{ matrix.react }})
+          if [[ -n "${{ matrix.storybook }}" ]]; then
+            pkgs+=(
+              storybook@${{ matrix.storybook }}
+              @storybook/react-vite@${{ matrix.storybook }}
+              @storybook/addon-docs@${{ matrix.storybook }}
+            )
+          fi
+          pnpm add -w -D "${pkgs[@]}"
+
+      # Mandatory, not diagnostic. A pin that silently failed to take reads
+      # exactly like one that took, and every step below would still go green
+      # against whatever the lockfile happened to already have. Reads from
+      # node_modules so this prints what actually resolved, not what was
+      # requested above.
+      # `@storybook/addon-vitest` and `@storybook/addon-mcp` are deliberately left
+      # unpinned, so the floor entry runs a mixed graph: storybook 10.3.0 beside
+      # whatever those resolve to. That is a realistic consumer situation and the
+      # thing most likely to break the floor build, so both are printed. Reading
+      # the four pinned lines alone would leave the actual cause off the log.
+      - name: Print resolved versions
+        run: |
+          for pkg in storybook @storybook/react-vite @storybook/addon-docs \
+            @storybook/addon-vitest @storybook/addon-mcp react react-dom; do
+            echo "$pkg: $(node -p "require('$pkg/package.json').version")"
+          done
+
+      - name: Build packages
+        run: pnpm build
+
+      # Same gate as the `build` job, same reason: it imports
+      # `storybook/internal/{manager,preview}/globals`, exactly the paths a
+      # Storybook major moves, so a floor or a newer major fails to import
+      # right here instead of failing to render three steps down.
+      - name: Prepublish checks
+        run: pnpm prepublish-checks
+
+      # Same trio as `build`, repeated because this matrix runs on its own
+      # fresh runner with nothing cached yet. Still keyed on the resolved
+      # playwright version; the pin step above never touches playwright.
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.pw.outputs.version }}
+
+      - name: Install Playwright chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build Storybook
+        run: pnpm exec storybook build
+
+      # No `pnpm test:storybook` here: `@storybook/addon-vitest@10.3.0` peers
+      # `@vitest/browser-playwright@^4.0.0`, which this workspace does not
+      # have, so the floor entry would fail on peer resolution for a reason
+      # that has nothing to do with the addon under test. No `pnpm typecheck`
+      # either: the react-19 entry pins `react@^19` over the workspace's
+      # `@types/react@^18`, so a type error there would be grading the demo's
+      # types, not this addon. This step is what actually exercises the pinned
+      # versions, and it has to be the one that boots the manager: the React 19
+      # crash `src/react-shim.ts` exists for happens in the manager bundle, so a
+      # check confined to the preview iframe would pass while the panel was dead.
+      - name: Check the built Storybook
+        run: pnpm built-storybook-checks
