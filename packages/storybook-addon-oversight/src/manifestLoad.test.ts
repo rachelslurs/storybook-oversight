@@ -256,7 +256,7 @@ describe('createManifestLoad service fallback', () => {
     expect(components['data-display-card'].reactComponentMeta).toEqual(CARD_DOCGEN_NODE.reactComponentMeta);
   });
 
-  it('synthesizes without stories when story-docs is not registered, the manager world at 10.5', async () => {
+  it('synthesizes without stories when story-docs is not registered, the manager at storybook 10.5', async () => {
     refusedFetch((url) => (url.endsWith('/index.json') ? okJson(ALL_TAGGED_INDEX) : undefined));
     const getService = servicesWith({
       'core/docgen': docgenService(async () => ({ 'feedback-banner': BANNER_DOCGEN_NODE })),
@@ -395,7 +395,7 @@ describe('createManifestLoad service fallback', () => {
     expect(outcome.unavailableReason).toContain('experimentalDocgenServer');
   });
 
-  it('stays fetch-only when the runtime has no getService, the storybook 10.3/10.4 world', async () => {
+  it('stays fetch-only when the runtime has no getService, as on storybook 10.3 and 10.4', async () => {
     refusedFetch(() => undefined);
     const load = createManifestLoad({ resolveUrl, getService: undefined });
 
