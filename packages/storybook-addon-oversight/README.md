@@ -24,7 +24,7 @@ Your coding agent reads your components from the manifest Storybook's MCP server
 - **Storybook ^10.3** (React projects).
 - **React 18 or 19** in the consumer project. The addon's manager UI renders through Storybook's own React, so your app's React version is independent (needs `0.1.1+`; earlier versions crash the manager on React 19 projects).
 - The **components-manifest** feature enabled and served in dev. [`@storybook/addon-mcp`](https://www.npmjs.com/package/@storybook/addon-mcp) turns it on and serves `/manifests/components.json`, the manifest Oversight lints. Without it, the panel degrades to an "unavailable" state.
-- Storybook's experimental `experimentalDocgenServer` flag **disables the dev manifest by design**, so the panel reports it as unavailable and points you to `storybook build`. `oversight-lint` reads the built ref-based manifest that flag produces; giving the panel a dev data source is tracked in [#50](https://github.com/rachelslurs/storybook-oversight/issues/50).
+- Storybook's experimental `experimentalDocgenServer` flag **disables the dev manifest by design**. From `0.5.0` the panel and the Docs block read Storybook's in-runtime service API in dev under that flag (needs Storybook `10.5+`), and resolve the ref-based (`v: 1`) manifest a build writes; earlier addon versions report unavailable there. `oversight-lint` reads the built form as well.
 
 ## Install
 
@@ -55,7 +55,7 @@ Set the same value as `expectedExtractor` (see [Configuration](#configuration)) 
 
 If you enable `features.experimentalReactComponentMeta`, set `expectedExtractor` to `react-component-meta` instead. That flag chooses the extractor itself, so the manifest records `react-component-meta` and `typescript.reactDocgen` above is never read.
 
-`features.experimentalDocgenServer` records the same extractor, but the panel cannot read the ref-based manifest that flag emits, so set `--expected-extractor react-component-meta` on [`oversight-lint`](../cli/README.md) instead. The panel stays unavailable under that flag, tracked in [#50](https://github.com/rachelslurs/storybook-oversight/issues/50).
+`features.experimentalDocgenServer` records the same extractor, so `react-component-meta` is also the value to state under that flag: `expectedExtractor` for the panel and the Docs block, `--expected-extractor` on [`oversight-lint`](../cli/README.md) for the built manifest.
 
 ### Optional: enable the Docs block
 
