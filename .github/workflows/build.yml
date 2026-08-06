@@ -187,12 +187,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # `-w` targets the workspace root, where storybook and react are direct
-      # devDependencies. No `--no-frozen-lockfile` here: that is an option of
-      # `pnpm install`, and `pnpm add` rejects it outright with "Unknown option".
-      # `pnpm add` rewrites the lockfile as part of what it does, so it needs no
-      # flag to be allowed to. The runner is ephemeral, so the rewrite is thrown
-      # away with it.
+      # `pnpm.overrides`, not `pnpm add`. `pnpm add` sets the root's direct
+      # dependencies and stops there, which leaves peer resolution free to install
+      # a second `@storybook/addon-docs` under the addon package: pinning four
+      # packages by hand still produced a 10.5.0 nested beside the pinned 10.3.0,
+      # and the duplicate check caught it. An override applies to the whole graph,
+      # so the family collapses to one version and one copy.
+      #
+      # The runner is ephemeral, so rewriting package.json and the lockfile here
+      # is thrown away with it.
       - name: Pin matrix versions
         id: pin
         run: |
@@ -206,19 +209,30 @@ jobs:
           fi
           echo "storybook=$want" >> "$GITHUB_OUTPUT"
 
-          pkgs=(react@^${{ matrix.react }} react-dom@^${{ matrix.react }})
-          if [[ -n "$want" ]]; then
-            # Every Storybook package that can pull `@storybook/addon-docs` in,
-            # addon-vitest included. Leaving one unpinned is what produces two
-            # copies and a blank Docs page.
-            pkgs+=(
-              "storybook@$want"
-              "@storybook/react-vite@$want"
-              "@storybook/addon-docs@$want"
-              "@storybook/addon-vitest@$want"
-            )
-          fi
-          pnpm add -w -D "${pkgs[@]}"
+          WANT="$want" REACT='${{ matrix.react }}' node -e "
+            const fs = require('node:fs');
+            const want = process.env.WANT;
+            const react = process.env.REACT;
+            const manifest = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const overrides = { ...(manifest.pnpm?.overrides ?? {}) };
+
+            overrides.react = '^' + react;
+            overrides['react-dom'] = '^' + react;
+
+            if (want) {
+              for (const name of ['storybook', '@storybook/react-vite', '@storybook/addon-docs', '@storybook/addon-vitest']) {
+                overrides[name] = want;
+                if (manifest.devDependencies[name]) manifest.devDependencies[name] = want;
+              }
+            }
+
+            manifest.devDependencies.react = '^' + react;
+            manifest.devDependencies['react-dom'] = '^' + react;
+            manifest.pnpm = { ...(manifest.pnpm ?? {}), overrides };
+            fs.writeFileSync('package.json', JSON.stringify(manifest, null, 2) + '\n');
+            console.log('overrides:', JSON.stringify(overrides));
+          "
+          pnpm install --no-frozen-lockfile
 
       # Asserts, and does not merely print. The comment that used to sit here
       # called the print mandatory and then only echoed, which is the same green
