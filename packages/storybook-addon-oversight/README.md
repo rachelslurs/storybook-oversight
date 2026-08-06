@@ -24,7 +24,7 @@ Your coding agent reads your components from the manifest Storybook's MCP server
 - **Storybook ^10.3** (React projects).
 - **React 18 or 19** in the consumer project. The addon's manager UI renders through Storybook's own React, so your app's React version is independent (needs `0.1.1+`; earlier versions crash the manager on React 19 projects).
 - The **components-manifest** feature enabled and served in dev. [`@storybook/addon-mcp`](https://www.npmjs.com/package/@storybook/addon-mcp) turns it on and serves `/manifests/components.json`, the manifest Oversight lints. Without it, the panel degrades to an "unavailable" state.
-- Storybook's experimental `experimentalDocgenServer` flag **disables the dev manifest by design**. From `0.5.0` the panel and the Docs block read Storybook's in-runtime service API in dev under that flag (needs Storybook `10.5+`), and resolve the ref-based (`v: 1`) manifest a build writes; earlier addon versions report unavailable there. `oversight-lint` reads the built form as well.
+- Storybook's experimental `experimentalDocgenServer` flag **disables the dev manifest by design**. From `0.5.0` the panel and the Docs block read Storybook's in-runtime service API in dev under that flag (needs Storybook `10.5+`), and resolve the ref-based (`v: 1`) manifest a build writes; earlier addon versions report the dev manifest unavailable and the built one unparseable. `oversight-lint` reads the built form as well.
 
 ## Install
 
