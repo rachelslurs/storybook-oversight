@@ -136,9 +136,11 @@ jobs:
   # newer React major the README also promises, each on its own runner so a pin
   # failure in one cannot mask a pass in the other.
   #
-  # The floor entry is what found the range wrong in the first place: the peers
-  # said `^10.3.0`, and on 10.3 and 10.4 the Docs block takes the whole page
-  # down. The range now says `^10.5.0` and this job holds it to that.
+  # The floor entry is what found the declared range wrong in the first place.
+  # The peers said `^10.3.0`, and on 10.3 and 10.4 the Docs block takes the
+  # whole Docs page down; #94 narrows the range to `^10.5.0` and #93 tracks the
+  # cause. Keep `storybook:` below equal to whatever the addon's
+  # `peerDependencies` declares, or this job stops meaning anything.
   compat:
     name: compat (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -205,11 +207,12 @@ jobs:
       # against whatever the lockfile happened to already have. Reads from
       # node_modules so this prints what actually resolved, not what was
       # requested above.
+      #
       # `@storybook/addon-vitest` and `@storybook/addon-mcp` are deliberately left
-      # unpinned, so the floor entry runs a mixed graph: storybook 10.3.0 beside
-      # whatever those resolve to. That is a realistic consumer situation and the
-      # thing most likely to break the floor build, so both are printed. Reading
-      # the four pinned lines alone would leave the actual cause off the log.
+      # unpinned, so the floor entry runs a mixed graph: the pinned Storybook
+      # beside whatever those resolve to. That is a realistic consumer situation
+      # and the thing most likely to break the floor build, so both are printed.
+      # Reading the pinned lines alone would leave the actual cause off the log.
       - name: Print resolved versions
         run: |
           for pkg in storybook @storybook/react-vite @storybook/addon-docs \
