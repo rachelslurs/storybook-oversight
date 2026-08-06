@@ -16,12 +16,13 @@ pnpm build-storybook # build the addon, then the demo Storybook
 pnpm storybook       # run the demo at http://localhost:6006
 ```
 
-`pnpm test` runs the whole thing in the order CI does: build every package, run the unit projects, build the demo Storybook, then run the story project. The unit tests come first so a broken demo build cannot hide a package regression, and the package build comes first because `cli.test.ts` drives `packages/cli/dist/cli.js` and skips rather than fails when it is absent.
+`pnpm test` runs the whole thing in the order CI does: build every package, run the unit projects, build the demo Storybook, check the built Storybook, then run the story project. The unit tests come first so a broken demo build cannot hide a package regression, and the package build comes first because `cli.test.ts` drives `packages/cli/dist/cli.js` and skips rather than fails when it is absent.
 
-The two halves are separate configs, and each runs on its own:
+The three parts are separate, and each runs on its own:
 
 - `pnpm test:unit` is `vitest run` over `vitest.config.ts`, one project per package. It needs no build and no browser.
 - `pnpm test:storybook` is `vitest run --config vitest.storybook.config.ts`, which executes the demo's stories in headless chromium through `@storybook/addon-vitest`. It needs the addon's `dist/`, which `.storybook/preview.ts` imports by package name, and `storybook-static/manifests/components.json`, which the Docs block fetches.
+- `pnpm built-storybook-checks` is plain node driving `storybook-static` with Playwright. It covers the two surfaces neither of the above can reach: `@storybook/addon-vitest` puts `**/*.mdx` into `test.exclude` unconditionally, so no Docs entry runs as a test, and story tests execute inside the preview, so none of them sees the manager the panel renders into. It refuses rather than runs when `storybook-static` is older than the addon's `dist`, because a half-finished build otherwise leaves it grading the previous one.
 
 Keeping them apart is load-bearing. Vitest resolves every project before `--project` filtering applies, so a story project inside `vitest.config.ts` would load `.storybook/main.ts` and the addon's built preset on a unit-only run, and fail outright on a checkout where the addon has not been built. Neither file is named `vite.config.ts`, because Storybook's Vite builder auto-loads that name and `storybookTest` loads `.storybook/main.ts`, so the two would load each other.
 

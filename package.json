@@ -7,7 +7,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "build:addon": "pnpm --filter storybook-addon-oversight run build",
-    "test": "pnpm -r build && pnpm run test:unit && pnpm exec storybook build && pnpm run test:storybook",
+    "test": "pnpm -r build && pnpm run test:unit && pnpm exec storybook build && pnpm run built-storybook-checks && pnpm run test:storybook",
     "test:unit": "vitest run",
     "test:storybook": "vitest run --config vitest.storybook.config.ts",
     "typecheck": "tsc -p tsconfig.json && pnpm -r typecheck",
@@ -21,6 +21,7 @@
     "version": "changeset version",
     "prepublish-checks": "node scripts/prepublish-checks.js",
     "artifact-checks": "node scripts/artifact-checks.js",
+    "built-storybook-checks": "node scripts/built-storybook-checks.js",
     "release": "pnpm run prepublish-checks && pnpm -r build && pnpm run artifact-checks && changeset publish"
   },
   "devDependencies": {
