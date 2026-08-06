@@ -87,16 +87,13 @@ Documentation gaps do not collapse. `component-description-missing`, `prop-descr
 
 ## Exit codes
 
-| Code | Meaning                                                                 |
-| ---- | ----------------------------------------------------------------------- |
-| `0`  | Clean, or only warnings within `--max-warnings`.                        |
-| `1`  | An error-severity rule fired, or warnings exceeded `--max-warnings`.    |
+| Code | Meaning                                                                                 |
+| ---- | --------------------------------------------------------------------------------------- |
+| `0`  | Clean, or only warnings within `--max-warnings`.                                        |
+| `1`  | An error-severity rule fired, or warnings exceeded `--max-warnings`.                    |
 | `2`  | Could not run: manifest missing, unparseable, not a manifest, or an unsupported format. |
 
-Exit `2` is distinct from `1` so a broken setup does not read as a passing lint. A
-path that parses as JSON but records no `components` is one of those: before
-0.6.0 it reported no findings and exited 0, so pointing `--manifest` at the wrong
-file passed green indefinitely.
+Exit `2` is distinct from `1` so a broken setup does not read as a passing lint. A path that parses as JSON but records no `components` is one of those: before 0.6.0 it reported no findings and exited 0, so pointing `--manifest` at the wrong file passed green indefinitely.
 
 ## Options
 
