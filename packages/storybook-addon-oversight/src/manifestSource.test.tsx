@@ -130,8 +130,8 @@ describe('useOversightReport failure routing', () => {
       }),
     );
     const { getByTestId } = await renderStatus();
-    // The service fallback retries its resolution window (6 x 250ms) before
-    // settling, so this wait outlasts it.
-    await waitFor(() => expect(getByTestId('status').textContent).toBe('unavailable'), { timeout: 5000 });
-  }, 10000);
+    // A failure with no docgen-server evidence gets one service attempt and no
+    // retry window, so this settles at the default waitFor pace.
+    await waitFor(() => expect(getByTestId('status').textContent).toBe('unavailable'));
+  });
 });

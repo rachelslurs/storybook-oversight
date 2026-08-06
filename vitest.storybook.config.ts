@@ -19,19 +19,42 @@ const MANIFEST = fileURLToPath(new URL('storybook-static/manifests/components.js
  * difference is that the 500's body reaches the failure output, where a bare 404
  * would leave the reader to work out why no findings rendered.
  */
+const STATIC_ROOT = new URL('storybook-static/', import.meta.url);
+
 function serveComponentsManifest(): Plugin {
   return {
     name: 'oversight:serve-components-manifest',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        if (!req.url?.split('?')[0]?.endsWith('/manifests/components.json')) return next();
-        if (!existsSync(MANIFEST)) {
-          res.statusCode = 500;
-          res.end('storybook-static/manifests/components.json is missing. Run `pnpm build-storybook` first.');
+        const path = decodeURIComponent(req.url?.split('?')[0] ?? '');
+        if (path.endsWith('/manifests/components.json')) {
+          if (!existsSync(MANIFEST)) {
+            res.statusCode = 500;
+            res.end('storybook-static/manifests/components.json is missing. Run `pnpm build-storybook` first.');
+            return;
+          }
+          res.setHeader('Content-Type', 'application/json');
+          res.end(readFileSync(MANIFEST));
           return;
         }
-        res.setHeader('Content-Type', 'application/json');
-        res.end(readFileSync(MANIFEST));
+        // A v:1 index (built with STORYBOOK_DOCGEN_SERVER=1) defers payloads
+        // to `services/**.json` beside it, and the block fetches them relative
+        // to the manifest URL. Without this branch Vite's SPA fallback answers
+        // each ref with the HTML shell, every entry degrades to refErrors, and
+        // findFindingRow blames a renamed story title instead of the refs.
+        const service = path.match(/\/(services\/.+\.json)$/)?.[1];
+        if (service && !service.split('/').includes('..')) {
+          const leaf = fileURLToPath(new URL(service, STATIC_ROOT));
+          if (!existsSync(leaf)) {
+            res.statusCode = 404;
+            res.end(`storybook-static/${service} is missing. The built manifest's refs and the build disagree.`);
+            return;
+          }
+          res.setHeader('Content-Type', 'application/json');
+          res.end(readFileSync(leaf));
+          return;
+        }
+        return next();
       });
     },
   };

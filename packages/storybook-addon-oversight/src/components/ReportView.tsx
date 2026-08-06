@@ -646,6 +646,21 @@ function DebuggerFooter({ debuggerUrl, componentId }: { debuggerUrl: string; com
 }
 
 /**
+ * Every non-report state's heading, by status. The values render below AND
+ * are what tests match on to say "an empty state painted instead of
+ * findings", so they live in one exported record: a rewording that only
+ * updated the JSX would leave a test matching text that no longer exists,
+ * and its diagnostic would silently stop firing.
+ */
+export const EMPTY_STATE_TITLES = {
+  loading: 'Loading the components manifest…',
+  error: 'Manifest could not be parsed',
+  unavailable: 'Components manifest unavailable',
+  'no-story': 'Select a story to see its coverage.',
+  'no-entry': 'No manifest entry for this component.',
+} as const;
+
+/**
  * Presentational only: a resolved report plus a variant. No manager-api
  * imports, so it runs in both the addons panel and the Docs block.
  */
@@ -659,13 +674,13 @@ export function ReportView({
   unavailableReason,
 }: ReportViewProps) {
   if (status === 'loading') {
-    return <EmptyState variant={variant} title="Loading the components manifest…" />;
+    return <EmptyState variant={variant} title={EMPTY_STATE_TITLES.loading} />;
   }
   if (status === 'error') {
     return (
       <EmptyState
         variant={variant}
-        title="Manifest could not be parsed"
+        title={EMPTY_STATE_TITLES.error}
         description="The components manifest loaded but its format could not be parsed. It may be unsupported or malformed. See the browser console for details."
       />
     );
@@ -677,7 +692,7 @@ export function ReportView({
     return (
       <EmptyState
         variant={variant}
-        title="Components manifest unavailable"
+        title={EMPTY_STATE_TITLES.unavailable}
         description={
           unavailableReason ??
           '/manifests/components.json did not load. Enable the manifest feature (e.g. @storybook/addon-mcp).'
@@ -686,10 +701,10 @@ export function ReportView({
     );
   }
   if (status === 'no-story') {
-    return <EmptyState variant={variant} title="Select a story to see its coverage." />;
+    return <EmptyState variant={variant} title={EMPTY_STATE_TITLES['no-story']} />;
   }
   if (status === 'no-entry' || !report) {
-    return <EmptyState variant={variant} title="No manifest entry for this component." />;
+    return <EmptyState variant={variant} title={EMPTY_STATE_TITLES['no-entry']} />;
   }
 
   const { component, failure, storyFailures, findings, manifestFindings, propShape } = report;

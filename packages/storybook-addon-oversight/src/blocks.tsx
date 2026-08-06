@@ -5,14 +5,17 @@ import type { DocsContainerProps } from '@storybook/addon-docs/blocks';
 import { ThemeProvider, ensure, styled, themes, useTheme } from 'storybook/theming';
 import { buildReport } from 'oversight-core';
 import type { RawManifest } from 'oversight-core';
-import { getService } from 'storybook/preview-api';
-import { createManifestLoad } from './manifestLoad';
+import * as previewApi from 'storybook/preview-api';
+import { createRuntimeManifestSource } from './manifestLoad';
 import type { GetService } from './manifestLoad';
-import { createManifestSource } from './manifestSource';
 import { DEFAULT_DEBUGGER_LINK } from './config';
 import type { OversightConfig } from './config';
 import { ReportView } from './components/ReportView';
 import type { ReportViewStatus } from './components/ReportView';
+
+// The block's non-report headings, for tests that need to say WHICH empty
+// state painted instead of findings without copying strings that then drift.
+export { EMPTY_STATE_TITLES } from './components/ReportView';
 import { isAbsoluteTarget } from './components/markdown';
 
 /**
@@ -57,13 +60,15 @@ const Container = styled.div(({ theme }) => ({
 // URLs resolve against the iframe document (dropping `iframe.html`), correct at
 // the root and under a subpath deploy. The load owns the transport: fetch, v:1
 // ref resolution, and the service-API fallback for dev under
-// `experimentalDocgenServer`, through the preview runtime's `getService` (the
-// cast widens its typed service-id parameter to the structural seam).
+// `experimentalDocgenServer`, through the preview runtime's `getService`.
+// That export shipped in storybook 10.5 and the peers allow 10.3; this bundle
+// is compiled by the consumer's own build, where a named import of an export
+// their storybook lacks fails the whole build, so it is read indirectly.
+// Where it is undefined the load stays fetch-only, which is all those
+// versions serve anyway.
+const getService = (previewApi as Record<string, unknown>)['getService'] as GetService | undefined;
 const resolveManifestUrl = (name: string) => new URL(`manifests/${name}`, document.baseURI).href;
-const manifest = createManifestSource({
-  urlFor: resolveManifestUrl,
-  load: createManifestLoad({ resolveUrl: resolveManifestUrl, getService: getService as GetService }),
-});
+const manifest = createRuntimeManifestSource({ resolveUrl: resolveManifestUrl, getService });
 
 // Warm the network path when the blocks bundle evaluates (preview-iframe load),
 // so opening a Docs page doesn't wait on a cold fetch. Failures aren't cached,

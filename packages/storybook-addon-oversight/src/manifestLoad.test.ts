@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createManifestLoad } from './manifestLoad';
+import { createManifestLoad, createRuntimeManifestSource } from './manifestLoad';
 import type { GetService } from './manifestLoad';
 import type { RawEntry } from 'oversight-core';
 
@@ -341,5 +341,73 @@ describe('createManifestLoad service fallback', () => {
     expect(outcome.manifest).toBeNull();
     expect(outcome.unavailableReason).toBeUndefined();
     expect(outcome.parseFailed).toBeUndefined();
+  });
+
+  it('waits out the registration race when the refusal names the flag, with no injected retry', async () => {
+    refusedFetch((url) => (url.endsWith('/index.json') ? okJson(ALL_TAGGED_INDEX) : undefined));
+    // Not registered on the first attempt, registered on the second: the race
+    // the retry window exists for, at one 250ms sleep of test time.
+    const docgen = docgenService(async () => ({ 'feedback-banner': BANNER_DOCGEN_NODE }));
+    let calls = 0;
+    const getService = vi.fn((serviceId: string) => {
+      calls += 1;
+      if (calls === 1 || serviceId !== 'core/docgen') {
+        throw new Error(`No registered service with id "${serviceId}" exists in this environment.`);
+      }
+      return docgen;
+    }) as GetService & ReturnType<typeof vi.fn>;
+    const load = createManifestLoad({ resolveUrl, getService });
+
+    const outcome = await load();
+    expect(componentsOf(outcome.manifest)['feedback-banner'].reactComponentMeta).toEqual(
+      BANNER_DOCGEN_NODE.reactComponentMeta,
+    );
+    expect(getService.mock.calls.filter(([id]) => id === 'core/docgen').length).toBeGreaterThan(1);
+  });
+
+  it('makes exactly one service attempt when the failure carries no docgen-server evidence', async () => {
+    stubFetch((url) => (url.includes('manifests/components.json') ? notOk(404, 'plain not found') : undefined));
+    const getService = servicesWith({});
+    const load = createManifestLoad({ resolveUrl, getService });
+
+    const outcome = await load();
+    expect(outcome.manifest).toBeNull();
+    expect(getService).toHaveBeenCalledTimes(1);
+    expect(getService).toHaveBeenCalledWith('core/docgen');
+  });
+
+  it('treats a filter that stripped every component as unavailable, keeping the refusal', async () => {
+    const untaggedIndex = {
+      v: 5,
+      entries: { 'feedback-banner--default': { id: 'feedback-banner--default', tags: ['dev', 'test'] } },
+    };
+    refusedFetch((url) => (url.endsWith('/index.json') ? okJson(untaggedIndex) : undefined));
+    const load = createManifestLoad({
+      resolveUrl,
+      getService: servicesWith({
+        'core/docgen': docgenService(async () => ({ 'feedback-banner': BANNER_DOCGEN_NODE })),
+      }),
+      serviceRetry: NO_RETRY,
+    });
+
+    const outcome = await load();
+    expect(outcome.manifest).toBeNull();
+    expect(outcome.unavailableReason).toContain('experimentalDocgenServer');
+  });
+
+  it('stays fetch-only when the runtime has no getService, the storybook 10.3/10.4 world', async () => {
+    refusedFetch(() => undefined);
+    const load = createManifestLoad({ resolveUrl, getService: undefined });
+
+    const outcome = await load();
+    expect(outcome.manifest).toBeNull();
+    expect(outcome.unavailableReason).toContain('experimentalDocgenServer');
+  });
+});
+
+describe('createRuntimeManifestSource', () => {
+  it('composes the source over the load, with urlFor the injected resolver', () => {
+    const source = createRuntimeManifestSource({ resolveUrl, getService: undefined });
+    expect(source.urlFor('components.html')).toBe('http://sb.test/manifests/components.html');
   });
 });

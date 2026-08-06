@@ -13,6 +13,7 @@ import type { ComponentType, PropsWithChildren } from 'react';
 import { expect, within } from 'storybook/test';
 import { ensure, themes } from 'storybook/theming';
 import type { StorybookTheme } from 'storybook/theming';
+import { EMPTY_STATE_TITLES } from 'storybook-addon-oversight/blocks';
 
 // Card is the component whose findings are known: `required-prop-undocumented`
 // (error) and `prop-descriptions-missing` (warning), from two deliberately
@@ -101,14 +102,10 @@ function asPainted(color: string): string {
   return painted;
 }
 
-/** Every non-report state `ReportView` can render, by its heading text. */
-const EMPTY_STATES = [
-  'Loading the components manifest…',
-  'Manifest could not be parsed',
-  'Components manifest unavailable',
-  'No manifest entry for this component.',
-  'Select a story to see its coverage.',
-];
+/** Every non-report state `ReportView` can render, by its heading text. The
+ *  addon exports the strings it paints, so a rewording there stays matched
+ *  here instead of silently degrading the diagnostic below. */
+const EMPTY_STATES = Object.values(EMPTY_STATE_TITLES);
 
 // The block's data path is a fetch plus an effect plus `buildReport`, and
 // @testing-library/dom's default is 1000ms with nothing here raising it. A
