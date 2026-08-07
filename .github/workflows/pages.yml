@@ -50,10 +50,19 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v6
 
+      # `include-hidden-files` because v4.0.0 started excluding dotfiles from the
+      # tarball, and its `--exclude=.[^/]*` is unanchored, so it drops them at
+      # every depth rather than only at the root. The current build has no
+      # dotfiles among its 58 entries, so this changes nothing today; it is here
+      # so that the day Vite emits `.vite/manifest.json`, or someone adds a
+      # `.nojekyll` or a dot-prefixed `staticDirs` entry, the file reaches the
+      # deploy. The failure it prevents is silent: upload green, deploy green, no
+      # log line naming the omission, and the demo 404ing on a missing asset.
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
           path: storybook-static
+          include-hidden-files: true
 
       - name: Deploy to GitHub Pages
         id: deployment
