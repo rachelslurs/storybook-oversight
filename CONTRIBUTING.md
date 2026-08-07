@@ -47,7 +47,7 @@ All changes land through pull requests to `main`.
    pnpm changeset add --empty
    ```
 
-3. Open a PR. CI runs build, test, and lint, and the PR check stays red until a changeset is present.
+3. Open a PR. CI runs lint, build, the compat matrix and Chromatic, and the `changeset` check stays red until a changeset is present.
 4. Merge once CI is green.
 
 `oversight-core` is private, so changesets never version or publish it. Its changes ride along in the addon and CLI bumps that depend on it.
