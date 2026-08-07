@@ -11,3 +11,11 @@ build-storybook.log
 # unanchored pattern would silently drop it from `git add`.
 # Also listed in .prettierignore, which is what keeps `pnpm lint` off it.
 /CLAUDE.md
+.agents/
+skills-lock.json
+/AGENTS.md
+.clinerules/
+.cursor/
+.opencode/
+.windsurf/
+.github/copilot-instructions.md

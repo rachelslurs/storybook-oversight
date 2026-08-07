@@ -27,6 +27,13 @@ CHANGELOG.md
 # nothing near the edit explaining why.
 /CLAUDE.md
 
+/AGENTS.md
+.clinerules/
+.cursor/
+.opencode/
+.windsurf/
+.github/copilot-instructions.md
+
 # Editor state, matching eslint.config.js. Neither is tracked, and a lint gate
 # that fails on a local IDE file is reporting on something that is not the repo.
 .idea
