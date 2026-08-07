@@ -11,7 +11,7 @@ jobs:
     if: "github.event_name == 'pull_request' || (!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci'))"
     strategy:
       matrix:
-        node-version: [20.19, 22.12]
+        node-version: [20.19]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -57,12 +57,63 @@ jobs:
       - name: Check for linter errors
         run: pnpm lint
 
+  # The only job that earns a Node matrix. The three packages ship zero runtime
+  # dependencies and no native modules, and the addon runs in the browser, so
+  # Node version reaches its runtime not at all. The exception is the CLI:
+  # `packages/cli/src/config.ts` parses argv with `parseArgs` from `node:util`,
+  # which is the one API here that has changed across majors, and `cli.test.ts`
+  # drives the built binary through `spawnSync`.
+  #
+  # The entries are the floor and the ceiling, not two floors. `20.19` is what
+  # `packages/cli` declares in `engines`. `24` is what the Actions runners are
+  # being forced onto and what most consumers installing `oversight-lint` are on,
+  # and nothing tested it before: the old `[20.19, 22.12]` was Vite's two
+  # supported minimums (`engines.node` is `^20.19.0 || >=22.12.0`), so it aimed
+  # at the two oldest versions and never at the newest.
+  #
+  # `24` floats to the latest 24.x on purpose. A pinned minor would freeze this
+  # entry on a version consumers have moved past, which is the failure the compat
+  # job's `react-19` entry documents for Storybook.
+  unit:
+    runs-on: ubuntu-latest
+    if: "github.event_name == 'pull_request' || (!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci'))"
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20.19, 24]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # Builds first because `cli.test.ts` drives `packages/cli/dist/cli.js` and
+      # skips rather than fails when it is absent. Without this the job would run
+      # green having dropped the 11 assertions that are the reason it exists.
+      - name: Build packages
+        run: pnpm build
+
+      - name: Run unit tests
+        run: pnpm test:unit
+
   build:
     runs-on: ubuntu-latest
     if: "github.event_name == 'pull_request' || (!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci'))"
     strategy:
       matrix:
-        node-version: [20.19, 22.12]
+        node-version: [20.19]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -105,15 +156,11 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      # Runs before the demo build so a broken demo cannot hide a package
-      # regression. These are the three node projects; the browser ones are two
-      # steps down.
-      #
-      # Still after `pnpm build`: cli.test.ts drives packages/cli/dist/cli.js and
-      # skips rather than fails when it is absent, so running tests earlier would
-      # drop those 11 assertions without turning anything red.
-      - name: Run unit tests
-        run: pnpm test:unit
+      # The node projects moved to the `unit` job above, which runs them on the
+      # engine floor and on current Node. They used to run here, before the demo
+      # build, so a broken demo could not hide a package regression; a separate
+      # job gives that for free, because a red `unit` cannot be masked by
+      # anything that happens in this one.
 
       # The `storybook` vitest project runs the demo's stories in headless
       # chromium. Only that browser is installed; the project names chromium and
@@ -124,8 +171,13 @@ jobs:
         id: pw
         run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
 
+      # No `id`: there was one, and nothing ever read its `cache-hit`. The
+      # install below cannot be skipped on a hit anyway, because `--with-deps`
+      # pulls system libraries that live outside the cached path. Exact key with
+      # no `restore-keys` on purpose: a near-miss would restore browsers built
+      # for a different Playwright and the install would replace them, so the
+      # partial hit costs a download and saves nothing.
       - name: Cache Playwright browsers
-        id: pw-cache
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
@@ -323,8 +375,13 @@ jobs:
         id: pw
         run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
 
+      # No `id`: there was one, and nothing ever read its `cache-hit`. The
+      # install below cannot be skipped on a hit anyway, because `--with-deps`
+      # pulls system libraries that live outside the cached path. Exact key with
+      # no `restore-keys` on purpose: a near-miss would restore browsers built
+      # for a different Playwright and the install would replace them, so the
+      # partial hit costs a download and saves nothing.
       - name: Cache Playwright browsers
-        id: pw-cache
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
