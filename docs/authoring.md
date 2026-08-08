@@ -37,7 +37,7 @@ No addon-specific tags. Selection guidance is a plain sentence in the descriptio
 
 Selection happens on `list-all-documentation`, and that tool truncates every description to 90 characters. `get-documentation` shows the description in full, but an agent calls it only after it has already chosen. Whatever distinguishes this component from a similar one has to survive the cut, so lead with it.
 
-The example above spends its first 90 characters on the situation the component is for, which is the part that has to arrive. See [What the agent actually receives](./agent-projection.md#truncation-and-caps) for the measurement.
+The example above spends its first 90 characters on the situation the component is for, which is the part that has to arrive. See [What the agent actually receives](./agent-view.md#truncation-and-caps) for the measurement.
 
 ## Redirect between components that get confused
 

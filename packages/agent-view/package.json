@@ -1,5 +1,5 @@
 {
-  "name": "oversight-mcp-projection",
+  "name": "oversight-agent-view",
   "version": "0.0.0",
   "description": "Records what Storybook's MCP server renders from a components manifest, so Oversight's rules can be judged against the text an agent receives rather than the manifest it lints. Never published.",
   "private": true,

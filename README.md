@@ -39,7 +39,7 @@ The rules are shared, so they are documented in [`docs/`](./docs) rather than in
 | Writing component docs an agent can act on | [Authoring MCP-legible docs](./docs/authoring.md) |
 | Keeping a component but exempting it from a rule | [`@oversightIgnore`](./docs/authoring.md#exempting-a-component) |
 | Why these are lint rules and not a manifest viewer | [Why these are lint rules](./docs/why-lint-rules.md) |
-| What the MCP actually serves an agent, field by field | [What the agent actually receives](./docs/agent-projection.md) |
+| What the MCP actually serves an agent, field by field | [What the agent actually receives](./docs/agent-view.md) |
 
 ## Layout
 
