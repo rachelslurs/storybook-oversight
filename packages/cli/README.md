@@ -120,6 +120,7 @@ Findings name a rule id. The rules are shared with the addon, so they are docume
 - [Troubleshooting](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/troubleshooting.md), a fix for every finding
 - [Authoring MCP-legible docs](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/authoring.md), how to write the docs that keep most of them from firing, and [exempting a component](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/authoring.md#exempting-a-component) with `@oversightIgnore`
 - [Why these are lint rules](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/why-lint-rules.md), the four that need judgment a raw view can't give you
+- [What the agent actually receives](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/agent-view.md), which manifest field survives into the MCP's output, and in what form
 
 ## Configuration file
 
