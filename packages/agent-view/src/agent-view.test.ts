@@ -113,9 +113,13 @@ describe('the payload the rules read', () => {
     // `normalizeManifest` read an empty string as missing and fell back to the
     // payload's. On the eight primer-react entries behind #110 that payload was
     // nothing but a JSDoc tag, so the rule took `@deprecated` for prose and
-    // passed a component with no description on either side. Storybook derives
-    // the entry's description from the payload's by stripping those tags out, so
-    // the fallback could only ever put them back, and it is gone.
+    // passed a component with no description on either side.
+    //
+    // The fallback is gone because the entry is the field the server renders,
+    // whatever filled it. Where the payload is the source, the entry is that
+    // payload with its tags stripped, so falling back restored the tags. Where a
+    // story-meta JSDoc exists it replaces the payload as the source outright,
+    // and the payload's prose reaches no reader at all.
     const manifest = variant.tagOnlyDescription();
 
     const [normalized] = normalizeManifest(manifest as RawManifest).components;
