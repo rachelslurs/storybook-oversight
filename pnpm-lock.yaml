@@ -126,6 +126,12 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@20.19.23)(@vitest/browser@3.2.7)(happy-dom@20.10.6)(jiti@2.7.0)(lightningcss@1.32.0)
 
+  packages/agent-view:
+    devDependencies:
+      '@storybook/mcp':
+        specifier: 0.8.0
+        version: 0.8.0(typescript@6.0.3)
+
   packages/cli:
     devDependencies:
       oversight-core:
@@ -133,12 +139,6 @@ importers:
         version: link:../core
 
   packages/core: {}
-
-  packages/mcp-projection:
-    devDependencies:
-      '@storybook/mcp':
-        specifier: 0.8.0
-        version: 0.8.0(typescript@6.0.3)
 
   packages/storybook-addon-oversight:
     dependencies:
