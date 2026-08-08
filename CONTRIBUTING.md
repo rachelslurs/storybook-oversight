@@ -30,6 +30,25 @@ Prefix either Storybook command with `STORYBOOK_DARK=1` to render the Docs pages
 
 Every rule lives as a pure function in `oversight-core` (zero Storybook imports). The panel and the Docs block are thin renderers over it, and the CLI runs the same rules, so a rule change ships to all three at once.
 
+## Vocabulary
+
+Each of these is anchored somewhere you can read, which is what settles an argument about it. Where the anchor is somebody else's code, they own the meaning and this table only points at it.
+
+| Term | Means | Anchored in |
+| --- | --- | --- |
+| tool result | what a tool call returns: a `content` array and an optional `isError` | `CallToolResult`, `tmcp` |
+| `get-documentation` | the tool an agent calls for one component, after it has chosen | `GET_TOOL_NAME`, `@storybook/mcp` |
+| `list-all-documentation` | the tool an agent calls to discover ids, and the only place selection happens | `LIST_TOOL_NAME`, `@storybook/mcp` |
+| manifest | the components manifest | `storybook-static/manifests/components.json` |
+| entry | one component in the manifest | `ComponentManifestEntry`, `@storybook/mcp` |
+| payload | the docgen data an entry carries, under `reactDocgen`, `reactDocgenTypescript` or `reactComponentMeta` | `CoreDocgenPayload` in `@storybook/mcp`, `payloadOf` in `oversight-core` |
+| extractor | whichever of `react-docgen`, `react-docgen-typescript` or `react-component-meta` produced the payload | `meta.docgen` in a manifest. Storybook uses "extractor" for something else, in `PropsExtractor` |
+| rule | one check, with an id, a default severity and a hint | `RuleName`, `oversight-core` |
+| finding | one rule firing on one component, or on the manifest | `Finding`, `oversight-core` |
+| selection, usage | the two things an agent can be short of: which component to use, and how to use it | [What the agent actually receives](./docs/agent-view.md) |
+
+Using "payload" for what the server returns has already cost one pass over the docs. An entry has a payload; a tool call returns a tool result. [What the agent actually receives](./docs/agent-view.md) pins that distinction where a reader meets it.
+
 ## Pull requests
 
 All changes land through pull requests to `main`.
