@@ -17,8 +17,19 @@ function text(value: string | undefined | null): string | null {
   return value ? value : null;
 }
 
+/**
+ * Which payload an entry is read from, when it carries more than one.
+ *
+ * The order mirrors `getParsedDocgen` in `@storybook/mcp`, so that a manifest
+ * with two payloads is linted on the one the MCP serves rather than on a
+ * different one. Reading the other would report on a payload no agent sees.
+ *
+ * No manifest measured so far carries two: not the demo build, not the fixtures
+ * here, and not the eight real design-system manifests behind the audit. So this
+ * order is a guard against a build that starts emitting both, not a fix for one.
+ */
 function payloadOf(entry: RawEntry): RawPayload | undefined {
-  return entry.reactDocgenTypescript ?? entry.reactDocgen ?? entry.reactComponentMeta;
+  return entry.reactDocgen ?? entry.reactDocgenTypescript ?? entry.reactComponentMeta;
 }
 
 function sourcePathOf(payload: RawPayload): string | undefined {

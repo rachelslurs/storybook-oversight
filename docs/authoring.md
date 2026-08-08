@@ -33,15 +33,27 @@ The most useful thing you can hand an agent is which component to use. A descrip
 
 No addon-specific tags. Selection guidance is a plain sentence in the description, typical Storybook practice, and `get-documentation` passes it through verbatim.
 
+## Put the guidance in the first 90 characters
+
+Selection happens on `list-all-documentation`, and that tool truncates every description to 90 characters. `get-documentation` shows the description in full, but an agent calls it only after it has already chosen. Whatever distinguishes this component from a similar one has to survive the cut, so lead with it.
+
+The example above spends its first 90 characters on the situation the component is for, which is the part that has to arrive. See [What the agent actually receives](./agent-projection.md#truncation-and-caps) for the measurement.
+
 ## Redirect between components that get confused
 
-Where two components are confusable, end the description with a redirect, as the example above does. The `[Toggle](?path=…)` link is validated by `docs-link-dangling` and is made clickable in the addon's panel.
+Where two components are confusable, add a redirect, as the example above does. The `[Toggle](?path=…)` link is validated by `docs-link-dangling` and is made clickable in the addon's panel.
+
+Put it early if it is meant to steer selection. A redirect written at the end of a description longer than 90 characters is truncated out of the selection list, so it reaches an agent only once that agent has already picked this component. That is still useful, since it tells it to switch, but it is a correction rather than a signpost.
 
 Those links hardcode manifest ids, so renaming a story title leaves every link to it dead. Only the description is scanned for them, so a `?path=` link in an `@example` is neither validated nor made clickable.
 
 ## Document every prop, required ones first
 
-Put a JSDoc comment on each prop. An agent has to supply the required ones and will guess at any it cannot read, which is why `required-prop-undocumented` is an error where a missing optional description is a warning.
+Put a JSDoc comment on each prop. A prop with no description still reaches the agent by name, type and optionality; only the prose is lost, so the gap is what the prop is for rather than whether it exists.
+
+The severity split between `required-prop-undocumented` and `prop-descriptions-missing` is a judgment about which gap costs more, not a measurement of how an agent behaves without the prose. [Why these are lint rules](./why-lint-rules.md) says what that judgment rests on.
+
+The gap that is not visible at all is an entry with no props recorded. There the whole props section is absent, and the server tells the agent nothing rather than telling it something incomplete. [`props-unrecorded`](./troubleshooting.md#props-unrecorded) covers that case.
 
 ## Exempting a component
 
