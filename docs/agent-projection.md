@@ -62,7 +62,13 @@ Four buckets, describing the payload only:
 - **indistinguishable**, the text is byte-identical to a healthy component's
 - **field stripped**, the field the rule reads never reaches either tool
 
-A stripped field does not mean the rule is about something an agent never encounters, and the last bucket is the one to read carefully. `deprecated-tag` reports a deprecation the agent will never be told about, which is the finding rather than a limitation of it. `extractor-drift` reads a name the server discards, but the extractor decides which props and descriptions are extracted at all, so a drift moves the whole payload the other rules measure. Only `unknown-ignore-rule` is about Oversight's own configuration rather than about the manifest.
+A stripped field does not by itself say whether the condition matters, and the last bucket is the one to read carefully.
+
+`deprecated-tag` reads a field that reaches nothing. Every carrier was checked, across all three tools: the entry's `jsDocTags`, the payload's `tags`, and the prose fields around them. Only a deprecation an author wrote into the description by hand arrives. So the rule reports a deprecation the agent will never be told about, which is the finding rather than a limitation of it. Storybook has this as [storybookjs/mcp#367](https://github.com/storybookjs/mcp/issues/367).
+
+`unknown-ignore-rule` is the one rule here about Oversight's own configuration rather than about the manifest. A mistyped token changes what Oversight reports and leaves the served text untouched.
+
+`extractor-drift` is not settled. The extractor a manifest records is discarded, and how much the extractor itself moves the served text has only been measured on the demo, where switching `react-docgen-typescript` for `react-component-meta` over the same six components changed two of the six renderings, in default-value quoting and one set of parentheses. Prop counts and descriptions were identical. Whether a harder component library diverges further is not established here.
 
 | Rule | What the agent receives | Bucket |
 | --- | --- | --- |
@@ -74,7 +80,7 @@ A stripped field does not mean the rule is about something an agent never encoun
 | `required-prop-undocumented` | the same, on a prop rendered without `?` | distinguishable |
 | `docs-link-dangling` | the link is verbatim in `get-documentation`, and truncated out of the selection list when the description runs past 90 characters | distinguishable, but only after selection |
 | `ref-unresolved` | the whole call fails and the component is lost | signalled |
-| `extractor-drift` | `meta.docgen` is dropped, while the extractor it names decides what every other row contains | field stripped |
+| `extractor-drift` | `meta.docgen` is dropped; how far the extractor moves the rest is measured only on the demo, where it changed default-value quoting | field stripped |
 | `unknown-ignore-rule` | `jsDocTags` is dropped | field stripped |
 | `deprecated-tag` | `jsDocTags` and payload `tags` are both dropped, so the deprecation reaches nobody downstream | field stripped |
 
