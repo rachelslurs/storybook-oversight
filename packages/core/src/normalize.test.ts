@@ -106,6 +106,35 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
     expect(result.tags['data-display-widget'].deprecated).toBe('use Gadget instead\nsince 2.0');
   });
 
+  it('reads the payload the MCP serves when an entry carries two', () => {
+    // No manifest measured carries both keys, so this guards a build that starts
+    // emitting them rather than describing one that does. `@storybook/mcp` picks
+    // `reactDocgen` first; reading the other would lint a payload no agent sees.
+    const raw: RawManifest = {
+      v: 0,
+      components: {
+        'data-display-widget': {
+          id: 'data-display-widget',
+          name: 'Widget',
+          path: './src/Widget/Widget.stories.tsx',
+          reactDocgen: {
+            description: 'The payload the MCP reads.',
+            props: { size: { description: 'From react-docgen.', required: true } },
+          },
+          reactDocgenTypescript: {
+            description: 'The payload the MCP ignores.',
+            props: { tone: { description: 'From react-docgen-typescript.', required: false } },
+          },
+        },
+      },
+    };
+
+    const [widget] = normalizeManifest(raw).components;
+
+    expect(widget.description).toBe('The payload the MCP reads.');
+    expect(Object.keys(widget.props)).toEqual(['size']);
+  });
+
   it('supports the react-component-meta payload shape', () => {
     // `features.experimentalReactComponentMeta` emits a plain v:0 manifest whose
     // payload key is neither of the other two. Reading it as a missing payload

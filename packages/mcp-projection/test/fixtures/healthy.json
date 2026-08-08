@@ -1,0 +1,137 @@
+{
+  "v": 0,
+  "meta": {
+    "docgen": "react-docgen-typescript"
+  },
+  "components": {
+    "actions-button": {
+      "id": "actions-button",
+      "name": "Button",
+      "path": "./stories/Button/Button.stories.tsx",
+      "jsDocTags": {},
+      "description": "Triggers an action when pressed: submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
+      "reactDocgenTypescript": {
+        "tags": {},
+        "filePath": "/repo/stories/Button/Button.tsx",
+        "description": "Triggers an action when pressed: submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
+        "displayName": "Button",
+        "methods": [],
+        "props": {
+          "variant": {
+            "defaultValue": null,
+            "description": "Visual style: 'primary' for the main action, 'secondary' for supporting ones.",
+            "name": "variant",
+            "parent": {
+              "fileName": "storybook-addon-oversight/stories/Button/Button.tsx",
+              "name": "ButtonProps"
+            },
+            "declarations": [
+              {
+                "fileName": "storybook-addon-oversight/stories/Button/Button.tsx",
+                "name": "ButtonProps"
+              }
+            ],
+            "required": true,
+            "type": {
+              "name": "enum",
+              "raw": "\"primary\" | \"secondary\"",
+              "value": [
+                {
+                  "value": "\"primary\""
+                },
+                {
+                  "value": "\"secondary\""
+                }
+              ]
+            }
+          },
+          "size": {
+            "defaultValue": {
+              "value": "md"
+            },
+            "description": "Control height and padding. Defaults to 'md'.",
+            "name": "size",
+            "parent": {
+              "fileName": "storybook-addon-oversight/stories/Button/Button.tsx",
+              "name": "ButtonProps"
+            },
+            "declarations": [
+              {
+                "fileName": "storybook-addon-oversight/stories/Button/Button.tsx",
+                "name": "ButtonProps"
+              }
+            ],
+            "required": false,
+            "type": {
+              "name": "enum",
+              "raw": "\"sm\" | \"md\" | \"lg\"",
+              "value": [
+                {
+                  "value": "\"sm\""
+                },
+                {
+                  "value": "\"md\""
+                },
+                {
+                  "value": "\"lg\""
+                }
+              ]
+            }
+          },
+          "children": {
+            "defaultValue": null,
+            "description": "Content rendered inside the button.",
+            "name": "children",
+            "parent": {
+              "fileName": "storybook-addon-oversight/stories/Button/Button.tsx",
+              "name": "ButtonProps"
+            },
+            "declarations": [
+              {
+                "fileName": "storybook-addon-oversight/stories/Button/Button.tsx",
+                "name": "ButtonProps"
+              }
+            ],
+            "required": false,
+            "type": {
+              "name": "ReactNode"
+            }
+          },
+          "onClick": {
+            "defaultValue": null,
+            "description": "Fires when the button is activated by click, tap, or keyboard.",
+            "name": "onClick",
+            "parent": {
+              "fileName": "storybook-addon-oversight/stories/Button/Button.tsx",
+              "name": "ButtonProps"
+            },
+            "declarations": [
+              {
+                "fileName": "storybook-addon-oversight/stories/Button/Button.tsx",
+                "name": "ButtonProps"
+              }
+            ],
+            "required": false,
+            "type": {
+              "name": "(() => void)"
+            }
+          }
+        },
+        "exportName": "Button"
+      },
+      "stories": [
+        {
+          "id": "actions-button--primary",
+          "name": "Primary",
+          "snippet": "const Primary = () => <Button variant=\"primary\">Save changes</Button>;"
+        },
+        {
+          "id": "actions-button--secondary",
+          "name": "Secondary",
+          "snippet": "const Secondary = () => <Button variant=\"secondary\">Cancel</Button>;"
+        }
+      ],
+      "import": "import { Button } from \"oversight-workspace\";"
+    }
+  }
+}
