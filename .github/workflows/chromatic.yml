@@ -19,10 +19,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          # `onlyChanged` diffs against the baseline commit to decide what to
-          # re-photograph, so it needs real history. A shallow clone makes it
-          # fall back to snapshotting everything, which is the bill this flag
-          # exists to avoid.
+          # Chromatic diffs against the baseline commit, so it needs real
+          # history rather than a shallow clone.
           fetch-depth: 0
 
       - name: Install pnpm
@@ -65,6 +63,14 @@ jobs:
         if: steps.cfg.outputs.ready == 'true'
         run: pnpm exec storybook build
 
+      # No `onlyChanged`. TurboSnap needs a stats file that `storybook build`
+      # only writes under `--stats-json`, and without one it fails the job the
+      # first time a pull request touches a file it has to trace. Every pull
+      # request between adding this workflow and finding that touched only
+      # `.github/`, so it had nothing to trace and the job passed. Six stories
+      # is not worth a second build flag and a failure mode that stays hidden
+      # until someone changes code.
+      #
       # `autoAcceptChanges: main` because review belongs on the pull request. A
       # change that has already merged is accepted by definition, and without
       # this the baseline never advances and every later build diffs against a
@@ -75,5 +81,4 @@ jobs:
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           storybookBuildDir: storybook-static
-          onlyChanged: true
           autoAcceptChanges: main
