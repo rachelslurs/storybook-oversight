@@ -184,6 +184,12 @@ export function shortDescription(text: string): Manifest {
  * The same component as a v:1 index entry pointing at externalised leaves.
  * Returns the manifest and the files its `$ref`s resolve to, so a caller can
  * withhold one and make the ref dangle.
+ *
+ * The `{ components: { <id>: ... } }` envelope each leaf carries is called out
+ * in Storybook's docgen server RFC as an internal construct rather than a public
+ * API, so this fixture is built on something free to change without notice. It
+ * is written by hand for that reason: a real `experimentalDocgenServer` build
+ * would tie the whole file to that shape instead of these two functions.
  */
 export function refManifest(): { manifest: Manifest; files: Record<string, unknown> } {
   const entry = healthy().components[ENTRY_ID]!;
