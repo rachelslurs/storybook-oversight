@@ -158,6 +158,17 @@ describe('a story whose snippet never extracted', () => {
     expect(text).toBe('');
     expect(isError).toBe(false);
   });
+
+  it('still renders when the story kept its snippet, error and all', async () => {
+    // The disappearance above follows from the missing snippet, not from the
+    // error. A story recording both is served as though nothing went wrong, so
+    // `story-extraction-error` covers two projections rather than one.
+    const manifest = variant.storyErrorWithSnippet();
+    const { text } = await render(manifest);
+
+    expect(text).toContain('### Primary');
+    expect(text).not.toContain('Expected story to be a function');
+  });
 });
 
 describe('the selection list', () => {
