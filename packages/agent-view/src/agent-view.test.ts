@@ -7,7 +7,7 @@
  * whose justification quietly stopped being true.
  *
  * Read the snapshots as the deliverable. Read the assertions as the claims
- * `docs/agent-projection.md` is allowed to make.
+ * `docs/agent-view.md` is allowed to make.
  */
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';

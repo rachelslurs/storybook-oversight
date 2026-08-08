@@ -10,7 +10,7 @@ Nothing here is a claim about what a model does with the text. See [What this do
 
 Against `@storybook/mcp` 0.8.0, the version `@storybook/addon-mcp` 0.7.0 pins, with Storybook 10.5.7.
 
-The measurements come from invoking the server's exported tool registrars against an in-memory manifest, so the text below is produced by the shipped code path rather than by a reimplementation of it. The formatters themselves are internal to `@storybook/mcp` and cannot be imported. `packages/mcp-projection` holds the harness, the variants, and a snapshot of every rendering described here; `pnpm test:unit` runs it.
+The measurements come from invoking the server's exported tool registrars against an in-memory manifest, so the text below is produced by the shipped code path rather than by a reimplementation of it. The formatters themselves are internal to `@storybook/mcp` and cannot be imported. `packages/agent-view` holds the harness, the variants, and a snapshot of every rendering described here; `pnpm test:unit` runs it.
 
 The baseline is the real `actions-button` entry from a `storybook build` of the demo. Every variant mutates that one entry, so a difference in output is attributable to the single field that changed.
 
@@ -55,7 +55,7 @@ The entry's own `error` is the row to notice. The server preserves it through re
 
 ## Where each rule lands
 
-Four buckets, describing the payload only:
+Four buckets, describing the tool result only:
 
 - **signalled**, the call fails or returns `isError`
 - **distinguishable**, the text differs from a healthy component's
@@ -66,9 +66,9 @@ A stripped field does not by itself say whether the condition matters, and the l
 
 `deprecated-tag` reads a field that reaches nothing. Every carrier was checked, across all three tools: the entry's `jsDocTags`, the payload's `tags`, and the prose fields around them. Only a deprecation an author wrote into the description by hand arrives. So the rule reports a deprecation the agent is not told about, which is the finding rather than a limitation of it. That is reported and open as [storybookjs/mcp#367](https://github.com/storybookjs/mcp/issues/367), so it describes the output as measured rather than a settled position, and what reaches an agent here may change.
 
-`unknown-ignore-rule` is the one rule here about Oversight's own configuration rather than about the manifest. A mistyped token changes what Oversight reports and leaves the served text untouched.
+`unknown-ignore-rule` is the one rule here about Oversight's own configuration rather than about the manifest. A mistyped token changes what Oversight reports and leaves the tool result untouched.
 
-`extractor-drift` is not settled. The extractor a manifest records is discarded, and how much the extractor itself moves the served text has only been measured on the demo, where switching `react-docgen-typescript` for `react-component-meta` over the same six components changed two of the six renderings, in default-value quoting and one set of parentheses. Prop counts and descriptions were identical. Whether a harder component library diverges further is not established here.
+`extractor-drift` is not settled. The extractor a manifest records is discarded, and how much the extractor itself moves the tool result has only been measured on the demo, where switching `react-docgen-typescript` for `react-component-meta` over the same six components changed two of the six renderings, in default-value quoting and one set of parentheses. Prop counts and descriptions were identical. Whether a harder component library diverges further is not established here.
 
 | Rule | What the agent receives | Bucket |
 | --- | --- | --- |
@@ -121,4 +121,6 @@ This page describes bytes. It says nothing about what a model does with them, an
 
 Specifically untested: whether a model obeys the instruction block when the props section is missing, whether a bare line loses a selection against summarized siblings, whether the 90-character truncation changes which component gets chosen, and whether a prop rendered as `any` induces a bogus argument. Those need a model in the loop and controls, and none has been run.
 
-Where this page says an agent "cannot tell" two states apart, that is a statement about the payload carrying no difference, not a prediction about behavior.
+Where this page says an agent "cannot tell" two states apart, that is a statement about the tool result carrying no difference, not a prediction about behavior.
+
+Throughout, "payload" means the docgen data an entry carries, which is how both `oversight-core` and `@storybook/mcp` use the word. What the server returns is the tool result.
