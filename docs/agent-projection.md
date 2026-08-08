@@ -64,7 +64,7 @@ Four buckets, describing the payload only:
 
 A stripped field does not by itself say whether the condition matters, and the last bucket is the one to read carefully.
 
-`deprecated-tag` reads a field that reaches nothing. Every carrier was checked, across all three tools: the entry's `jsDocTags`, the payload's `tags`, and the prose fields around them. Only a deprecation an author wrote into the description by hand arrives. So the rule reports a deprecation the agent will never be told about, which is the finding rather than a limitation of it. Storybook has this as [storybookjs/mcp#367](https://github.com/storybookjs/mcp/issues/367).
+`deprecated-tag` reads a field that reaches nothing. Every carrier was checked, across all three tools: the entry's `jsDocTags`, the payload's `tags`, and the prose fields around them. Only a deprecation an author wrote into the description by hand arrives. So the rule reports a deprecation the agent is not told about, which is the finding rather than a limitation of it. That is reported and open as [storybookjs/mcp#367](https://github.com/storybookjs/mcp/issues/367), so it describes the output as measured rather than a settled position, and what reaches an agent here may change.
 
 `unknown-ignore-rule` is the one rule here about Oversight's own configuration rather than about the manifest. A mistyped token changes what Oversight reports and leaves the served text untouched.
 
