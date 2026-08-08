@@ -80,20 +80,21 @@ describe('the payload the rules read', () => {
 
   it('is read from the entry by the server, and from either by the rules', async () => {
     // A divergence, recorded rather than fixed here because fixing it changes
-    // findings. `formatComponentManifest` reads only the entry's `description`.
-    // `normalizeManifest` falls back to the payload's when the entry has none, so
-    // a component documented only in its payload passes
-    // `component-description-missing` while the server shows an agent nothing.
+    // findings. `formatComponentManifest` reads the entry's `description` and an
+    // empty one renders as nothing. `normalizeManifest` treats an empty string as
+    // missing and falls back to the payload's, which in the eight primer-react
+    // entries behind #110 is a bare `@deprecated`. So the rule is handed tag text,
+    // takes it for prose, and passes a component with no description either side.
     const manifest = variant.healthy();
     const entry = manifest.components[variant.ENTRY_ID]!;
-    delete entry.description;
-    variant.payloadOf(entry).description = 'Documented in the payload only.';
+    entry.description = '';
+    variant.payloadOf(entry).description = '@deprecated';
 
     const [normalized] = normalizeManifest(manifest as RawManifest).components;
     const { text } = await render(manifest);
 
-    expect(normalized!.description).toBe('Documented in the payload only.');
-    expect(text).not.toContain('Documented in the payload only.');
+    expect(normalized!.description).toBe('@deprecated');
+    expect(text).not.toContain('@deprecated');
   });
 });
 
