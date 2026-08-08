@@ -12,9 +12,22 @@ import type {
   StoryFailure,
 } from './types';
 
-/** Empty strings count as "not documented". */
+/**
+ * Empty strings count as "not documented", and so do whitespace-only ones: the
+ * server pushes whatever the field holds, so a reader sees nothing either way.
+ * Storybook's own builder trims before it writes, so this covers manifests from
+ * other producers and v:1 leaves, which `resolveManifestRefs` lifts untouched.
+ *
+ * The original is returned rather than the trimmed copy. What the server renders
+ * is the untrimmed string, and this value is what the rules compare against it.
+ *
+ * The type is tested, not just the emptiness. The input is an untyped manifest,
+ * so a `description` retyped to an object arrives here; the old truthiness check
+ * read it as documented and marked every prop covered with nothing said, and a
+ * bare `.trim()` would throw out of the whole normalizer instead.
+ */
 function text(value: string | undefined | null): string | null {
-  return value ? value : null;
+  return typeof value === 'string' && value.trim() !== '' ? value : null;
 }
 
 /**
@@ -341,17 +354,18 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
     components.push({
       id,
       name,
-      // The entry's, and only the entry's, because the entry's is the payload's
-      // already processed. Storybook builds it in `extractComponentDescription`
-      // by running the payload description through `extractJSDocInfo`, keeping
-      // the prose and moving every JSDoc tag into `jsDocTags`. So the payload
-      // holds the same prose plus the tag lines, never prose the entry lacks,
-      // and falling back to it could only restore what the strip removed. On
-      // the eight primer-react entries behind #110 that was the whole string:
-      // an empty entry description over a payload that is nothing but tags, so
-      // the rule read `@deprecated` and `@param` blocks as prose and passed a
-      // component with no description on either side. `@storybook/mcp` reads
-      // the entry alone too, so this is also what the agent is shown.
+      // The entry's, and only the entry's, because that is the field
+      // `@storybook/mcp` renders. Storybook fills it in
+      // `extractComponentDescription`, from `metaJsDoc || docgenDescription`
+      // run through `extractJSDocInfo`: the prose stays, every JSDoc tag moves
+      // to `jsDocTags`, and `@describe` / `@desc` outrank the extracted prose.
+      // When the payload is the source the entry is that payload minus its
+      // tags, so falling back restored the tags. When a story-meta JSDoc exists
+      // it replaces the payload as the source outright, and the payload's prose
+      // is not what any reader gets. On the eight primer-react entries behind
+      // #110 the payload was nothing but tags, so the fallback read
+      // `@deprecated` and `@param` blocks as prose and passed a component the
+      // server shows no description for.
       description: text(entry.description),
       sourceFile,
       // Kept beside the trimmed one because the trimming is what makes the path

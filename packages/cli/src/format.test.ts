@@ -10,7 +10,7 @@ const findings: Finding[] = [
     severity: 'warning',
     componentId: 'ui-card',
     message: 'Card has no description.',
-    hint: 'Add a JSDoc block above the component.',
+    hint: 'Add prose to the component JSDoc block, outside any tag.',
   },
   {
     rule: 'required-prop-undocumented',

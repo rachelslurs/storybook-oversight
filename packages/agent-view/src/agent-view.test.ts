@@ -12,7 +12,7 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 import { STORYBOOK_MCP_INSTRUCTIONS } from '@storybook/mcp';
-import { normalizeManifest, type RawManifest } from 'oversight-core';
+import { normalizeManifest, resolveManifestRefs, type RawManifest } from 'oversight-core';
 
 import { filesFor, getDocumentation, getStoryDocumentation, listAllDocumentation } from './driver.ts';
 import * as variant from './variants.ts';
@@ -27,9 +27,34 @@ const render = (manifest: unknown, extra: Record<string, unknown> = {}) =>
 
 const list = (manifest: unknown) => listAllDocumentation(filesFor(manifest));
 
-/** The prose `get-documentation` prints between the id line and the first
- *  section heading, which is where the component's description lands. */
-const renderedDescription = (text: string) => (text.split(`ID: ${variant.ENTRY_ID}`)[1] ?? '').split(/^## /m)[0].trim();
+/** The sections `get-documentation` emits after the description. Named rather
+ *  than cut at any `## `, because a heading is legal inside a JSDoc description
+ *  and truncating there would read as a server change when nothing had moved. */
+const SECTIONS = ['## Stories', '## Props'];
+
+/**
+ * The prose `get-documentation` prints between the id line and the first
+ * section, which is where the component's description lands.
+ *
+ * The id line is matched whole. `ID: actions-button` is also a substring of
+ * every `Story ID: actions-button--primary` line, so splitting on it lands on
+ * the description only while `## Stories` happens to fall in between. Throws
+ * rather than returning "" when the line is absent, since an error body has no
+ * id line either and would otherwise compare equal to a missing description.
+ */
+const renderedDescription = (text: string): string => {
+  const lines = text.split('\n');
+  const start = lines.indexOf(`ID: ${variant.ENTRY_ID}`);
+  if (start === -1) throw new Error(`no "ID: ${variant.ENTRY_ID}" line in the tool result:\n${text}`);
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => SECTIONS.includes(line.trim()));
+  return (end === -1 ? rest : rest.slice(0, end)).join('\n').trim();
+};
+
+/** Reads a v:1 leaf out of the fixture's file map. `resolveManifestRefs` climbs
+ *  one level out of `manifests/`, and the map is keyed from the build root. */
+const refLoader = (files: Record<string, unknown>) => async (path: string) =>
+  JSON.stringify(files[path.replace(/^\.\.\//, './')]);
 
 describe('the version these results describe', () => {
   it('measures the copy of @storybook/mcp that addon-mcp ships', () => {
@@ -94,10 +119,15 @@ describe('the payload the rules read', () => {
     const manifest = variant.tagOnlyDescription();
 
     const [normalized] = normalizeManifest(manifest as RawManifest).components;
-    const { text } = await render(manifest);
+    const { text, isError } = await render(manifest);
 
     expect(normalized!.description).toBeNull();
     expect(text).not.toContain('@deprecated');
+    // The component is still served, and served in full. Without these two, a
+    // server that started erroring on an empty description would satisfy the
+    // line above with its error message and the divergence would reopen unseen.
+    expect(isError).toBe(false);
+    expect(text).toContain('## Props');
   });
 
   it('resolves the description the server renders, over the same manifest', async () => {
@@ -105,23 +135,47 @@ describe('the payload the rules read', () => {
     // against a literal: the rules' resolved description is compared with the
     // prose `get-documentation` prints, over one manifest, so a fallback added
     // to either side shows up here as a mismatch.
-    const cases = {
+    //
+    // The two ref cases carry their description on opposite sides of the `$ref`.
+    // `resolveManifestRefs` lifts a leaf's description only when the index row
+    // omits the key, and the server spreads the leaf and re-asserts the index
+    // row's value on the same condition, so the two agree by matching rules
+    // rather than by assertion. These hold them to it.
+    const inline = {
       healthy: variant.healthy(),
       'tag-only': variant.tagOnlyDescription(),
-      'param block': variant.tagOnlyDescription('@param anchorSide Which side to slide in from.'),
+      // The tags an entry carries have to be the ones stripped out of its own
+      // payload description, since one call produces both.
+      'param block': variant.tagOnlyDescription('@param anchorSide Which side to slide in from.', {
+        param: ['anchorSide Which side to slide in from.'],
+      }),
     };
+    const refs = { 'ref, on the index': variant.refManifest(), 'ref, on the leaf': variant.refManifest('leaf') };
 
-    for (const [label, manifest] of Object.entries(cases)) {
-      const [normalized] = normalizeManifest(manifest as RawManifest).components;
-      const { text } = await render(manifest);
+    const cases: Array<{ label: string; manifest: RawManifest; files: Record<string, unknown> }> = [
+      ...Object.entries(inline).map(([label, m]) => ({ label, manifest: m as RawManifest, files: {} })),
+      ...Object.entries(refs).map(([label, r]) => ({ label, manifest: r.manifest as RawManifest, files: r.files })),
+    ];
 
+    for (const { label, manifest, files } of cases) {
+      const resolved = await resolveManifestRefs(manifest, refLoader(files));
+      const [normalized] = normalizeManifest(resolved).components;
+      const { text, isError } = await render(manifest, files);
+
+      // Prefixed with the label so a failure names the case rather than showing
+      // two anonymous strings.
       expect(`${label}: ${renderedDescription(text)}`).toBe(`${label}: ${normalized!.description ?? ''}`);
+      expect(`${label}: ${isError}`).toBe(`${label}: false`);
     }
 
-    // The control. Without a case the server does render, the comparison would
-    // hold on two empty strings and could not fail.
-    const [healthy] = normalizeManifest(cases.healthy as RawManifest).components;
+    // The controls. Without a case the server does render, every comparison
+    // above would hold on two empty strings and none could fail; without the
+    // second, the ref cases could both resolve to nothing and still match.
+    const [healthy] = normalizeManifest(inline.healthy as RawManifest).components;
     expect(healthy!.description).toContain('Triggers an action when pressed');
+    const onLeaf = variant.refManifest('leaf');
+    const resolvedLeaf = await resolveManifestRefs(onLeaf.manifest as RawManifest, refLoader(onLeaf.files));
+    expect(normalizeManifest(resolvedLeaf).components[0]!.description).toContain('Triggers an action when pressed');
   });
 });
 

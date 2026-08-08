@@ -246,11 +246,12 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
   });
 
   it('reads the entry description and never the payload one', () => {
-    // Storybook derives the entry's description from the payload's by stripping
-    // its JSDoc tags out into `jsDocTags`, so the payload only ever holds the
-    // same prose plus the tag lines. Falling back to it restored the tags: on
-    // the primer-react entries behind #110 the whole payload description was a
-    // bare `@deprecated` or a block of `@param`, and the rule took it for prose.
+    // The entry's is the field the server renders. Storybook fills it from
+    // `metaJsDoc || docgenDescription` with the JSDoc tags stripped out into
+    // `jsDocTags`, so when the payload is the source the entry is that payload
+    // minus its tags, and falling back restored them: on the primer-react
+    // entries behind #110 the whole payload description was a bare `@deprecated`
+    // or a block of `@param`, and the rule took it for prose.
     const result = normalizeManifest({
       components: {
         a: {
@@ -272,10 +273,12 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
   });
 
   it('normalizes a missing entry description to null over a payload that has one', () => {
-    // The other shape the field arrives in: v:1 omits `description` from the
-    // entry rather than writing an empty string, so the two have to land the
-    // same way. The payload carries prose here, not a tag, so the assertion
-    // fails if anything reads it.
+    // The other shape the field arrives in. An absent key and an empty string
+    // both mean "no description", and which one a build writes tracks whether
+    // `extractComponentDescription` had a JSDoc comment to read at all, not the
+    // manifest version: the fixtures here carry a v:0 entry with `description:
+    // ''` and a v:1 index row with the key absent. The payload carries prose
+    // rather than a tag, so the assertion fails if anything reads it.
     const result = normalizeManifest({
       components: {
         a: {

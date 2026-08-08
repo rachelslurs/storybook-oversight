@@ -33,9 +33,9 @@ describe('what a rule dictates', () => {
         'ex-a': {
           name: 'A',
           path: './A.stories.tsx',
+          description: 'A component.',
           jsDocTags: { deprecated: 'Use B instead.' },
           reactDocgenTypescript: {
-            description: 'A component.',
             props: { label: { description: '', required: true, declarations: [] } },
           },
         },

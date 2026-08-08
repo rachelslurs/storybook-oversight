@@ -142,6 +142,9 @@ describe('ReportView prop shape', () => {
         'ex-moved': {
           id: 'ex-moved',
           name: 'Moved',
+          // On the index row, where a v:1 build writes it. The leaf carries the
+          // payload; only the index row's description reaches a reader.
+          description: 'A component.',
           docgen: { $ref: './docgen/ex-moved.json#/components/ex-moved' },
           stories: { $ref: './story-docs/ex-moved.json#/components/ex-moved' },
         },
@@ -152,7 +155,7 @@ describe('ReportView prop shape', () => {
         components: {
           'ex-moved': {
             path: './Moved.stories.tsx',
-            reactComponentMeta: { description: 'A component.', props: { tone: { kind: 'moved' } } },
+            reactComponentMeta: { props: { tone: { kind: 'moved' } } },
             stories: { 'ex-moved--basic': { id: 'ex-moved--basic', name: 'Basic' } },
           },
         },
@@ -538,8 +541,9 @@ describe('ReportView report rendering', () => {
         'ex-old': {
           name: 'Old',
           path: './Old.stories.tsx',
+          description: 'An old component.',
           jsDocTags: { deprecated: 'Use New instead.' },
-          reactDocgenTypescript: { description: 'An old component.', props: {} },
+          reactDocgenTypescript: { props: {} },
         },
       },
     } as unknown as RawManifest;
@@ -562,7 +566,8 @@ describe('ReportView report rendering', () => {
         'ex-doc': {
           name: 'Doc',
           path: './Doc.stories.tsx',
-          reactDocgenTypescript: { description: 'Prose.', props: {} },
+          description: 'Prose.',
+          reactDocgenTypescript: { props: {} },
         },
       },
     } as unknown as RawManifest;

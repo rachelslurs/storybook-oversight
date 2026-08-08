@@ -174,14 +174,23 @@ export function deprecated(): Manifest {
 
 /**
  * The shape #110 takes in the wild: the entry's description present and empty,
- * over a payload description that is nothing but JSDoc tags. Storybook builds
- * the entry's from the payload's by stripping the tags out into `jsDocTags`, so
- * a component documented only by tags leaves an empty string behind. Five of the
- * eight primer-react entries carry `@deprecated` here and three a `@param` block.
+ * over a payload description that is nothing but JSDoc tags. Five of the eight
+ * primer-react entries carry `@deprecated` here and three a `@param` block.
+ *
+ * The tags land on the entry as well, because one `extractComponentDescription`
+ * call returns `{ description, summary, jsDocTags }` together: the empty
+ * description and the stripped tags are the same return value, and a manifest
+ * carrying one without the other is a shape no build emits. Leaving `jsDocTags`
+ * at the fixture's `{}` would make every assertion about the tags reaching an
+ * agent pass on a carrier that was never populated.
  */
-export function tagOnlyDescription(tag = '@deprecated'): Manifest {
+export function tagOnlyDescription(
+  tag = '@deprecated',
+  tags: Record<string, unknown> = { deprecated: [' '] },
+): Manifest {
   return mutate((entry) => {
     entry.description = '';
+    entry.jsDocTags = { ...entry.jsDocTags, ...tags };
     payloadOf(entry).description = tag;
   });
 }
@@ -205,11 +214,15 @@ export function shortDescription(text: string): Manifest {
  * is written by hand for that reason: a real `experimentalDocgenServer` build
  * would tie the whole file to that shape instead of these two functions.
  */
-export function refManifest(): { manifest: Manifest; files: Record<string, unknown> } {
+export function refManifest(descriptionOn: 'index' | 'leaf' = 'index'): {
+  manifest: Manifest;
+  files: Record<string, unknown>;
+} {
   const entry = healthy().components[ENTRY_ID]!;
   const payload = payloadOf(entry);
   const docgenPath = `./services/core/docgen/${ENTRY_ID}.json`;
   const storyDocsPath = `./services/core/story-docs/${ENTRY_ID}.json`;
+  const onIndex = descriptionOn === 'index';
 
   const index = {
     v: 1,
@@ -217,7 +230,12 @@ export function refManifest(): { manifest: Manifest; files: Record<string, unkno
       [ENTRY_ID]: {
         id: entry.id,
         name: entry.name,
-        description: entry.description,
+        // Both branches occur in the shape, and the two readers resolve them
+        // through different code: `resolveManifestRefs` lifts a leaf description
+        // only when the index row omits the key, and the server spreads the leaf
+        // and then re-asserts the index row's value on the same condition. They
+        // agree, and `descriptionOn: 'leaf'` is what holds them to it.
+        ...(onIndex ? { description: entry.description } : {}),
         docgen: { $ref: `../services/core/docgen/${ENTRY_ID}.json#/components/${ENTRY_ID}` },
         stories: { $ref: `../services/core/story-docs/${ENTRY_ID}.json#/components/${ENTRY_ID}` },
       },
@@ -227,7 +245,14 @@ export function refManifest(): { manifest: Manifest; files: Record<string, unkno
   return {
     manifest: index,
     files: {
-      [docgenPath]: { components: { [ENTRY_ID]: { reactComponentMeta: { props: payload.props } } } },
+      [docgenPath]: {
+        components: {
+          [ENTRY_ID]: {
+            ...(onIndex ? {} : { description: entry.description }),
+            reactComponentMeta: { props: payload.props },
+          },
+        },
+      },
       [storyDocsPath]: {
         components: { [ENTRY_ID]: { stories: entry.stories, import: entry.import } },
       },

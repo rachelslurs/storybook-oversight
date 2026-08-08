@@ -50,8 +50,8 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         a: {
           name: 'A',
           path: './a.stories.tsx',
+          description: 'documented',
           reactDocgenTypescript: {
-            description: 'documented',
             props: {
               value: { description: '', required: true },
               tone: { description: '', required: false },
@@ -74,8 +74,8 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         a: {
           name: 'A',
           path: './a.stories.tsx',
+          description: 'documented',
           reactDocgenTypescript: {
-            description: 'documented',
             tags: { deprecated: 'use B instead' },
             props: {},
           },
@@ -413,17 +413,38 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
             props: { size: { description: 'Size.', required: false } },
           },
         },
+        whitespace: {
+          name: 'Whitespace',
+          path: './whitespace.stories.tsx',
+          // Storybook trims before it writes, so this arrives from another
+          // producer or from a v:1 leaf, which resolution lifts untouched. The
+          // server pushes it and a reader sees nothing, same as an empty one.
+          description: '\n  \n',
+          reactDocgen: { props: { size: { description: 'Size.', required: false } } },
+        },
+        describes: {
+          name: 'Describes',
+          path: './describes.stories.tsx',
+          // `@describe` and `@desc` are the route tag text does reach the entry
+          // by: `extractComponentDescription` reads them ahead of the extracted
+          // prose. The server renders the same field, so the rule agrees with it.
+          description: 'Use for the main action.',
+          jsDocTags: { describe: ['Use for the main action.'] },
+          reactDocgen: {
+            description: '@describe Use for the main action.',
+            props: { size: { description: 'Size.', required: false } },
+          },
+        },
       },
     });
     const flagged = lint(result)
       .filter((d) => d.rule === 'component-description-missing')
       .map((d) => d.componentId);
 
-    // Both tag-only entries, and neither is a `@deprecated` special case.
-    expect(flagged).toEqual(['deprecated', 'params']);
-    // The control: prose that survived the strip still satisfies the rule, so a
-    // fix that flagged everything with a tag in its payload fails here.
-    expect(flagged).not.toContain('prose');
+    // The two controls sit in this list rather than beside it: `prose` fails a
+    // fix that flagged anything carrying a tag in its payload, and `describes`
+    // fails one that refused tag-derived prose the server does render.
+    expect(flagged).toEqual(['deprecated', 'params', 'whitespace']);
   });
 
   it('reports story extraction errors on payload-bearing entries too', () => {
