@@ -53,7 +53,7 @@ Measured by marking each field with a unique value and looking for it in the out
 
 The entry's own `error` is the row to notice. The server preserves it through resolution and then never renders it, while rendering the same field on a subcomponent.
 
-`description` is the entry's, and only the entry's. The server does not fall back to the payload's `description` when the entry has none, and `oversight-core` does. A component documented only inside its payload therefore satisfies `component-description-missing` while an agent is shown nothing. Eight of primer-react's 245 components are in that state, so it is reachable rather than theoretical.
+`description` is the entry's, and only the entry's. An empty string renders as no description at all, and the server does not fall back to the payload's. `oversight-core` does fall back, which is [#110](https://github.com/rachelslurs/storybook-oversight/issues/110). Eight of primer-react's 245 components sit in the gap, each with an empty entry description and a payload description that is a bare `@deprecated` tag, so the rule reads tag text as prose and passes a component an agent sees no description for.
 
 ## Where each rule lands
 
