@@ -12,6 +12,7 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 import { STORYBOOK_MCP_INSTRUCTIONS } from '@storybook/mcp';
+import { normalizeManifest, type RawManifest } from 'oversight-core';
 
 import { filesFor, getDocumentation, getStoryDocumentation, listAllDocumentation } from './driver.ts';
 import * as variant from './variants.ts';
@@ -43,6 +44,56 @@ describe('the version these results describe', () => {
     expect(STORYBOOK_MCP_INSTRUCTIONS).toContain('Never hallucinate component properties');
     expect(STORYBOOK_MCP_INSTRUCTIONS).toContain('If it is not documented, it does not exist');
     expect(STORYBOOK_MCP_INSTRUCTIONS).toMatchSnapshot();
+  });
+});
+
+describe('the payload the rules read', () => {
+  it('is the one the server serves, when an entry carries two', async () => {
+    // The rules pick a payload and the server picks a payload, and `docs/agent-view.md`
+    // asserts the two agree. Testing each in its own file would let the server change
+    // its order while both suites stayed green and the page quietly went wrong.
+    const manifest = variant.healthy();
+    const entry = manifest.components[variant.ENTRY_ID]!;
+
+    // Both readers prefer the entry's own description over either payload's, so
+    // it has to go or it shadows the thing under test.
+    delete entry.description;
+    entry.reactDocgen = {
+      description: 'Served by the MCP.',
+      props: { servedProp: { description: 'From reactDocgen.', required: false } },
+    };
+    entry.reactDocgenTypescript = {
+      description: 'Ignored by the MCP.',
+      props: { ignoredProp: { description: 'From reactDocgenTypescript.', required: false } },
+    };
+
+    const [normalized] = normalizeManifest(manifest as RawManifest).components;
+    const { text } = await render(manifest);
+
+    // What oversight-core lints.
+    expect(Object.keys(normalized!.props)).toEqual(['servedProp']);
+
+    // What the server returns, from the same manifest.
+    expect(text).toContain('servedProp');
+    expect(text).not.toContain('ignoredProp');
+  });
+
+  it('is read from the entry by the server, and from either by the rules', async () => {
+    // A divergence, recorded rather than fixed here because fixing it changes
+    // findings. `formatComponentManifest` reads only the entry's `description`.
+    // `normalizeManifest` falls back to the payload's when the entry has none, so
+    // a component documented only in its payload passes
+    // `component-description-missing` while the server shows an agent nothing.
+    const manifest = variant.healthy();
+    const entry = manifest.components[variant.ENTRY_ID]!;
+    delete entry.description;
+    variant.payloadOf(entry).description = 'Documented in the payload only.';
+
+    const [normalized] = normalizeManifest(manifest as RawManifest).components;
+    const { text } = await render(manifest);
+
+    expect(normalized!.description).toBe('Documented in the payload only.');
+    expect(text).not.toContain('Documented in the payload only.');
   });
 });
 
