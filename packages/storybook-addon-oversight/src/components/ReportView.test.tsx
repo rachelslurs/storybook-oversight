@@ -176,8 +176,8 @@ describe('ReportView theming', () => {
       'ex-themed': {
         name: 'Themed',
         path: './Themed.stories.tsx',
+        description: 'A component.',
         reactDocgenTypescript: {
-          description: 'A component.',
           props: { label: { description: '', required: true, declarations: [] } },
         },
       },
@@ -214,8 +214,8 @@ describe('ReportView scrollable table regions', () => {
       'ex-button': {
         name: 'Button',
         path: './Button.stories.tsx',
+        description: 'A button.',
         reactDocgenTypescript: {
-          description: 'A button.',
           props: { label: { description: '', required: true, declarations: [] } },
         },
       },
@@ -302,8 +302,8 @@ describe('ReportView report rendering', () => {
         'ex-button': {
           name: 'Button',
           path: './Button.stories.tsx',
+          description: 'A button.',
           reactDocgenTypescript: {
-            description: 'A button.',
             props: {
               label: { description: '', required: true, declarations: [] },
               size: { description: 'The size.', required: false, declarations: [] },
@@ -340,8 +340,8 @@ describe('ReportView report rendering', () => {
         'ex-button': {
           name: 'Button',
           path: './Button.stories.tsx',
+          description: 'A button.',
           reactDocgenTypescript: {
-            description: 'A button.',
             props: { label: { description: '', required: true, declarations: [] } },
           },
         },
@@ -376,8 +376,8 @@ describe('ReportView report rendering', () => {
         'ex-tile': {
           name: 'Tile',
           path: './Tile.stories.tsx',
+          description: 'See [Ghost](?path=/docs/ex-ghost--docs).',
           reactDocgenTypescript: {
-            description: 'See [Ghost](?path=/docs/ex-ghost--docs).',
             props: {},
           },
         },
@@ -408,8 +408,8 @@ describe('ReportView report rendering', () => {
         'ex-button': {
           name: 'Button',
           path: './Button.stories.tsx',
+          description: 'A button.',
           reactDocgenTypescript: {
-            description: 'A button.',
             props: { label: { description: '', required: true, declarations: [] } },
           },
         },
@@ -443,8 +443,8 @@ describe('ReportView report rendering', () => {
         'ex-card': {
           name: 'Card',
           path: './Card.stories.tsx',
+          description: 'A card.',
           reactDocgenTypescript: {
-            description: 'A card.',
             props: {
               title: { description: '', required: true, declarations: [] },
               elevated: { description: '', required: false, declarations: [] },
@@ -474,8 +474,8 @@ describe('ReportView report rendering', () => {
         'ex-button': {
           name: 'Button',
           path: './Button.stories.tsx',
+          description: 'A button.',
           reactDocgenTypescript: {
-            description: 'A button.',
             props: { label: { description: '', required: true, declarations: [] } },
           },
         },
@@ -508,8 +508,8 @@ describe('ReportView report rendering', () => {
         'ex-button': {
           name: 'Button',
           path: './Button.stories.tsx',
+          description: 'A button.',
           reactDocgenTypescript: {
-            description: 'A button.',
             props: { label: { description: '', required: true, declarations: [] } },
           },
         },
@@ -584,8 +584,8 @@ describe('ReportView report rendering', () => {
         'ex-clean': {
           name: 'Clean',
           path: './Clean.stories.tsx',
+          description: 'All documented.',
           reactDocgenTypescript: {
-            description: 'All documented.',
             // a documented prop, so the entry is clean rather than merely empty
             props: { tone: { description: 'The tone.', required: false, declarations: [] } },
           },
@@ -665,7 +665,8 @@ describe('ReportView report rendering', () => {
         'ex-doc': {
           name: 'Doc',
           path: './Doc.stories.tsx',
-          reactDocgenTypescript: { description: 'Prose both surfaces show.', props: {} },
+          description: 'Prose both surfaces show.',
+          reactDocgenTypescript: { props: {} },
         },
       },
     } as unknown as RawManifest;

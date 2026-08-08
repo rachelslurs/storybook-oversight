@@ -337,7 +337,8 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         a: {
           name: 'A',
           path: './a.stories.tsx',
-          reactDocgenTypescript: { description: 'documented', props: {} },
+          description: 'documented',
+          reactDocgenTypescript: { props: {} },
         },
       },
     });
@@ -377,6 +378,52 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
     });
     const findings = lint(result);
     expect(findings.some((d) => d.rule === 'component-description-missing')).toBe(true);
+  });
+
+  it('flags an empty entry description over a payload that holds only a JSDoc tag', () => {
+    // The shape #110 takes in the wild, from the eight primer-react entries: the
+    // entry's description is present and empty, and the payload's is the raw
+    // JSDoc that Storybook stripped the prose out of, leaving only tags. Reading
+    // the payload handed the rule `@deprecated` and it passed the component.
+    const result = normalizeManifest({
+      components: {
+        deprecated: {
+          name: 'Deprecated',
+          path: './deprecated.stories.tsx',
+          description: '',
+          jsDocTags: { deprecated: [' '] },
+          reactDocgen: { description: '@deprecated', props: { size: { description: 'Size.', required: false } } },
+        },
+        params: {
+          name: 'Params',
+          path: './params.stories.tsx',
+          description: '',
+          jsDocTags: { param: ['anchorSide Which side to slide in from.'] },
+          reactDocgen: {
+            description: '@param anchorSide Which side to slide in from.',
+            props: { anchorSide: { description: 'Which side.', required: false } },
+          },
+        },
+        prose: {
+          name: 'Prose',
+          path: './prose.stories.tsx',
+          description: 'Triggers an action when pressed.',
+          reactDocgen: {
+            description: 'Triggers an action when pressed.\n@deprecated',
+            props: { size: { description: 'Size.', required: false } },
+          },
+        },
+      },
+    });
+    const flagged = lint(result)
+      .filter((d) => d.rule === 'component-description-missing')
+      .map((d) => d.componentId);
+
+    // Both tag-only entries, and neither is a `@deprecated` special case.
+    expect(flagged).toEqual(['deprecated', 'params']);
+    // The control: prose that survived the strip still satisfies the rule, so a
+    // fix that flagged everything with a tag in its payload fails here.
+    expect(flagged).not.toContain('prose');
   });
 
   it('reports story extraction errors on payload-bearing entries too', () => {
@@ -615,15 +662,15 @@ describe('lint (synthetic cases the fixture cannot cover)', () => {
         a: {
           name: 'A',
           path: './a.stories.tsx',
-          reactDocgenTypescript: {
-            description: 'Use [B](?path=/docs/group-b--docs) or [Ghost](?path=/docs/group-ghost--docs).',
-            props: {},
-          },
+          // On the entry, which is the copy `get-documentation` renders.
+          description: 'Use [B](?path=/docs/group-b--docs) or [Ghost](?path=/docs/group-ghost--docs).',
+          reactDocgenTypescript: { props: {} },
         },
         'group-b': {
           name: 'B',
           path: './b.stories.tsx',
-          reactDocgenTypescript: { description: 'd', props: {} },
+          description: 'd',
+          reactDocgenTypescript: { props: {} },
         },
       },
     });

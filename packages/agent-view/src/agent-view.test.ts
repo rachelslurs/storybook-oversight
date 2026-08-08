@@ -27,6 +27,10 @@ const render = (manifest: unknown, extra: Record<string, unknown> = {}) =>
 
 const list = (manifest: unknown) => listAllDocumentation(filesFor(manifest));
 
+/** The prose `get-documentation` prints between the id line and the first
+ *  section heading, which is where the component's description lands. */
+const renderedDescription = (text: string) => (text.split(`ID: ${variant.ENTRY_ID}`)[1] ?? '').split(/^## /m)[0].trim();
+
 describe('the version these results describe', () => {
   it('measures the copy of @storybook/mcp that addon-mcp ships', () => {
     const pinned = require('@storybook/addon-mcp/package.json').dependencies['@storybook/mcp'];
@@ -55,8 +59,8 @@ describe('the payload the rules read', () => {
     const manifest = variant.healthy();
     const entry = manifest.components[variant.ENTRY_ID]!;
 
-    // Both readers prefer the entry's own description over either payload's, so
-    // it has to go or it shadows the thing under test.
+    // Neither reader reads a payload description at all, so the props are what
+    // the choice decides and the descriptions below only label the two payloads.
     delete entry.description;
     entry.reactDocgen = {
       description: 'Served by the MCP.',
@@ -78,23 +82,46 @@ describe('the payload the rules read', () => {
     expect(text).not.toContain('ignoredProp');
   });
 
-  it('is read from the entry by the server, and from either by the rules', async () => {
-    // A divergence, recorded rather than fixed here because fixing it changes
-    // findings. `formatComponentManifest` reads the entry's `description` and an
-    // empty one renders as nothing. `normalizeManifest` treats an empty string as
-    // missing and falls back to the payload's, which in the eight primer-react
-    // entries behind #110 is a bare `@deprecated`. So the rule is handed tag text,
-    // takes it for prose, and passes a component with no description either side.
-    const manifest = variant.healthy();
-    const entry = manifest.components[variant.ENTRY_ID]!;
-    entry.description = '';
-    variant.payloadOf(entry).description = '@deprecated';
+  it('is read from the entry by the server, and from the entry by the rules', async () => {
+    // This used to record a divergence: `formatComponentManifest` reads the
+    // entry's `description` and renders an empty one as nothing, while
+    // `normalizeManifest` read an empty string as missing and fell back to the
+    // payload's. On the eight primer-react entries behind #110 that payload was
+    // nothing but a JSDoc tag, so the rule took `@deprecated` for prose and
+    // passed a component with no description on either side. Storybook derives
+    // the entry's description from the payload's by stripping those tags out, so
+    // the fallback could only ever put them back, and it is gone.
+    const manifest = variant.tagOnlyDescription();
 
     const [normalized] = normalizeManifest(manifest as RawManifest).components;
     const { text } = await render(manifest);
 
-    expect(normalized!.description).toBe('@deprecated');
+    expect(normalized!.description).toBeNull();
     expect(text).not.toContain('@deprecated');
+  });
+
+  it('resolves the description the server renders, over the same manifest', async () => {
+    // The cross-check that would have caught #110. Neither side is compared
+    // against a literal: the rules' resolved description is compared with the
+    // prose `get-documentation` prints, over one manifest, so a fallback added
+    // to either side shows up here as a mismatch.
+    const cases = {
+      healthy: variant.healthy(),
+      'tag-only': variant.tagOnlyDescription(),
+      'param block': variant.tagOnlyDescription('@param anchorSide Which side to slide in from.'),
+    };
+
+    for (const [label, manifest] of Object.entries(cases)) {
+      const [normalized] = normalizeManifest(manifest as RawManifest).components;
+      const { text } = await render(manifest);
+
+      expect(`${label}: ${renderedDescription(text)}`).toBe(`${label}: ${normalized!.description ?? ''}`);
+    }
+
+    // The control. Without a case the server does render, the comparison would
+    // hold on two empty strings and could not fail.
+    const [healthy] = normalizeManifest(cases.healthy as RawManifest).components;
+    expect(healthy!.description).toContain('Triggers an action when pressed');
   });
 });
 
