@@ -1,6 +1,6 @@
 # Contributing
 
-This is a pnpm workspace with three packages: `oversight-core` (the private rules engine), `storybook-addon-oversight` (the addon), and `oversight-lint` (the CLI). See the [root README](./README.md) for the layout.
+This is a pnpm workspace with four packages: `oversight-core` (the private rules engine), `storybook-addon-oversight` (the addon), `oversight-lint` (the CLI), and `oversight-agent-view` (private, tests only, recording what Storybook's MCP server serves an agent). See the [root README](./README.md) for the layout.
 
 ## Development
 

@@ -49,10 +49,13 @@ packages/
   core/                        oversight-core, the rules engine (pure, private, bundled into the addon and the CLI)
   storybook-addon-oversight/   the Storybook addon (panel + Docs block)
   cli/                         oversight-lint, the CI linter
+  agent-view/                  records what the MCP serves an agent (private, tests only)
 .storybook/  stories/          the demo Storybook that dogfoods the addon
 ```
 
 `oversight-core` holds every rule as pure functions with zero Storybook or React imports. The addon and the CLI each bundle it, so the two can never disagree about what a finding is. It is never published on its own.
+
+`oversight-agent-view` publishes nothing either, and ships no rules. It calls Storybook's MCP server over a manifest and snapshots what comes back, one variant per failure mode, so the rules can be judged against the text an agent receives rather than against the manifest they read. When the server changes what it serves, a test fails instead of a rule's justification quietly ceasing to be true. [What the agent actually receives](./docs/agent-view.md) is what it produced.
 
 ## Development
 
