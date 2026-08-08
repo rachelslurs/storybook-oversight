@@ -53,6 +53,8 @@ Measured by marking each field with a unique value and looking for it in the out
 
 The entry's own `error` is the row to notice. The server preserves it through resolution and then never renders it, while rendering the same field on a subcomponent.
 
+`description` is the entry's, and only the entry's. The server does not fall back to the payload's `description` when the entry has none, and `oversight-core` does. A component documented only inside its payload therefore satisfies `component-description-missing` while an agent is shown nothing. Eight of primer-react's 245 components are in that state, so it is reachable rather than theoretical.
+
 ## Where each rule lands
 
 Four buckets, describing the tool result only:

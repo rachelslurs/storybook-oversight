@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {
-    "@storybook/mcp": "0.8.0"
+    "@storybook/mcp": "0.8.0",
+    "oversight-core": "workspace:*"
   }
 }
