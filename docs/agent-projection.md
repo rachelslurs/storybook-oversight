@@ -55,12 +55,14 @@ The entry's own `error` is the row to notice. The server preserves it through re
 
 ## Where each rule lands
 
-Three buckets, describing the payload only:
+Four buckets, describing the payload only:
 
 - **signalled**, the call fails or returns `isError`
 - **distinguishable**, the text differs from a healthy component's
 - **indistinguishable**, the text is byte-identical to a healthy component's
-- **not agent-visible**, the field the rule reads never reaches either tool
+- **field stripped**, the field the rule reads never reaches either tool
+
+A stripped field does not mean the rule is about something an agent never encounters, and the last bucket is the one to read carefully. `deprecated-tag` reports a deprecation the agent will never be told about, which is the finding rather than a limitation of it. `extractor-drift` reads a name the server discards, but the extractor decides which props and descriptions are extracted at all, so a drift moves the whole payload the other rules measure. Only `unknown-ignore-rule` is about Oversight's own configuration rather than about the manifest.
 
 | Rule | What the agent receives | Bucket |
 | --- | --- | --- |
@@ -72,9 +74,9 @@ Three buckets, describing the payload only:
 | `required-prop-undocumented` | the same, on a prop rendered without `?` | distinguishable |
 | `docs-link-dangling` | the link is verbatim in `get-documentation`, and truncated out of the selection list when the description runs past 90 characters | distinguishable, but only after selection |
 | `ref-unresolved` | the whole call fails and the component is lost | signalled |
-| `extractor-drift` | `meta.docgen` is dropped | not agent-visible |
-| `unknown-ignore-rule` | `jsDocTags` is dropped | not agent-visible |
-| `deprecated-tag` | `jsDocTags` and payload `tags` are both dropped | not agent-visible |
+| `extractor-drift` | `meta.docgen` is dropped, while the extractor it names decides what every other row contains | field stripped |
+| `unknown-ignore-rule` | `jsDocTags` is dropped | field stripped |
+| `deprecated-tag` | `jsDocTags` and payload `tags` are both dropped, so the deprecation reaches nobody downstream | field stripped |
 
 `prop-shape-unrecognized` is not measured here. It fires only on ref manifests, and the server runs its own prop parsers rather than the ones the rule guards, so what it renders under a moved shape is not established.
 
