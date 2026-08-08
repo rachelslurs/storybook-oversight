@@ -154,6 +154,16 @@ export function storyExtractionFailed(): Manifest {
   });
 }
 
+/** The same rule, where extraction recorded an error but kept the snippet. */
+export function storyErrorWithSnippet(): Manifest {
+  return mutate((entry) => {
+    const story = entry.stories?.[0];
+    if (!story) throw new Error('the healthy fixture has no stories');
+    if (!story.snippet) throw new Error('the healthy fixture story has no snippet');
+    story.error = { name: 'SyntaxError', message: 'Expected story to be a function' };
+  });
+}
+
 /** `deprecated-tag`, carried where the manifest records component tags. */
 export function deprecated(): Manifest {
   return mutate((entry) => {

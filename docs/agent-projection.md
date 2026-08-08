@@ -66,7 +66,7 @@ Three buckets, describing the payload only:
 | --- | --- | --- |
 | `docgen-missing` | heading, id and stories; no `## Props`, no error text | indistinguishable |
 | `props-unrecorded` | the same bytes as above | indistinguishable |
-| `story-extraction-error` | the story vanishes from `get-documentation`; `get-documentation-for-story` returns an empty string with `isError` false | indistinguishable |
+| `story-extraction-error` | with no snippet, the story vanishes from `get-documentation` and `get-documentation-for-story` returns an empty string with `isError` false; with a snippet, the story renders as though nothing went wrong | indistinguishable |
 | `component-description-missing` | a bare `- Name (id)` line among siblings carrying summaries, and no description paragraph | distinguishable |
 | `prop-descriptions-missing` | the prop keeps its name, type, optionality and default; only the JSDoc block is gone | distinguishable |
 | `required-prop-undocumented` | the same, on a prop rendered without `?` | distinguishable |
@@ -100,7 +100,7 @@ The inverse case is `ref-unresolved`, a warning: on a ref manifest a dangling `$
 - Descriptions in the selection list are cut at **90 characters**, mid-word, with an ellipsis. Truncation counts the raw string including newlines, so an entry can wrap across several lines and the list cannot be parsed a line at a time.
 - A redirect written at the end of a description, the convention [Authoring](./authoring.md#redirect-between-components-that-get-confused) prescribes, is therefore cut from the selection list whenever the description runs long. It survives only into `get-documentation`.
 - `get-documentation` shows **three** stories in full, then names the rest. The cap applies only when the component has props; a component with none has every story rendered in full.
-- Stories with no snippet appear nowhere in `get-documentation`, not even in the trailing list.
+- Stories with no snippet appear nowhere in `get-documentation`, not even in the trailing list. A story is filtered on its snippet rather than on its error, so a story recording an error but keeping its snippet is rendered in full, with the error omitted.
 - There is no pagination and no size cap on either tool.
 
 ## A prop can be misstated rather than omitted
