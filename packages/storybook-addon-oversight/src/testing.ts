@@ -14,10 +14,10 @@ export const DEMO_MANIFEST = {
     'ex-doc': {
       name: 'Doc',
       path: './Doc.stories.tsx',
+      description:
+        'See [MDN](https://developer.mozilla.org/en-US/docs/Web), [More](?path=/docs/ex-doc--docs), ' +
+        '[Sized](?path=/docs/ex-doc--docs&args=size:lg) and [Deep](?path=/docs/ex-doc--docs#oversight).',
       reactDocgenTypescript: {
-        description:
-          'See [MDN](https://developer.mozilla.org/en-US/docs/Web), [More](?path=/docs/ex-doc--docs), ' +
-          '[Sized](?path=/docs/ex-doc--docs&args=size:lg) and [Deep](?path=/docs/ex-doc--docs#oversight).',
         props: {},
       },
     },

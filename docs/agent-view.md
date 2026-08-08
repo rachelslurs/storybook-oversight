@@ -53,7 +53,9 @@ Measured by marking each field with a unique value and looking for it in the out
 
 The entry's own `error` is the row to notice. The server preserves it through resolution and then never renders it, while rendering the same field on a subcomponent.
 
-`description` is the entry's, and only the entry's. An empty string renders as no description at all, and the server does not fall back to the payload's. `oversight-core` does fall back, which is [#110](https://github.com/rachelslurs/storybook-oversight/issues/110). Eight of primer-react's 245 components sit in the gap, each with an empty entry description and a payload description that is a bare `@deprecated` tag, so the rule reads tag text as prose and passes a component an agent sees no description for.
+`description` is the entry's, and only the entry's, on both sides. An empty string renders as no description at all, and neither the server nor `oversight-core` falls back to the payload's. The two fields are not independent copies. Storybook builds the entry's out of the payload's, keeping the prose and moving every JSDoc tag into `jsDocTags`, so a component documented only by tags leaves an empty string on the entry and the raw tag text on the payload.
+
+Eight of primer-react's 245 components take that shape, and `oversight-core` used to fall back to the payload on them: the rule read the tag text as prose and passed a component an agent is shown no description for. [#110](https://github.com/rachelslurs/storybook-oversight/issues/110) removed the fallback. Measured on 2026-08-08 over the manifest captured on 2026-07-29 from primer-react on Storybook 10.5.3, `react-docgen`, `v: 0`, 245 entries. Five of the eight carry `@deprecated` as the whole payload description and three carry a block of `@param`, and `component-description-missing` goes from 190 findings to 198 across that manifest.
 
 ## Where each rule lands
 

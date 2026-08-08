@@ -5,7 +5,7 @@
 export type NormalizedComponent = {
   id: string; // manifest key, e.g. "forms-checkbox"
   name: string;
-  description: string | null; // entry.description ?? payload.description
+  description: string | null; // entry.description only, the copy the MCP renders
   sourceFile: string | null; // repo-relative; from payload.filePath ?? payload.definedInFile
   sourcePath: string | null; // the same path as the manifest recorded it, before any prefix is dropped
   storiesFile: string; // entry.path (always the .stories file)

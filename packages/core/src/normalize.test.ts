@@ -131,8 +131,10 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
 
     const [widget] = normalizeManifest(raw).components;
 
-    expect(widget.description).toBe('The payload the MCP reads.');
     expect(Object.keys(widget.props)).toEqual(['size']);
+    // Props are what the choice decides. Neither payload's description is read
+    // at all, so it cannot stand in for the props here.
+    expect(widget.description).toBeNull();
   });
 
   it('supports the react-component-meta payload shape', () => {
@@ -147,9 +149,9 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
           id: 'data-display-widget',
           name: 'Widget',
           path: './src/Widget/Widget.stories.tsx',
+          description: 'A widget.',
           jsDocTags: { deprecated: ['from the entry'] },
           reactComponentMeta: {
-            description: 'A widget.',
             filePath: '/repo/src/Widget/Widget.tsx',
             props: {
               size: {
@@ -243,7 +245,12 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
     expect(result.extractor).toBeNull();
   });
 
-  it('prefers entry.description over payload.description', () => {
+  it('reads the entry description and never the payload one', () => {
+    // Storybook derives the entry's description from the payload's by stripping
+    // its JSDoc tags out into `jsDocTags`, so the payload only ever holds the
+    // same prose plus the tag lines. Falling back to it restored the tags: on
+    // the primer-react entries behind #110 the whole payload description was a
+    // bare `@deprecated` or a block of `@param`, and the rule took it for prose.
     const result = normalizeManifest({
       components: {
         a: {
@@ -256,21 +263,25 @@ describe('normalizeManifest (synthetic: react-docgen flavor and edge cases)', ()
           name: 'B',
           path: './b.stories.tsx',
           description: '',
-          reactDocgenTypescript: { description: 'from payload', props: {} },
+          reactDocgenTypescript: { description: '@deprecated', props: {} },
         },
       },
     });
     expect(result.components.find((c) => c.id === 'a')?.description).toBe('from entry');
-    expect(result.components.find((c) => c.id === 'b')?.description).toBe('from payload');
+    expect(result.components.find((c) => c.id === 'b')?.description).toBeNull();
   });
 
-  it('normalizes an empty payload-level description to null', () => {
+  it('normalizes a missing entry description to null over a payload that has one', () => {
+    // The other shape the field arrives in: v:1 omits `description` from the
+    // entry rather than writing an empty string, so the two have to land the
+    // same way. The payload carries prose here, not a tag, so the assertion
+    // fails if anything reads it.
     const result = normalizeManifest({
       components: {
         a: {
           name: 'A',
           path: './a.stories.tsx',
-          reactDocgenTypescript: { description: '', props: {} },
+          reactDocgenTypescript: { description: 'Real prose, in the payload only.', props: {} },
         },
       },
     });

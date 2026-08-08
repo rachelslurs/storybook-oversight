@@ -172,6 +172,20 @@ export function deprecated(): Manifest {
   });
 }
 
+/**
+ * The shape #110 takes in the wild: the entry's description present and empty,
+ * over a payload description that is nothing but JSDoc tags. Storybook builds
+ * the entry's from the payload's by stripping the tags out into `jsDocTags`, so
+ * a component documented only by tags leaves an empty string behind. Five of the
+ * eight primer-react entries carry `@deprecated` here and three a `@param` block.
+ */
+export function tagOnlyDescription(tag = '@deprecated'): Manifest {
+  return mutate((entry) => {
+    entry.description = '';
+    payloadOf(entry).description = tag;
+  });
+}
+
 /** A description short enough to survive the selection list's truncation. */
 export function shortDescription(text: string): Manifest {
   return mutate((entry) => {

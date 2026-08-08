@@ -50,8 +50,8 @@ const MANIFEST = {
     'ex-button': {
       name: 'Button',
       path: './Button.stories.tsx',
+      description: 'A button.',
       reactDocgenTypescript: {
-        description: 'A button.',
         props: { tone: { description: 'The tone.', required: false, declarations: [] } },
       },
     },

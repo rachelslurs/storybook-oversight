@@ -39,8 +39,8 @@ const DEBUGGER_URL = 'http://localhost/manifests/components.html';
 const BUTTON = {
   name: 'Button',
   path: './Button.stories.tsx',
+  description: 'See [Sibling](?path=/docs/ex-card--docs) and [MDN](https://developer.mozilla.org/).',
   reactDocgenTypescript: {
-    description: 'See [Sibling](?path=/docs/ex-card--docs) and [MDN](https://developer.mozilla.org/).',
     props: { tone: { description: 'The tone.', required: false, declarations: [] } },
   },
 };
@@ -48,8 +48,8 @@ const BUTTON = {
 const CARD = {
   name: 'Card',
   path: './Card.stories.tsx',
+  description: 'The sibling.',
   reactDocgenTypescript: {
-    description: 'The sibling.',
     props: { tone: { description: 'The tone.', required: false, declarations: [] } },
   },
 };

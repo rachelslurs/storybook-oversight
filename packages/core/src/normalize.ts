@@ -341,7 +341,18 @@ export function normalizeManifest(raw: RawManifest): NormalizeResult {
     components.push({
       id,
       name,
-      description: text(entry.description) ?? text(payload.description),
+      // The entry's, and only the entry's, because the entry's is the payload's
+      // already processed. Storybook builds it in `extractComponentDescription`
+      // by running the payload description through `extractJSDocInfo`, keeping
+      // the prose and moving every JSDoc tag into `jsDocTags`. So the payload
+      // holds the same prose plus the tag lines, never prose the entry lacks,
+      // and falling back to it could only restore what the strip removed. On
+      // the eight primer-react entries behind #110 that was the whole string:
+      // an empty entry description over a payload that is nothing but tags, so
+      // the rule read `@deprecated` and `@param` blocks as prose and passed a
+      // component with no description on either side. `@storybook/mcp` reads
+      // the entry alone too, so this is also what the agent is shown.
+      description: text(entry.description),
       sourceFile,
       // Kept beside the trimmed one because the trimming is what makes the path
       // readable and what makes it ambiguous: the extractor records an absolute
