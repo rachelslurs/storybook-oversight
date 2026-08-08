@@ -50,7 +50,10 @@ const HINT = {
   'docgen-missing': "Check the export shape and the story's meta.component first, then typescript.reactDocgen.",
   'story-extraction-error': 'Read the error the manifest records on that story, which says more than this summary.',
   'extractor-drift': 'Check meta.docgen for the extractor that ran, then set the expectation to match.',
-  'component-description-missing': 'Add a JSDoc block above the component.',
+  // Names the tag-only case, because that is the shape the rule newly reports
+  // and the one where "add a JSDoc block" is advice the author already took: a
+  // block holding nothing but @deprecated or @param leaves the description empty.
+  'component-description-missing': 'Add prose to the component JSDoc block, outside any tag.',
   'prop-descriptions-missing': 'Add a JSDoc comment to each undocumented prop.',
   // Names the escape hatch, because the manifest cannot tell a dropped prop
   // from a component that takes none: the reader holding the false positive is

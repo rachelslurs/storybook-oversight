@@ -50,6 +50,18 @@ What to do about each finding. Every rule and its default severity is in [Rules]
 
 Most of the time no description was written. Put a JSDoc block above the component.
 
+When the block is already there, check what is inside it. Storybook moves every JSDoc tag out of the description and into `jsDocTags`, so a block holding nothing but `@deprecated` or a run of `@param` lines leaves the description empty and the component renders with no prose in `get-documentation`. Add a sentence outside the tags:
+
+```ts
+/**
+ * Filters a list as you type.
+ *
+ * @deprecated Use Button + TextInput + ActionList instead.
+ */
+```
+
+A JSDoc block above the story file's `meta` replaces the component's own as the description source, so a tag-only block there has the same effect on a component that documents itself properly.
+
 When the JSDoc is there and the extractor is `react-component-meta`, check [item 4 under `docgen-missing`](#docgen-missing): an expression default export loses only the description under that extractor, so the failure lands on this rule instead.
 
 ## `prop-descriptions-missing`
