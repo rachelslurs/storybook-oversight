@@ -9,9 +9,10 @@ export interface PanelProps {
 }
 
 /**
- * An internal scaffolding surface. Its `slot` prop is intentionally undocumented,
- * so `@oversightIgnore` exempts this component from the prop-coverage rule: a
- * deliberate opt-out, not an oversight.
+ * An internal scaffolding surface. Its `slot` prop is undocumented on purpose, so
+ * an `@oversightIgnore` directive in this component's source exempts it from
+ * `prop-descriptions-missing` rather than leaving the rule to report a gap that
+ * is deliberate.
  *
  * @oversightIgnore prop-descriptions-missing
  */

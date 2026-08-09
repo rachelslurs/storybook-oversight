@@ -3,14 +3,14 @@
     "actions-button": {
       "id": "actions-button",
       "name": "Button",
-      "description": "Triggers an action when pressed — submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
       "path": "./stories/Button/Button.stories.tsx",
       "jsDocTags": {},
+      "description": "Triggers an action when pressed: submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
       "reactComponentMeta": {
         "displayName": "Button",
         "exportName": "Button",
         "filePath": "/repo/stories/Button/Button.tsx",
-        "description": "Triggers an action when pressed — submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
+        "description": "Triggers an action when pressed: submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
         "props": {
           "variant": {
             "name": "variant",
@@ -27,7 +27,7 @@
                 }
               ]
             },
-            "description": "Visual style — 'primary' for the main action, 'secondary' for supporting ones.",
+            "description": "Visual style: 'primary' for the main action, 'secondary' for supporting ones.",
             "defaultValue": null,
             "parent": {
               "name": "ButtonProps",
@@ -110,6 +110,69 @@
                 "fileName": "stories/Button/Button.tsx"
               }
             ]
+          }
+        }
+      },
+      "argTypes": {
+        "variant": {
+          "name": "variant",
+          "description": "Visual style: 'primary' for the main action, 'secondary' for supporting ones.",
+          "type": {
+            "required": true,
+            "raw": "\"primary\" | \"secondary\"",
+            "name": "enum",
+            "value": ["primary", "secondary"]
+          },
+          "table": {
+            "type": {
+              "summary": "\"primary\" | \"secondary\""
+            }
+          }
+        },
+        "size": {
+          "name": "size",
+          "description": "Control height and padding. Defaults to 'md'.",
+          "type": {
+            "required": false,
+            "raw": "\"sm\" | \"md\" | \"lg\"",
+            "name": "enum",
+            "value": ["sm", "md", "lg"]
+          },
+          "table": {
+            "type": {
+              "summary": "\"sm\" | \"md\" | \"lg\""
+            },
+            "defaultValue": {
+              "summary": "\"'md'\""
+            }
+          }
+        },
+        "children": {
+          "name": "children",
+          "description": "Content rendered inside the button.",
+          "type": {
+            "required": false,
+            "name": "other",
+            "value": "ReactNode"
+          },
+          "table": {
+            "type": {
+              "summary": "ReactNode"
+            }
+          }
+        },
+        "onClick": {
+          "name": "onClick",
+          "description": "Fires when the button is activated by click, tap, or keyboard.",
+          "type": {
+            "required": false,
+            "name": "function",
+            "value": "() => void"
+          },
+          "table": {
+            "type": {
+              "summary": "() => void"
+            }
           }
         }
       }

@@ -15,7 +15,7 @@
     "layout-panel": {
       "id": "layout-panel",
       "name": "Panel",
-      "description": "An internal scaffolding surface. Its `slot` prop is intentionally undocumented,\nso `@oversightIgnore` exempts this component from the prop-coverage rule: a\ndeliberate opt-out, not an oversight.",
+      "description": "An internal scaffolding surface. Its `slot` prop is undocumented on purpose, so\nan `@oversightIgnore` directive in this component's source exempts it from\n`prop-descriptions-missing` rather than leaving the rule to report a gap that\nis deliberate.",
       "docgen": {
         "$ref": "../services/core/docgen/layout-panel.json#/components/layout-panel"
       },
