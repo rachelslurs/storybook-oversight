@@ -1,0 +1,10 @@
+{
+  "name": "@storybook/mcp",
+  "version": "77.0.0-unbuilt",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./dist/index.js"
+    }
+  }
+}

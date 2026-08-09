@@ -9,12 +9,15 @@
  * Read the snapshots as the deliverable. Read the assertions as the claims
  * `docs/agent-view.md` is allowed to make.
  */
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { STORYBOOK_MCP_INSTRUCTIONS } from '@storybook/mcp';
+import * as mcp from '@storybook/mcp';
 import { normalizeManifest, resolveManifestRefs, type RawManifest } from 'oversight-core';
 
-import { filesFor, getDocumentation, getStoryDocumentation, listAllDocumentation } from './driver.ts';
+import { assertDrivable, filesFor, getDocumentation, getStoryDocumentation, listAllDocumentation } from './driver.ts';
 import * as variant from './variants.ts';
 
 const require = createRequire(import.meta.url);
@@ -22,10 +25,12 @@ const require = createRequire(import.meta.url);
 /** Truncation applied to every description in the selection list. */
 const SUMMARY_LIMIT = 90;
 
+// The version this workspace declares, which is what every measurement below is
+// scoped to. The CLI may render with the copy an inspected project installs.
 const render = (manifest: unknown, extra: Record<string, unknown> = {}) =>
-  getDocumentation(filesFor(manifest, extra), variant.ENTRY_ID);
+  getDocumentation(mcp, filesFor(mcp, manifest, extra), variant.ENTRY_ID);
 
-const list = (manifest: unknown) => listAllDocumentation(filesFor(manifest));
+const list = (manifest: unknown) => listAllDocumentation(mcp, filesFor(mcp, manifest));
 
 /** The sections `get-documentation` emits after the description. Named rather
  *  than cut at any `## `, because a heading is legal inside a JSDoc description
@@ -64,6 +69,30 @@ describe('the version these results describe', () => {
     // Not a style check. If addon-mcp moves to a different @storybook/mcp, every
     // snapshot below describes a formatter no agent is running any more.
     expect(resolved).toBe(pinned);
+  });
+
+  it('is the one copy this workspace resolves, and the one the CLI declares', () => {
+    // By path, not by specifier: agent-view does not depend on the CLI, and
+    // adding a dependency for one assertion would invert the direction the
+    // bundling runs in.
+    const cliPackage = fileURLToPath(new URL('../../cli/package.json', import.meta.url));
+    const cli = JSON.parse(readFileSync(cliPackage, 'utf8')) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    const declaredByCli = { ...cli.devDependencies, ...cli.dependencies }['@storybook/mcp'];
+    const declaredHere = (require('./../package.json') as { devDependencies: Record<string, string> }).devDependencies[
+      '@storybook/mcp'
+    ];
+
+    // Every snapshot here describes one measured copy, so both specifiers pin
+    // it exactly and both must equal what resolved. A range on either side
+    // would let a consumer's tree hold a second copy, which is how a partial
+    // Storybook pin installed two addon-docs and blanked the Docs page. Read
+    // from whichever field the CLI carries it in: it is a dependency today and
+    // becomes a devDependency once it is bundled.
+    expect(declaredHere).toBe(require('@storybook/mcp/package.json').version);
+    expect(declaredByCli).toBe(declaredHere);
   });
 
   it('holds the instructions the server sends alongside the data', () => {
@@ -289,8 +318,8 @@ describe('a story whose snippet never extracted', () => {
   });
 
   it('returns an empty string that is not flagged as an error', async () => {
-    const files = filesFor(variant.storyExtractionFailed());
-    const { text, isError } = await getStoryDocumentation(files, variant.ENTRY_ID, 'Primary');
+    const files = filesFor(mcp, variant.storyExtractionFailed());
+    const { text, isError } = await getStoryDocumentation(mcp, files, variant.ENTRY_ID, 'Primary');
 
     expect(text).toBe('');
     expect(isError).toBe(false);
@@ -384,5 +413,37 @@ describe('a v:1 manifest', () => {
     // rather than served as a healthy one with nothing in it.
     expect(isError).toBe(true);
     expect(text).toContain('404 Not Found');
+  });
+});
+
+describe('a copy of @storybook/mcp the CLI resolved', () => {
+  it('is accepted when it drives the way this stub expects', async () => {
+    await expect(assertDrivable(mcp)).resolves.toBeUndefined();
+  });
+
+  it('is refused when the handler reads its context from somewhere else', async () => {
+    // The failure this exists for. `ctx.custom` is tmcp's shape seen through
+    // @storybook/mcp, not its own API, and the cast in callTool means nothing
+    // catches a move at build time. Unrefused, the handler falls through to the
+    // real fetch-based provider and the run fails as a network error against
+    // the user's own build rather than as the incompatibility it is.
+    const elsewhere: typeof mcp = {
+      ...mcp,
+      addGetDocumentationTool: (async (server: { tool: (m: unknown, fn: unknown) => void; ctx: unknown }) => {
+        const moved = server.ctx as { custom?: unknown };
+        await mcp.addGetDocumentationTool({ tool: server.tool, ctx: { elsewhere: moved.custom } } as never, () => true);
+      }) as typeof mcp.addGetDocumentationTool,
+    };
+
+    await expect(assertDrivable(elsewhere)).rejects.toThrow(/manifest provider/);
+  });
+
+  it('is refused when a registrar installs no handler at all', async () => {
+    const silent: typeof mcp = {
+      ...mcp,
+      addGetDocumentationTool: (async () => {}) as typeof mcp.addGetDocumentationTool,
+    };
+
+    await expect(assertDrivable(silent)).rejects.toThrow(/installed no handler/);
   });
 });

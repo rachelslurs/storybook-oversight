@@ -136,7 +136,14 @@ importers:
         version: link:../core
 
   packages/cli:
+    dependencies:
+      '@storybook/mcp':
+        specifier: 0.8.0
+        version: 0.8.0(typescript@6.0.3)
     devDependencies:
+      oversight-agent-view:
+        specifier: workspace:*
+        version: link:../agent-view
       oversight-core:
         specifier: workspace:*
         version: link:../core

@@ -1,7 +1,7 @@
 import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { detectManifestFormat, resolveManifestRefs } from 'oversight-core';
-import type { RawManifest } from 'oversight-core';
+import type { ManifestFormat, RawManifest } from 'oversight-core';
 
 /** A manifest that could not be read or parsed. Maps to CLI exit code 2. */
 export class ManifestError extends Error {
@@ -44,7 +44,24 @@ export function readManifest(path: string): RawManifest {
  * `<out>/manifests/components.json` and the payloads at `<out>/services/...`,
  * so `../services/...` is what the index carries.
  */
-export async function hydrateManifest(raw: RawManifest, path: string): Promise<RawManifest> {
+export async function hydrateManifest(raw: RawManifest, path: string, detected?: ManifestFormat): Promise<RawManifest> {
+  const format = detected ?? assertManifestShape(raw, path);
+  if (format.kind === 'inline') return raw;
+
+  const { base, root } = buildRoot(path);
+  return resolveManifestRefs(raw, (target) => readLeafFile(resolve(base, target), root));
+}
+
+/**
+ * Refuse a file that cannot be read as a components manifest at all, before
+ * anything reads its contents.
+ *
+ * Shared with `oversight agent-view`, which renders rather than lints: whether a
+ * file is a manifest this build can read is upstream of what a server would
+ * serve from it, and answering it here keeps one message per cause across both
+ * paths. Returns the detected format so the caller need not detect it twice.
+ */
+export function assertManifestShape(raw: RawManifest, path: string): ManifestFormat {
   const format = detectManifestFormat(raw);
   if (format.kind === 'unsupported') {
     throw new ManifestError(
@@ -62,18 +79,30 @@ export async function hydrateManifest(raw: RawManifest, path: string): Promise<R
         `Check the path. A built manifest is at <output>/manifests/components.json.`,
     );
   }
-  if (format.kind === 'inline') return raw;
+  return format;
+}
 
+/**
+ * The directory a ref resolves against, and the boundary it may not leave.
+ *
+ * A ref may climb one level only because a build puts the index in
+ * `<out>/manifests/`. Granting that level unconditionally would widen the
+ * boundary by a directory for any other layout, and `parseRef` allows exactly
+ * the one `..` needed to walk through it. Without the directory the build
+ * output is the index's own, and a climbing ref is reaching outside it.
+ * Resolving `base` first keeps the root and the targets on the same side of
+ * any symlink, so a build output staged through links still resolves.
+ *
+ * Upstream's own stdio server maps a manifests directory the same way, which is
+ * what `oversight agent-view` needs: the MCP server asks for `./services/...`
+ * relative to the build output, not to the index. See `bin.ts` in
+ * `@storybook/mcp` (storybookjs/storybook, `code/lib/mcp/bin.ts`), whose
+ * `manifestProvider` reads `manifests/` inside the directory it is given and
+ * everything else from that directory's parent.
+ */
+export function buildRoot(path: string): { base: string; root: string } {
   const base = realpathSync(dirname(path));
-  // A ref may climb one level only because a build puts the index in
-  // `<out>/manifests/`. Granting that level unconditionally would widen the
-  // boundary by a directory for any other layout, and `parseRef` allows exactly
-  // the one `..` needed to walk through it. Without the directory the build
-  // output is the index's own, and a climbing ref is reaching outside it.
-  // Resolving `base` first keeps the root and the targets on the same side of
-  // any symlink, so a build output staged through links still resolves.
-  const root = basename(base) === 'manifests' ? dirname(base) : base;
-  return resolveManifestRefs(raw, (target) => readLeafFile(resolve(base, target), root));
+  return { base, root: basename(base) === 'manifests' ? dirname(base) : base };
 }
 
 /** Refs may not name a payload larger than this. Real leaves run to a few KB. */
@@ -101,7 +130,7 @@ export function containedIn(root: string, real: string): boolean {
   return rel !== '' && !isAbsolute(rel) && rel.split(sep)[0] !== '..';
 }
 
-function readLeafFile(target: string, root: string): string {
+export function readLeafFile(target: string, root: string): string {
   const real = realpathSync(target);
   if (!containedIn(root, real)) {
     throw new Error('resolves outside the build output');

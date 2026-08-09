@@ -6,7 +6,7 @@ Your coding agent reads your components from the manifest Storybook's MCP server
 
 It runs the same rules as [`storybook-addon-oversight`](../storybook-addon-oversight/README.md), which surfaces them live in Storybook while you work.
 
-[Install](#install) · [Prerequisite](#prerequisite-a-built-manifest) · [Usage](#usage) · [Output](#output) · [Exit codes](#exit-codes) · [Options](#options) · [Findings](#findings) · [Configuration file](#configuration-file)
+[Install](#install) · [Prerequisite](#prerequisite-a-built-manifest) · [Usage](#usage) · [Output](#output) · [What the agent receives](#what-the-agent-receives) · [Exit codes](#exit-codes) · [Options](#options) · [Findings](#findings) · [Configuration file](#configuration-file)
 
 ## Install
 
@@ -85,6 +85,64 @@ Because the summary skips the message's `File: <path>` location line, entries th
 
 Documentation gaps do not collapse. `component-description-missing`, `prop-descriptions-missing`, and `required-prop-undocumented` each name a different component, and the prop rules name that component's own undocumented props, so a summary row would trade the list for a count the tally already reports. Extraction failures repeat one diagnosis across many entries, which is what makes one row worth reading in their place. Where a manifest has hundreds of documentation gaps, `--quiet` prints the errors alone and `--format json` keeps every finding.
 
+## What the agent receives
+
+A finding says a component's docs are missing. Nothing shows what that costs. `oversight agent-view` prints what Storybook's MCP server serves for one component or docs entry: its `get-documentation` markdown, and its whole bullet in `list-all-documentation`.
+
+```bash
+oversight agent-view actions-button
+```
+
+````
+storybook-static/manifests/components.json (actions-button)
+
+@storybook/mcp 0.8.0 (resolved from the @storybook/addon-mcp nearest the manifest)
+
+## list-all-documentation
+
+~~~~
+- Button (actions-button): Triggers an action when pressed: submitting a form, opening a dialog, or
+running a command...
+~~~~
+
+## get-documentation
+
+~~~~
+# Button
+
+ID: actions-button
+
+Triggers an action when pressed: submitting a form, opening a dialog, or
+running a command. For grouping related content in a container, see
+[Card](?path=/docs/data-display-card--docs).
+
+## Stories
+
+### Primary
+
+Story ID: actions-button--primary
+
+```
+import { Button } from "oversight-workspace";
+
+const Primary = () => <Button variant="primary">Save changes</Button>;
+```
+
+[the remaining stories and the ## Props block, then the closing ~~~~]
+````
+
+The output is the tool result. It says nothing about what a model does with it.
+
+An entry carrying an extraction error, an entry with no docgen payload, and an entry whose payload records no props all render the same way: no `## Props` section, and no trace of the diagnosis the manifest recorded. `docgen-missing` is an error and `props-unrecorded` is a warning, and the text served for both is identical. [What the agent actually receives](https://github.com/rachelslurs/storybook-oversight/blob/main/docs/agent-view.md) has the field-by-field table.
+
+The text comes from the `@storybook/mcp` your project installs, found through the `@storybook/addon-mcp` nearest the manifest. Nearest rather than beside, since resolution walks up out of a downloaded build directory into whatever install sits above it. Where there is none, the copy `oversight-lint` depends on renders instead, and the header line says which one ran. The distinction is worth reading: `@storybook/mcp` moved into the Storybook monorepo and its versions jump from 0.8 to Storybook's own numbering at 10.6, so the two can be far apart.
+
+`oversight-lint` depends on `@storybook/mcp` at an exact version, so a project whose own copy differs installs a second one. Bundling it instead, which removes the dependency altogether, is [#116](https://github.com/rachelslurs/storybook-oversight/issues/116).
+
+Loading that copy runs its code. Pointed at a manifest inside a project you do not control, the command imports and executes that project's `@storybook/mcp`, the same way any Node tool that resolves a project's plugins does. The JSON it reads is confined to the build output and size-capped; the module it loads is not, so treat an unfamiliar build directory the way you would treat running its `postinstall`.
+
+It reads a built manifest, so it works the same under `experimentalDocgenServer`: the server follows the `v: 1` refs itself, and a ref that fails to resolve fails the call rather than rendering an entry with nothing in it.
+
 ## Exit codes
 
 | Code | Meaning                                                                                 |
@@ -95,7 +153,18 @@ Documentation gaps do not collapse. `component-description-missing`, `prop-descr
 
 Exit `2` is distinct from `1` so a broken setup does not read as a passing lint. A path that parses as JSON but records no `components` is one of those: before 0.6.0 it reported no findings and exited 0, so pointing `--manifest` at the wrong file passed green indefinitely.
 
+`agent-view` inspects rather than lints, so findings do not reach its exit code. It exits `0` once the text is printed and `2` when it could not be, which covers an id the manifest does not hold and a `$ref` that failed to resolve.
+
+## Commands
+
+| Command | Description |
+| --- | --- |
+| `oversight [manifest] [options]` | Lint the manifest. The default. |
+| `oversight agent-view <id> [manifest]` | Print [what the MCP serves](#what-the-agent-receives) for one component or docs entry. Takes `--config`, and nothing else below. |
+
 ## Options
+
+These apply to a lint run.
 
 | Option | Description |
 | --- | --- |

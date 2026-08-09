@@ -8,7 +8,7 @@ import type { RawDocgenNode, RawEntry, RawManifest, RawStory, RawStoryDocsNode }
  */
 export type RefLoader = (relativePath: string) => string | Promise<string>;
 
-type ParsedRef = { path: string; pointer: string } | { refused: string };
+export type ParsedRef = { path: string; pointer: string } | { refused: string };
 
 /**
  * Validate the `<relative-path>#<json-pointer>` grammar and normalize the
@@ -18,8 +18,11 @@ type ParsedRef = { path: string; pointer: string } | { refused: string };
  *
  * The index sits one directory below the build root, so a legal ref climbs at
  * most one level above the index's directory.
+ *
+ * Exported for `oversight agent-view`, which resolves and refuses the same
+ * refs on its own read path and must agree with this one per ref.
  */
-function parseRef(ref: string): ParsedRef {
+export function parseRef(ref: string): ParsedRef {
   const hash = ref.indexOf('#');
   if (hash === -1) return { refused: 'missing "#" fragment' };
   const pointer = ref.slice(hash + 1);
@@ -83,7 +86,7 @@ type LoadFile = (path: string) => Promise<FileLoad>;
  * message already identifies by ref and which puts CI runner directory layout
  * into build logs. The errno alone says what went wrong.
  */
-function loaderDetail(error: unknown): string | undefined {
+export function describeLoaderFailure(error: unknown): string | undefined {
   const code = (error as { code?: unknown })?.code;
   if (typeof code === 'string') {
     const known: Record<string, string> = {
@@ -102,7 +105,7 @@ async function readLeaf(load: RefLoader, path: string): Promise<FileLoad> {
   try {
     body = await load(path);
   } catch (error) {
-    return { ok: false, detail: loaderDetail(error) };
+    return { ok: false, detail: describeLoaderFailure(error) };
   }
   try {
     return { ok: true, data: JSON.parse(body) as unknown };

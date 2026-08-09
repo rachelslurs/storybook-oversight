@@ -1,0 +1,10 @@
+{
+  "name": "@storybook/mcp",
+  "version": "99.0.0-not-real",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./index.js"
+    }
+  }
+}

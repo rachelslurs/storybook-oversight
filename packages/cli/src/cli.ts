@@ -2,7 +2,8 @@
 import { appendFileSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildConfig, HELP } from './config';
+import { showAgentView } from './agentView';
+import { AGENT_VIEW_HELP, buildConfig, HELP } from './config';
 import { run } from './run';
 
 function readVersion(): string {
@@ -28,6 +29,10 @@ async function main(): Promise<number> {
     process.stdout.write(`${HELP}\n`);
     return 0;
   }
+  if (config.kind === 'agent-view-help') {
+    process.stdout.write(`${AGENT_VIEW_HELP}\n`);
+    return 0;
+  }
   if (config.kind === 'version') {
     process.stdout.write(`${readVersion()}\n`);
     return 0;
@@ -39,10 +44,11 @@ async function main(): Promise<number> {
 
   // Every format prints something different and `--format github` prints only
   // workflow commands, so a CI log had no way to say which version ran. stderr
-  // is the one stream every format leaves alone.
+  // is the one stream every format leaves alone, and the agent-view text is
+  // meant to be pasted, so it wants stdout kept clean for the same reason.
   process.stderr.write(`oversight-lint ${readVersion()}\n`);
 
-  const result = await run(config.options);
+  const result = config.kind === 'agent-view' ? await showAgentView(config.options) : await run(config.options);
   if (result.stdout) process.stdout.write(`${result.stdout}\n`);
   if (result.stderr) process.stderr.write(`${result.stderr}\n`);
 
