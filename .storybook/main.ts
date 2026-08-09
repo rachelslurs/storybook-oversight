@@ -9,6 +9,25 @@ function getAbsolutePath(value: string): string {
   return dirname(fileURLToPath(import.meta.resolve(`${value}/package.json`)));
 }
 
+/**
+ * The extractor an env var selects, if any.
+ *
+ * Both variables pick a different extractor, so setting both states two answers
+ * to one question. A precedence rule would resolve it silently and the build
+ * would record an extractor nobody chose, which is worth more noise than it
+ * costs: `scripts/build-fixtures.js` writes the result into committed fixtures.
+ */
+function docgenFeatures(): Pick<StorybookConfig, 'features'> | Record<string, never> {
+  const docgenServer = process.env.STORYBOOK_DOCGEN_SERVER === '1';
+  const reactComponentMeta = process.env.STORYBOOK_REACT_COMPONENT_META === '1';
+  if (docgenServer && reactComponentMeta) {
+    throw new Error('STORYBOOK_DOCGEN_SERVER and STORYBOOK_REACT_COMPONENT_META each select an extractor. Set one.');
+  }
+  if (docgenServer) return { features: { experimentalDocgenServer: true } };
+  if (reactComponentMeta) return { features: { experimentalReactComponentMeta: true } };
+  return {};
+}
+
 const config: StorybookConfig = {
   // Keep the demo's chrome clean (no "what's new" toast) for a public showcase.
   core: { disableWhatsNewNotifications: true },
@@ -16,7 +35,12 @@ const config: StorybookConfig = {
   // with the docgen server on: dev serves no manifest (the addon reads the
   // service API instead), and a build writes the v:1 ref manifest. The default
   // stays off so the published demo matches what most consumers run.
-  ...(process.env.STORYBOOK_DOCGEN_SERVER === '1' ? { features: { experimentalDocgenServer: true } } : {}),
+  // `STORYBOOK_REACT_COMPONENT_META=1` runs the same demo through
+  // react-component-meta without the docgen server, which is the extractor the
+  // `v0-react-component-meta` fixture records. Without a toggle that fixture can
+  // only be produced by editing this file, which is how it drifted from the
+  // sources it claims to be a build of.
+  ...docgenFeatures(),
   stories: ['../stories/**/*.mdx', '../stories/**/*.stories.@(ts|tsx)'],
   addons: [
     getAbsolutePath('@storybook/addon-docs'),

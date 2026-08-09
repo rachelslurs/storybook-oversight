@@ -30,7 +30,7 @@
                 }
               ]
             },
-            "description": "Colour intent — 'neutral', 'success', or 'danger'.",
+            "description": "Color intent: 'neutral', 'success', or 'danger'.",
             "defaultValue": {
               "value": "'neutral'"
             },
@@ -132,12 +132,12 @@
       "name": "Button",
       "path": "./stories/Button/Button.stories.tsx",
       "jsDocTags": {},
-      "description": "Triggers an action when pressed — submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
+      "description": "Triggers an action when pressed: submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
       "reactComponentMeta": {
         "displayName": "Button",
         "exportName": "Button",
         "filePath": "/repo/stories/Button/Button.tsx",
-        "description": "Triggers an action when pressed — submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
+        "description": "Triggers an action when pressed: submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
         "props": {
           "variant": {
             "name": "variant",
@@ -154,7 +154,7 @@
                 }
               ]
             },
-            "description": "Visual style — 'primary' for the main action, 'secondary' for supporting ones.",
+            "description": "Visual style: 'primary' for the main action, 'secondary' for supporting ones.",
             "defaultValue": null,
             "parent": {
               "name": "ButtonProps",
@@ -346,12 +346,12 @@
       "jsDocTags": {
         "oversightIgnore": ["prop-descriptions-missing"]
       },
-      "description": "An internal scaffolding surface. Its `slot` prop is intentionally undocumented,\nso `@oversightIgnore` exempts this component from the prop-coverage rule: a\ndeliberate opt-out, not an oversight.",
+      "description": "An internal scaffolding surface. Its `slot` prop is undocumented on purpose, so\nan `@oversightIgnore` directive in this component's source exempts it from\n`prop-descriptions-missing` rather than leaving the rule to report a gap that\nis deliberate.",
       "reactComponentMeta": {
         "displayName": "Panel",
         "exportName": "Panel",
         "filePath": "/repo/stories/Panel/Panel.tsx",
-        "description": "An internal scaffolding surface. Its `slot` prop is intentionally undocumented,\nso `@oversightIgnore` exempts this component from the prop-coverage rule: a\ndeliberate opt-out, not an oversight.",
+        "description": "An internal scaffolding surface. Its `slot` prop is undocumented on purpose, so\nan `@oversightIgnore` directive in this component's source exempts it from\n`prop-descriptions-missing` rather than leaving the rule to report a gap that\nis deliberate.",
         "jsDocTags": {
           "oversightIgnore": ["prop-descriptions-missing"]
         },
@@ -410,12 +410,12 @@
       "name": "Tile",
       "path": "./stories/Tile/Tile.stories.tsx",
       "jsDocTags": {},
-      "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.\n\n(That link is intentionally broken — there is no `data-display-ghost`\ncomponent — so Oversight flags it as docs-link-dangling.)",
+      "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.",
       "reactComponentMeta": {
         "displayName": "Tile",
         "exportName": "Tile",
         "filePath": "/repo/stories/Tile/Tile.tsx",
-        "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.\n\n(That link is intentionally broken — there is no `data-display-ghost`\ncomponent — so Oversight flags it as docs-link-dangling.)",
+        "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.",
         "props": {
           "label": {
             "name": "label",
@@ -469,6 +469,6 @@
   },
   "meta": {
     "docgen": "react-component-meta",
-    "durationMs": 1308
+    "durationMs": 0
   }
 }

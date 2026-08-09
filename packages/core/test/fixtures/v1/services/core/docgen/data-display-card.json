@@ -3,9 +3,9 @@
     "data-display-card": {
       "id": "data-display-card",
       "name": "Card",
-      "description": "A surface that groups related content and actions on a single subject, with\noptional elevation to lift it above the page.",
       "path": "./stories/Card/Card.stories.tsx",
       "jsDocTags": {},
+      "description": "A surface that groups related content and actions on a single subject, with\noptional elevation to lift it above the page.",
       "reactComponentMeta": {
         "displayName": "Card",
         "exportName": "Card",
@@ -68,6 +68,48 @@
                 "fileName": "stories/Card/Card.tsx"
               }
             ]
+          }
+        }
+      },
+      "argTypes": {
+        "title": {
+          "name": "title",
+          "description": "",
+          "type": {
+            "required": true,
+            "name": "string"
+          },
+          "table": {
+            "type": {
+              "summary": "string"
+            }
+          }
+        },
+        "elevated": {
+          "name": "elevated",
+          "description": "",
+          "type": {
+            "required": false,
+            "name": "boolean"
+          },
+          "table": {
+            "type": {
+              "summary": "boolean"
+            }
+          }
+        },
+        "children": {
+          "name": "children",
+          "description": "Content rendered inside the card body.",
+          "type": {
+            "required": false,
+            "name": "other",
+            "value": "ReactNode"
+          },
+          "table": {
+            "type": {
+              "summary": "ReactNode"
+            }
           }
         }
       }

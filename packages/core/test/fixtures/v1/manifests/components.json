@@ -25,7 +25,7 @@
     "actions-button": {
       "id": "actions-button",
       "name": "Button",
-      "description": "Triggers an action when pressed — submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
+      "description": "Triggers an action when pressed: submitting a form, opening a dialog, or\nrunning a command. For grouping related content in a container, see\n[Card](?path=/docs/data-display-card--docs).",
       "docgen": {
         "$ref": "../services/core/docgen/actions-button.json#/components/actions-button"
       },
@@ -47,7 +47,7 @@
     "layout-panel": {
       "id": "layout-panel",
       "name": "Panel",
-      "description": "An internal scaffolding surface. Its `slot` prop is intentionally undocumented,\nso `@oversightIgnore` exempts this component from the prop-coverage rule: a\ndeliberate opt-out, not an oversight.",
+      "description": "An internal scaffolding surface. Its `slot` prop is undocumented on purpose, so\nan `@oversightIgnore` directive in this component's source exempts it from\n`prop-descriptions-missing` rather than leaving the rule to report a gap that\nis deliberate.",
       "docgen": {
         "$ref": "../services/core/docgen/layout-panel.json#/components/layout-panel"
       },
@@ -58,7 +58,7 @@
     "data-display-tile": {
       "id": "data-display-tile",
       "name": "Tile",
-      "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.\n\n(That link is intentionally broken — there is no `data-display-ghost`\ncomponent — so Oversight flags it as docs-link-dangling.)",
+      "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.",
       "docgen": {
         "$ref": "../services/core/docgen/data-display-tile.json#/components/data-display-tile"
       },

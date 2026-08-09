@@ -29,7 +29,7 @@
                 }
               ]
             },
-            "description": "Colour intent — 'neutral', 'success', or 'danger'.",
+            "description": "Color intent: 'neutral', 'success', or 'danger'.",
             "defaultValue": {
               "value": "'neutral'"
             },
@@ -68,7 +68,7 @@
       "argTypes": {
         "tone": {
           "name": "tone",
-          "description": "Colour intent — 'neutral', 'success', or 'danger'.",
+          "description": "Color intent: 'neutral', 'success', or 'danger'.",
           "type": {
             "required": false,
             "raw": "\"neutral\" | \"success\" | \"danger\"",

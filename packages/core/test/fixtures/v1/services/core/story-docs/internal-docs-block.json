@@ -1,0 +1,21 @@
+{
+  "components": {
+    "internal-docs-block": {
+      "id": "internal-docs-block",
+      "name": "DocsBlock",
+      "path": "./stories/DocsBlock/DocsBlock.stories.tsx",
+      "stories": {
+        "internal-docs-block--light": {
+          "id": "internal-docs-block--light",
+          "name": "Light",
+          "snippet": "const Light = function RenderLight(_args, context) {\n  return renderWith(themes.light, context);\n};"
+        },
+        "internal-docs-block--dark": {
+          "id": "internal-docs-block--dark",
+          "name": "Dark",
+          "snippet": "const Dark = function RenderDark(_args, context) {\n  return renderWith(themes.dark, context);\n};"
+        }
+      }
+    }
+  }
+}

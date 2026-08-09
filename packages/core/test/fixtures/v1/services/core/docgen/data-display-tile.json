@@ -3,14 +3,14 @@
     "data-display-tile": {
       "id": "data-display-tile",
       "name": "Tile",
-      "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.\n\n(That link is intentionally broken — there is no `data-display-ghost`\ncomponent — so Oversight flags it as docs-link-dangling.)",
       "path": "./stories/Tile/Tile.stories.tsx",
       "jsDocTags": {},
+      "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.",
       "reactComponentMeta": {
         "displayName": "Tile",
         "exportName": "Tile",
         "filePath": "/repo/stories/Tile/Tile.tsx",
-        "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.\n\n(That link is intentionally broken — there is no `data-display-ghost`\ncomponent — so Oversight flags it as docs-link-dangling.)",
+        "description": "A compact fixed-size surface for a single stat or shortcut. For a flexible\ncontainer that grows with its content, use\n[Ghost](?path=/docs/data-display-ghost--docs) instead.",
         "props": {
           "label": {
             "name": "label",
@@ -49,6 +49,35 @@
                 "fileName": "stories/Tile/Tile.tsx"
               }
             ]
+          }
+        }
+      },
+      "argTypes": {
+        "label": {
+          "name": "label",
+          "description": "Heading shown at the top of the tile.",
+          "type": {
+            "required": true,
+            "name": "string"
+          },
+          "table": {
+            "type": {
+              "summary": "string"
+            }
+          }
+        },
+        "children": {
+          "name": "children",
+          "description": "Content rendered below the heading.",
+          "type": {
+            "required": false,
+            "name": "other",
+            "value": "ReactNode"
+          },
+          "table": {
+            "type": {
+              "summary": "ReactNode"
+            }
           }
         }
       }
