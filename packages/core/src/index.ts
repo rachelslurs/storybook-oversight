@@ -1,7 +1,7 @@
 export { detectRepoRoot, normalizeManifest } from './normalize';
 export { detectManifestFormat } from './format';
 export type { ManifestFormat } from './format';
-export { resolveManifestRefs } from './resolveRefs';
+export { describeLoaderFailure, parseRef, resolveManifestRefs } from './resolveRefs';
 export type { RefLoader } from './resolveRefs';
 export { lint, hintFor, ALL_RULES, VALID_SETTINGS } from './lint';
 export type { LintOptions } from './lint';

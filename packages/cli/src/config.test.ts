@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildConfig, DEFAULT_MANIFEST_PATH } from './config';
+import { DEFAULT_MANIFEST_PATH, buildConfig } from './config';
 import type { Context } from './config';
 
 const ctx = (over: Partial<Context> = {}): Context => ({
@@ -47,6 +47,59 @@ describe('buildConfig', () => {
     const result = buildConfig(['--expected-extractor', ''], ctx());
     expect(result).toMatchObject({ kind: 'error' });
     expect((result as { message: string }).message).toMatch(/extractor name/);
+  });
+
+  it('routes agent-view to its own kind, with the id and the default manifest', () => {
+    const result = buildConfig(['agent-view', 'actions-button'], ctx());
+    expect(result).toMatchObject({
+      kind: 'agent-view',
+      options: { id: 'actions-button', manifestPath: DEFAULT_MANIFEST_PATH },
+    });
+  });
+
+  it('takes a manifest after the id', () => {
+    const result = buildConfig(['agent-view', 'actions-button', 'build/components.json'], ctx());
+    expect(result).toMatchObject({ kind: 'agent-view', options: { manifestPath: 'build/components.json' } });
+  });
+
+  it('rejects agent-view with no id, which the manifest default makes reachable', () => {
+    // Without this the id arrives as "" and renders as `No line for ""` at exit
+    // 2, an inspection failure where a usage error belongs.
+    for (const argv of [['agent-view'], ['agent-view', ' ']]) {
+      expect(buildConfig(argv, ctx())).toMatchObject({ kind: 'error' });
+    }
+    expect((buildConfig(['agent-view'], ctx()) as { message: string }).message).toMatch(/docs entry id/);
+  });
+
+  it('rejects a third positional rather than dropping it', () => {
+    const result = buildConfig(['agent-view', 'id', 'a.json', 'b.json'], ctx());
+    expect(result).toMatchObject({ kind: 'error' });
+    expect((result as { message: string }).message).toMatch(/id and an optional manifest/);
+  });
+
+  it('rejects the lint flags it has no use for, by name', () => {
+    for (const argv of [
+      ['agent-view', 'x', '--format', 'json'],
+      ['agent-view', 'x', '--json'],
+      ['agent-view', 'x', '--quiet'],
+      ['agent-view', 'x', '--max-warnings', '0'],
+    ]) {
+      expect(buildConfig(argv, ctx())).toMatchObject({ kind: 'error' });
+    }
+  });
+
+  it('answers --help under the subcommand, not the top-level one', () => {
+    expect(buildConfig(['agent-view', '--help'], ctx())).toMatchObject({ kind: 'agent-view-help' });
+    expect(buildConfig(['--help'], ctx())).toMatchObject({ kind: 'help' });
+  });
+
+  it('points at the subcommand when it lands somewhere argv[0] does not see', () => {
+    // `oversight --quiet agent-view x` reaches the lint parse with `agent-view`
+    // as the manifest path, and would otherwise fail with five lines about
+    // Storybook's manifest features.
+    const result = buildConfig(['--quiet', 'agent-view', 'x'], ctx());
+    expect(result).toMatchObject({ kind: 'error' });
+    expect((result as { message: string }).message).toMatch(/did you mean/);
   });
 
   it('rejects an extractor-drift severity override with no expectation to compare against', () => {

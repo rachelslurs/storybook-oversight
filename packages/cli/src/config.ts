@@ -23,10 +23,19 @@ export type RunOptions = {
   color: boolean;
 };
 
-/** buildConfig either yields options to run, or short-circuits (help/version/error). */
+/** What `oversight agent-view` needs. It inspects one entry and lints nothing. */
+export type AgentViewOptions = {
+  manifestPath: string;
+  /** A component or docs entry id, as `list-all-documentation` reports it. */
+  id: string;
+};
+
+/** buildConfig yields a lint run, an inspection, or a short-circuit (help/version/error). */
 export type ConfigResult =
   | { kind: 'run'; options: RunOptions }
+  | { kind: 'agent-view'; options: AgentViewOptions }
   | { kind: 'help' }
+  | { kind: 'agent-view-help' }
   | { kind: 'version' }
   | { kind: 'error'; message: string };
 
@@ -58,6 +67,12 @@ export const HELP = `oversight: lint a Storybook MCP components manifest
 
 Usage:
   oversight [manifest] [options]
+  oversight agent-view <id> [manifest]
+
+Commands:
+  agent-view <id>              Print what the MCP serves for one component or
+                               docs entry instead of linting. See
+                               oversight agent-view --help.
 
 Arguments:
   manifest                     Path to components.json.
@@ -82,6 +97,28 @@ Exit codes:
   0  clean, or only warnings within --max-warnings
   1  error-severity findings, or warnings over the threshold
   2  could not run (manifest missing, unparseable, or unsupported format)`;
+
+export const AGENT_VIEW_HELP = `oversight agent-view: print what the MCP serves for one entry
+
+Usage:
+  oversight agent-view <id> [manifest]
+
+Arguments:
+  id                           A component or docs entry id, as
+                               list-all-documentation reports it.
+  manifest                     Path to components.json. Falls back to the
+                               config file, then ${DEFAULT_MANIFEST_PATH}
+
+Options:
+  --config <path>              Config file (default: ./oversight.config.json).
+  -h, --help                   Show this help.
+
+Exit codes:
+  0  the text was printed
+  2  it could not be (unknown id, or a ref that failed to resolve)
+
+Findings do not reach the exit code: this inspects rather than lints. The
+output is the tool result and says nothing about what a model does with it.`;
 
 function parseRuleFlags(flags: string[]): Partial<Record<RuleName, RuleSetting>> {
   const rules: Partial<Record<RuleName, RuleSetting>> = {};
@@ -125,7 +162,67 @@ function loadFileConfig(cwd: string, explicitPath: string | undefined): FileConf
   return parsed as FileConfig;
 }
 
+/** The subcommand's spelling, matched against `argv[0]` and nothing else. */
+const AGENT_VIEW = 'agent-view';
+
+/**
+ * `oversight agent-view <id> [manifest]`.
+ *
+ * Its own option set, so the lint flags it has no use for are rejected by name
+ * rather than accepted and then explained away. It inspects one entry, so
+ * `--format`, `--max-warnings`, `--quiet` and `--rule` do not appear here.
+ *
+ * The manifest resolves the chain the lint path uses, positional then config
+ * file then default, so the id alone is the common invocation. `--config` is
+ * accepted for the same reason the file is read at all: without it, a project
+ * that lints with `--config ci/oversight.json` would inspect a different
+ * manifest than it lints.
+ */
+function buildAgentViewConfig(argv: string[], ctx: Context): ConfigResult {
+  let values: Record<string, unknown>;
+  let positionals: string[];
+  try {
+    ({ values, positionals } = parseArgs({
+      args: argv,
+      allowPositionals: true,
+      options: {
+        config: { type: 'string' },
+        help: { type: 'boolean', short: 'h', default: false },
+      },
+    }) as { values: Record<string, unknown>; positionals: string[] });
+  } catch (err) {
+    return { kind: 'error', message: (err as Error).message };
+  }
+
+  if (values.help) return { kind: 'agent-view-help' };
+
+  const [id, manifest, ...rest] = positionals;
+  if (id === undefined || id.trim() === '') {
+    return { kind: 'error', message: `${AGENT_VIEW} expects a component or docs entry id` };
+  }
+  if (rest.length > 0) {
+    return {
+      kind: 'error',
+      message: `${AGENT_VIEW} takes an id and an optional manifest path, got ${positionals.length} arguments`,
+    };
+  }
+
+  let file: FileConfig;
+  try {
+    file = loadFileConfig(ctx.cwd, values.config as string | undefined);
+  } catch (err) {
+    return { kind: 'error', message: (err as Error).message };
+  }
+
+  return {
+    kind: 'agent-view',
+    options: { manifestPath: manifest ?? file.manifest ?? DEFAULT_MANIFEST_PATH, id },
+  };
+}
+
 export function buildConfig(argv: string[], ctx: Context): ConfigResult {
+  if (argv[0] === AGENT_VIEW) return buildAgentViewConfig(argv.slice(1), ctx);
+
   let values: Record<string, unknown>;
   let positionals: string[];
   try {
@@ -208,6 +305,13 @@ export function buildConfig(argv: string[], ctx: Context): ConfigResult {
   }
   // Explicit --format wins; --json is sugar for --format json; default is text.
   const format: OutputFormat = (formatRaw as OutputFormat | undefined) ?? (values.json ? 'json' : 'text');
+
+  // `argv[0]` is the only place the subcommand is recognized, so `oversight
+  // --quiet agent-view <id>` reaches here with `agent-view` as the manifest and
+  // would otherwise fail with five lines about Storybook's manifest features.
+  if (positionals.includes(AGENT_VIEW)) {
+    return { kind: 'error', message: `did you mean \`oversight ${AGENT_VIEW} <id>\`?` };
+  }
 
   return {
     kind: 'run',

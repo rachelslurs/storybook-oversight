@@ -12,6 +12,8 @@ Against `@storybook/mcp` 0.8.0, the version `@storybook/addon-mcp` 0.7.0 pins, w
 
 The measurements come from invoking the server's exported tool registrars against an in-memory manifest, so the text below is produced by the shipped code path rather than by a reimplementation of it. The formatters themselves are internal to `@storybook/mcp` and cannot be imported. `packages/agent-view` holds the harness, the variants, and a snapshot of every rendering described here; `pnpm test:unit` runs it.
 
+To read this for your own build, `oversight agent-view <id>` prints the `get-documentation` text and the whole `list-all-documentation` bullet for one component or docs entry of a built manifest. It renders with the `@storybook/mcp` nearest the manifest where it finds one, and names the version it used, so its output can differ from the version measured here.
+
 The baseline is the real `actions-button` entry from a `storybook build` of the demo. Every variant mutates that one entry, so a difference in output is attributable to the single field that changed.
 
 ## What reaches the agent

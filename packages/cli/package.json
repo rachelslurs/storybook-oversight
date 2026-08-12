@@ -41,7 +41,11 @@
     "lint": "eslint --cache .",
     "typecheck": "tsc -p tsconfig.json"
   },
+  "dependencies": {
+    "@storybook/mcp": "0.8.0"
+  },
   "devDependencies": {
+    "oversight-agent-view": "workspace:*",
     "oversight-core": "workspace:*"
   },
   "publishConfig": {

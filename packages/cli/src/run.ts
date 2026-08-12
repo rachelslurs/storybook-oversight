@@ -1,7 +1,7 @@
 import { analyzeManifest } from 'oversight-core';
 import type { RunOptions } from './config';
 import { formatGithub, formatJson, formatStepSummary, formatStylish } from './format';
-import { ManifestError, hydrateManifest, readManifest } from './manifest';
+import { ManifestError, assertManifestShape, hydrateManifest, readManifest } from './manifest';
 import type { LintSummary } from './types';
 
 export type RunResult = {
@@ -17,9 +17,20 @@ export type RunResult = {
  *  testable. Async because a ref-based manifest resolves its payloads by
  *  reading further files. */
 export async function run(options: RunOptions): Promise<RunResult> {
+  let raw;
+  let format;
+  try {
+    raw = readManifest(options.manifestPath);
+    // A file that cannot be read as a manifest fails before analysis.
+    format = assertManifestShape(raw, options.manifestPath);
+  } catch (err) {
+    if (err instanceof ManifestError) return { code: 2, stdout: '', stderr: err.message };
+    throw err;
+  }
+
   let manifest;
   try {
-    manifest = await hydrateManifest(readManifest(options.manifestPath), options.manifestPath);
+    manifest = await hydrateManifest(raw, options.manifestPath, format);
   } catch (err) {
     if (err instanceof ManifestError) return { code: 2, stdout: '', stderr: err.message };
     throw err;

@@ -106,6 +106,30 @@ describe.skipIf(!built)('cli: the built binary', () => {
   it('exits 2 on a usage error', () => {
     expect(cli([fixture(CLEAN), '--no-such-flag']).code).toBe(2);
   });
+
+  it('renders agent-view from the built bundle', () => {
+    // Every other test of this command imports the source, so this is the only
+    // one that runs the built entry point at all. It resolves @storybook/mcp
+    // from the workspace, the same tree the source tests use, so it says nothing
+    // about whether a published package could reach it: that needs a packed
+    // tarball installed somewhere else, which nothing here does.
+    const result = cli(['agent-view', 'ui-button', fixture(CLEAN)]);
+
+    expect(result.code).toBe(0);
+    expect(result.stdout.split('\n')).toContain('# Button');
+    expect(result.stdout).toMatch(/@storybook\/mcp \d+\.\d+/);
+  });
+
+  it('exits 2 under agent-view for an id the manifest does not hold', () => {
+    expect(cli(['agent-view', 'ui-nothing', fixture(CLEAN)]).code).toBe(2);
+  });
+
+  it('answers agent-view --help without the banner, like the other help paths', () => {
+    const result = cli(['agent-view', '--help']);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toMatch(/oversight agent-view <id>/);
+    expect(result.stderr).not.toContain('oversight-lint ');
+  });
 });
 
 // The banner exists so an audit can tell from a CI log which build ran, which

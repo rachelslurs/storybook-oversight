@@ -1,9 +1,12 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { join, sep } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import * as mcp from '@storybook/mcp';
 import type { RawManifest } from 'oversight-core';
+import { filesFor, getDocumentation, listAllDocumentation } from 'oversight-agent-view';
+import { DOCUMENTATION_HEADING, showAgentView } from './agentView';
 import type { RunOptions } from './config';
 import { run } from './run';
 import { containedIn } from './manifest';
@@ -644,5 +647,649 @@ describe('run: annotations survive the ref format (#51)', () => {
     expect(anns.find((a) => a.file !== null)?.file).toBe('stories/Banner/Banner.stories.tsx');
     expect(anns.filter((a) => a.file === null)).toHaveLength(1);
     expect(result.code).toBe(1);
+  });
+});
+
+describe('agent-view (#105)', () => {
+  const coreFixture = (name: string) => fileURLToPath(new URL(`../../core/test/fixtures/${name}`, import.meta.url));
+
+  const view = (manifestPath: string, id: string) => showAgentView({ manifestPath, id });
+
+  /** A manifest an error-severity rule fires on, so "findings do not move the exit code" has something to be about. */
+  const HAS_AN_ERROR: RawManifest = {
+    v: 0,
+    meta: { docgen: 'react-docgen-typescript' },
+    components: {
+      'ui-button': {
+        id: 'ui-button',
+        name: 'Button',
+        path: 'src/Button.stories.tsx',
+        description: 'A button.',
+        reactDocgenTypescript: { description: 'A button.', props: { label: { required: true } } },
+        stories: [{ id: 'ui-button--default', name: 'Default' }],
+      },
+    },
+  };
+
+  it('prints the text the server returns for the entry', async () => {
+    const result = await view(fixture(CLEAN), 'ui-button');
+
+    const lines = result.stdout.split('\n');
+    expect(lines).toContain('# Button');
+    expect(lines).toContain('ID: ui-button');
+    // The selection surface renders the same entry, on its own unindented line.
+    expect(lines).toContain('- Button (ui-button): A button.');
+    expect(result.code).toBe(0);
+  });
+
+  it('exits 0 on a manifest a lint run fails, since it inspects rather than lints', async () => {
+    const path = fixture(HAS_AN_ERROR);
+
+    // The control: under lint this manifest fails, so the 0 below is the
+    // command ignoring findings rather than a manifest that has none.
+    expect((await run(options({ manifestPath: path }))).code).toBe(1);
+    expect((await view(path, 'ui-button')).code).toBe(0);
+  });
+
+  it('fails with the answer the server itself gives for an id the manifest does not hold', async () => {
+    const result = await view(fixture(CLEAN), 'ui-nothing');
+
+    expect(result.stdout).toMatch(/The get-documentation call failed\./);
+    expect(result.stdout).toMatch(/Component or Docs Entry not found: "ui-nothing"/);
+    // The list is where an agent would have found a real id, and the output says so.
+    expect(result.stdout).toMatch(/list-all-documentation/);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toMatch(/ui-nothing/);
+  });
+
+  it('renders a v:1 entry through its refs', async () => {
+    const result = await view(coreFixture('v1/manifests/components.json'), 'layout-panel');
+
+    expect(result.stdout.split('\n')).toContain('# Panel');
+    expect(result.code).toBe(0);
+  });
+
+  it('reports a ref that failed, by ref rather than by absolute path', async () => {
+    const result = await view(coreFixture('v1-dangling/manifests/components.json'), 'layout-panel');
+
+    // A failed call still returns text, so the report says which it is rather
+    // than presenting the error as the documentation an agent receives.
+    expect(result.stdout).toMatch(/The get-documentation call failed\./);
+
+    const served = documentationSection(result.stdout);
+    expect(served).toMatch(/failed to load: no such file/);
+    // Quoted as the manifest writes it, fragment included, which is the string
+    // the lint path's own error carries and the one a reader can grep for.
+    expect(served).toMatch(/"\.\.\/services\/core\/docgen\/layout-panel\.json#\/components\/layout-panel"/);
+    // The ref names itself; `realpathSync` would have named the absolute path it
+    // tried, and this text is pasted into pull requests. The header line above
+    // still echoes whatever path was passed, which is the operator's own.
+    expect(served).not.toMatch(/\/Users\/|\/home\/|\/tmp\//);
+    expect(result.code).toBe(2);
+  });
+
+  /** A fence line of the report's own wrapper: at least four tildes, alone on the line. */
+  const isFence = (line: string) => /^~{4,}$/.test(line);
+
+  /**
+   * The fenced block under a heading.
+   *
+   * Sliced on whole lines rather than searched for: `ID: actions-button` is a
+   * substring of every `Story ID: actions-button--primary` line in the same
+   * output, and a substring search lands on whichever comes first. The closer is
+   * the opener's own line repeated: `fenceFor` sizes the wrapper past every
+   * tilde run the served text carries, so no interior line equals it.
+   */
+  function fencedRegionAfter(stdout: string, heading: string): string {
+    const lines = stdout.split('\n');
+    const at = lines.indexOf(heading);
+    expect(at).toBeGreaterThan(-1);
+    const open = lines.findIndex((line, i) => i > at && isFence(line));
+    expect(open).toBeGreaterThan(at);
+    const close = lines.indexOf(lines[open] as string, open + 1);
+    expect(close).toBeGreaterThan(open);
+    return lines.slice(open + 1, close).join('\n');
+  }
+
+  /** The section between the `get-documentation` heading and the closing line. */
+  const documentationSection = (stdout: string) => fencedRegionAfter(stdout, DOCUMENTATION_HEADING);
+
+  /** The v:1 leaves, keyed the way the server asks for them: relative to the build output. */
+  function leavesOf(buildRoot: string): Record<string, unknown> {
+    const files: Record<string, unknown> = {};
+    for (const service of readdirSync(join(buildRoot, 'services', 'core'))) {
+      const dir = join(buildRoot, 'services', 'core', service);
+      for (const leaf of readdirSync(dir)) {
+        files[`./services/core/${service}/${leaf}`] = JSON.parse(readFileSync(join(dir, leaf), 'utf8'));
+      }
+    }
+    return files;
+  }
+
+  it('renders a docs entry, which the command and its help both say it takes', async () => {
+    // `get-documentation` falls back to the docs manifest when no component
+    // holds the id, so `<id>` means either. Nothing covered the docs half, and
+    // neither core fixture has a docs.json to cover it with.
+    const path = fixture(CLEAN);
+    writeFileSync(
+      join(dir, 'docs.json'),
+      JSON.stringify({
+        v: 0,
+        docs: {
+          'guides--install': { id: 'guides--install', name: 'Docs', title: 'Install', content: '# Install\n\nRun it.' },
+        },
+      }),
+    );
+
+    const result = await showAgentView({ manifestPath: path, id: 'guides--install' });
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain('Run it.');
+  });
+
+  it('finds a docs entry whose title carries a parenthesized segment before a colon', async () => {
+    // `- Getting started (v2): the basics (guides--start): ...` is one legal
+    // bullet. A grammar match took the first `(...)` followed by `:` as the id
+    // slot and read "v2", so the entry's own id never matched and the report
+    // claimed the list does not offer an entry that sits right in it.
+    const path = fixture(CLEAN);
+    writeFileSync(
+      join(dir, 'docs.json'),
+      JSON.stringify({
+        v: 0,
+        docs: {
+          'guides--start': {
+            id: 'guides--start',
+            name: 'Docs',
+            title: 'Getting started (v2): the basics',
+            content: '# Start\n\nHere.',
+          },
+        },
+      }),
+    );
+
+    const result = await showAgentView({ manifestPath: path, id: 'guides--start' });
+
+    expect(result.code).toBe(0);
+    const printed = selectionSection(result.stdout);
+    expect(printed.startsWith('- Getting started (v2): the basics (guides--start)')).toBe(true);
+    expect(result.stdout).not.toContain('It is not offered by list-all-documentation');
+  });
+
+  it('renders the components when a foreign docs.json sits beside the manifest', async () => {
+    // `docs.json` is also what TypeDoc and Docusaurus write. Served as though it
+    // were Storybook's, it parses and then fails the schema inside the server,
+    // which fails the whole call and leaves a good components manifest showing
+    // nothing at all.
+    const path = fixture(CLEAN);
+    writeFileSync(join(dir, 'docs.json'), JSON.stringify({ name: 'my-typedoc', entries: [] }));
+
+    const result = await showAgentView({ manifestPath: path, id: 'ui-button' });
+
+    expect(result.code).toBe(0);
+    expect(result.stdout.split('\n')).toContain('# Button');
+  });
+
+  it('rejects a docs.json holding a bare null in the words the other foreign files get', async () => {
+    // `null` parses, so the guard runs, and it reads `v` off the parsed value
+    // before the clause that would reject it. The TypeError that raises reaches
+    // the refusal note in place of the sentence written for a reader.
+    const path = fixture(CLEAN);
+    writeFileSync(join(dir, 'docs.json'), 'null');
+
+    const result = await showAgentView({ manifestPath: path, id: 'guides--install' });
+
+    expect(result.code).toBe(2);
+    expect(result.stdout).toContain(
+      'The docs manifest was not read: docs.json beside the manifest is some other document, not a Storybook docs manifest.',
+    );
+  });
+
+  const withDescriptions = (entries: Record<string, string>): RawManifest => ({
+    v: 0,
+    meta: { docgen: 'react-docgen-typescript' },
+    components: Object.fromEntries(
+      Object.entries(entries).map(([id, description]) => [
+        id,
+        {
+          id,
+          name: id.replace(/^ui-/, '').replace(/^./, (c) => c.toUpperCase()),
+          path: `src/${id}.stories.tsx`,
+          description,
+          reactDocgenTypescript: { description, props: {} },
+          stories: [],
+        },
+      ]),
+    ),
+  });
+
+  it('picks the bullet whose own id matches, not one that mentions it', async () => {
+    // The id appears in Button's description text and in Card's id slot. A
+    // substring match returns Button's line under a heading that says ui-card.
+    const path = fixture(
+      withDescriptions({
+        'ui-button': 'A button. See the card wrapper (ui-card) for layout.',
+        'ui-card': 'A card.',
+      }),
+    );
+
+    const printed = selectionSection((await view(path, 'ui-card')).stdout);
+
+    expect(printed.startsWith('- Card (ui-card)')).toBe(true);
+    expect(printed).not.toContain('ui-button');
+  });
+
+  it('skips a description line shaped like an entry and naming a sibling id', async () => {
+    // Alpha precedes Card in the list, and its description carries a line
+    // shaped exactly like a list entry with Card's real id in the id slot.
+    // Anchoring on line shape picked it and printed a fragment of Alpha's
+    // description under Card's heading; the anchor is Card's own
+    // `- Card (ui-card)` prefix, which the decoy does not carry.
+    const path = fixture(
+      withDescriptions({
+        'ui-alpha': 'Legacy.\n- prefer the newer wrapper (ui-card): lighter',
+        'ui-card': 'A card.',
+      }),
+    );
+
+    const printed = selectionSection((await view(path, 'ui-card')).stdout);
+
+    expect(printed.startsWith('- Card (ui-card)')).toBe(true);
+    expect(printed).not.toContain('prefer the newer wrapper');
+  });
+
+  it('keeps a wrapped entry whose description contains markdown of its own', async () => {
+    // The terminator used to stop at any line starting with `- `, whitespace or
+    // `#`, all of which a description can contain, so the rest of the bullet and
+    // the ellipsis marking the server's cut were dropped.
+    const path = fixture(
+      withDescriptions({
+        'ui-panel':
+          'Panels group related controls together and can be collapsed.\nUse them for:\n- sidebars\n- toolbars',
+      }),
+    );
+
+    const printed = selectionSection((await view(path, 'ui-panel')).stdout);
+
+    expect(printed.split('\n').length).toBeGreaterThan(2);
+    expect(printed).toContain('- sidebars');
+    expect(printed.endsWith('...')).toBe(true);
+  });
+
+  it('keeps a wrapped entry across the blank line its description carries', async () => {
+    // The 90-character cut preserves interior newlines, blank ones included, so
+    // a description opening with a short paragraph arrives as bullet, blank
+    // line, remainder, ellipsis. Ending the bullet at the blank line dropped
+    // the remainder and the ellipsis, and the prefix that survived still passed
+    // a verbatim containment check.
+    const path = fixture(
+      withDescriptions({
+        'ui-panel':
+          'Groups controls.\n\nCollapse it to save space when a sidebar gets crowded, then expand it on demand.',
+      }),
+    );
+
+    const printed = selectionSection((await view(path, 'ui-panel')).stdout);
+
+    expect(printed).toContain('\n\n');
+    expect(printed).toContain('Collapse it to save space');
+    expect(printed.endsWith('...')).toBe(true);
+    expect(printed).not.toContain('# Docs');
+  });
+
+  it('says the docs manifest was refused, rather than reporting the entry as absent', async () => {
+    // Upstream drops a rejected docs request and carries on, so a docs entry
+    // then reads as one the server does not offer. A file this run declined to
+    // open is a different thing from a file that is not there.
+    const path = fixture(CLEAN);
+    const away = mkdtempSync(join(tmpdir(), 'oversight-docs-'));
+    const outside = join(away, 'docs.json');
+    writeFileSync(
+      outside,
+      JSON.stringify({ v: 0, docs: { 'guides--install': { id: 'guides--install', name: 'Docs' } } }),
+    );
+    symlinkSync(outside, join(dir, 'docs.json'));
+
+    const result = await showAgentView({ manifestPath: path, id: 'guides--install' });
+
+    expect(result.code).toBe(2);
+    expect(result.stdout).toMatch(/docs manifest was not read/);
+    rmSync(away, { recursive: true, force: true });
+  });
+
+  it('refuses a climbing ref the lint path refuses, from a manifest outside a manifests/ directory', async () => {
+    // Every other v:1 case here puts the index in `<out>/manifests/`, where the
+    // build root and the ref base are the same directory, so nothing separates
+    // them. Flat, they differ: agent-view used to resolve the server's already
+    // normalized `./services/x` against the build root and print a payload the
+    // lint path had refused and reported `docgen-missing` on.
+    const flat = join(dir, 'flat');
+    mkdirSync(join(flat, 'services', 'core', 'docgen'), { recursive: true });
+    writeFileSync(
+      join(flat, 'components.json'),
+      JSON.stringify({
+        v: 1,
+        meta: { docgen: 'react-component-meta' },
+        components: {
+          'ui-badge': {
+            id: 'ui-badge',
+            name: 'Badge',
+            docgen: { $ref: '../services/core/docgen/ui-badge.json#/components/ui-badge' },
+          },
+        },
+      }),
+    );
+    writeFileSync(
+      join(flat, 'services', 'core', 'docgen', 'ui-badge.json'),
+      JSON.stringify({
+        components: {
+          'ui-badge': {
+            id: 'ui-badge',
+            name: 'Badge',
+            path: './b.stories.tsx',
+            reactComponentMeta: { description: 'A badge.', props: {} },
+          },
+        },
+      }),
+    );
+    const manifestPath = join(flat, 'components.json');
+
+    const linted = await run(options({ manifestPath }));
+    const viewed = await showAgentView({ manifestPath, id: 'ui-badge' });
+
+    // The lint path refuses the climb out of the build output.
+    expect(linted.stdout).toMatch(/docgen-missing/);
+    // agent-view has to agree rather than find the file and print it.
+    expect(viewed.code).toBe(2);
+    expect(documentationSection(viewed.stdout)).not.toContain('A badge.');
+  });
+
+  it('reads a same-directory ref where the lint path reads it, from a manifest outside a manifests/ directory', async () => {
+    // The inverse direction of the climb above. Upstream reports this ref as
+    // `./manifests/leaf.json`, and resolving that against the parent invented a
+    // manifests/ directory the layout does not have, so the call failed on a
+    // payload the lint path had read.
+    const flat = join(dir, 'flat-same-dir');
+    mkdirSync(flat, { recursive: true });
+    writeFileSync(
+      join(flat, 'components.json'),
+      JSON.stringify({
+        v: 1,
+        meta: { docgen: 'react-component-meta' },
+        components: {
+          'ui-badge': {
+            id: 'ui-badge',
+            name: 'Badge',
+            docgen: { $ref: './leaf.json#/components/ui-badge' },
+          },
+        },
+      }),
+    );
+    writeFileSync(
+      join(flat, 'leaf.json'),
+      JSON.stringify({
+        components: {
+          'ui-badge': {
+            id: 'ui-badge',
+            name: 'Badge',
+            path: './b.stories.tsx',
+            reactComponentMeta: {
+              description: 'A same-directory badge.',
+              props: { tone: { description: 'Its tone.', required: true } },
+            },
+          },
+        },
+      }),
+    );
+    const manifestPath = join(flat, 'components.json');
+
+    const linted = await run(options({ manifestPath }));
+    const viewed = await showAgentView({ manifestPath, id: 'ui-badge' });
+
+    // The lint path resolves this ref, so agreement means rendering it.
+    expect(linted.stdout).not.toMatch(/docgen-missing/);
+    expect(viewed.code).toBe(0);
+    const served = documentationSection(viewed.stdout);
+    // The prop and its JSDoc, since the payload is what the ref reaches; the
+    // description would not show either way, coming from the entry alone.
+    expect(served).toContain('## Props');
+    expect(served).toContain('Its tone.');
+  });
+
+  it('refuses a ref that climbs twice, instead of reading the file the server clamps it to', async () => {
+    // The server's URL join clamps `../../shared/x` to the same request as
+    // `../shared/x`, so inverting the join resolved the clamped form inside the
+    // build output. With `<out>/shared/ui-badge.json` present, agent-view
+    // rendered a payload from a file the ref never named, while lint refused
+    // the ref for escaping the build output.
+    const out = join(dir, 'clamped');
+    mkdirSync(join(out, 'manifests'), { recursive: true });
+    mkdirSync(join(out, 'shared'), { recursive: true });
+    writeFileSync(
+      join(out, 'manifests', 'components.json'),
+      JSON.stringify({
+        v: 1,
+        meta: { docgen: 'react-component-meta' },
+        components: {
+          'ui-badge': {
+            id: 'ui-badge',
+            name: 'Badge',
+            docgen: { $ref: '../../shared/ui-badge.json#/components/ui-badge' },
+          },
+        },
+      }),
+    );
+    writeFileSync(
+      join(out, 'shared', 'ui-badge.json'),
+      JSON.stringify({
+        components: {
+          'ui-badge': {
+            id: 'ui-badge',
+            name: 'Badge',
+            reactComponentMeta: { description: 'A clamped badge.', props: {} },
+          },
+        },
+      }),
+    );
+    const manifestPath = join(out, 'manifests', 'components.json');
+
+    const linted = await run(options({ manifestPath }));
+    const viewed = await showAgentView({ manifestPath, id: 'ui-badge' });
+
+    expect(linted.stdout).toMatch(/docgen-missing/);
+    expect(viewed.code).toBe(2);
+    expect(documentationSection(viewed.stdout)).not.toContain('A clamped badge.');
+  });
+
+  it('reads a ref with a space in its path, which the server requests percent-encoded', async () => {
+    // The server's URL join percent-encodes the path, so `My Components`
+    // arrives as `My%20Components`. Resolving the request literally hit ENOENT
+    // on a `%20` directory and reported a broken ref for a build whose ref the
+    // lint path reads.
+    const out = join(dir, 'spaced');
+    mkdirSync(join(out, 'manifests'), { recursive: true });
+    mkdirSync(join(out, 'services', 'My Components'), { recursive: true });
+    writeFileSync(
+      join(out, 'manifests', 'components.json'),
+      JSON.stringify({
+        v: 1,
+        meta: { docgen: 'react-component-meta' },
+        components: {
+          'ui-badge': {
+            id: 'ui-badge',
+            name: 'Badge',
+            docgen: { $ref: '../services/My Components/ui-badge.json#/components/ui-badge' },
+          },
+        },
+      }),
+    );
+    writeFileSync(
+      join(out, 'services', 'My Components', 'ui-badge.json'),
+      JSON.stringify({
+        components: {
+          'ui-badge': {
+            id: 'ui-badge',
+            name: 'Badge',
+            reactComponentMeta: {
+              description: 'A spaced badge.',
+              props: { tone: { description: 'Its tone.', required: true } },
+            },
+          },
+        },
+      }),
+    );
+    const manifestPath = join(out, 'manifests', 'components.json');
+
+    const linted = await run(options({ manifestPath }));
+    const viewed = await showAgentView({ manifestPath, id: 'ui-badge' });
+
+    expect(linted.stdout).not.toMatch(/docgen-missing/);
+    expect(viewed.code).toBe(0);
+    expect(documentationSection(viewed.stdout)).toContain('Its tone.');
+  });
+
+  it('outgrows a tilde fence a docs entry carries, driven end to end', async () => {
+    // `formatDocsManifest` interpolates the entry's `content` verbatim, so a
+    // page demonstrating a backtick block inside a tilde fence puts a `~~~~`
+    // line in the served text. A fixed four-tilde wrapper would close on it and
+    // spill the rest of the entry into the surrounding document.
+    const path = fixture(CLEAN);
+    writeFileSync(
+      join(dir, 'docs.json'),
+      JSON.stringify({
+        v: 0,
+        docs: {
+          'guides--fences': {
+            id: 'guides--fences',
+            name: 'Docs',
+            title: 'Fences',
+            content: 'To hold a backtick block, use tildes:\n\n~~~~\n```js\ncode\n```\n~~~~\n\nDone.',
+          },
+        },
+      }),
+    );
+
+    const result = await showAgentView({ manifestPath: path, id: 'guides--fences' });
+    expect(result.code).toBe(0);
+
+    const lines = result.stdout.split('\n');
+    const heading = lines.indexOf(DOCUMENTATION_HEADING);
+    const open = lines.findIndex((line, i) => i > heading && /^~{4,}$/.test(line));
+    const close = lines.findIndex((line, i) => i > open && line === lines[open]);
+    // Wider than the fence the served text carries, so the wrapper is the line
+    // that closes the section.
+    expect(lines[open].length).toBeGreaterThan(4);
+    const region = lines.slice(open + 1, close);
+    expect(region).toContain('~~~~');
+    expect(region.join('\n')).toContain('Done.');
+  });
+
+  it('outgrows a tilde fence indented inside a list item, driven end to end', async () => {
+    // A closing fence may be indented up to three spaces (CommonMark 4.5), so
+    // an indented `~~~~` inside a served list item still closes a four-tilde
+    // wrapper when the report is pasted. A column-zero scan missed it and the
+    // minimum wrapper spilled the rest of the entry.
+    const path = fixture(CLEAN);
+    writeFileSync(
+      join(dir, 'docs.json'),
+      JSON.stringify({
+        v: 0,
+        docs: {
+          'guides--nested': {
+            id: 'guides--nested',
+            name: 'Docs',
+            title: 'Nested fences',
+            content: 'Hold a block inside a list:\n\n- like this:\n  ~~~~\n  code\n  ~~~~\n\nDone.',
+          },
+        },
+      }),
+    );
+
+    const result = await showAgentView({ manifestPath: path, id: 'guides--nested' });
+    expect(result.code).toBe(0);
+
+    const lines = result.stdout.split('\n');
+    const heading = lines.indexOf(DOCUMENTATION_HEADING);
+    const open = lines.findIndex((line, i) => i > heading && isFence(line));
+    expect((lines[open] as string).length).toBeGreaterThan(4);
+    const served = documentationSection(result.stdout);
+    expect(served).toContain('  ~~~~');
+    expect(served).toContain('Done.');
+  });
+
+  /** Every fenced region in the report, whatever width the fence was sized to. */
+  function fencedRegions(stdout: string): string[] {
+    const lines = stdout.split('\n');
+    const regions: string[] = [];
+    let open: number | undefined;
+    lines.forEach((line, i) => {
+      if (open === undefined) {
+        if (isFence(line)) open = i;
+      } else if (line === lines[open]) {
+        regions.push(lines.slice(open + 1, i).join('\n'));
+        open = undefined;
+      }
+    });
+    return regions;
+  }
+
+  it("keeps this tool's own sentences outside every fence", async () => {
+    // The closing line claims everything fenced under those headings is what the
+    // server returned. Both notes the report can add are ours, so a fence that
+    // contains one makes the report lie about its own contents. Asserting the
+    // note merely appears somewhere cannot catch that.
+    const path = fixture(CLEAN);
+    const result = await showAgentView({ manifestPath: path, id: 'ui-nothing' });
+
+    const fenced = fencedRegions(result.stdout);
+    expect(fenced.length).toBeGreaterThan(0);
+    for (const region of fenced) {
+      expect(region).not.toContain('The get-documentation call failed.');
+      expect(region).not.toContain('It is not offered by list-all-documentation');
+    }
+    // The control: both notes are in the report, just not inside a fence.
+    expect(result.stdout).toContain('The get-documentation call failed.');
+    expect(result.stdout).toContain('It is not offered by list-all-documentation');
+  });
+
+  /** The fenced block under the selection heading. */
+  const selectionSection = (stdout: string) => fencedRegionAfter(stdout, '## list-all-documentation');
+
+  it('prints the whole selection entry, including what the server wrapped onto a second line', async () => {
+    const root = coreFixture('v1');
+    const raw: unknown = JSON.parse(readFileSync(join(root, 'manifests', 'components.json'), 'utf8'));
+    const list = await listAllDocumentation(mcp, filesFor(mcp, raw, leavesOf(root)));
+    const printed = selectionSection(
+      await view(join(root, 'manifests', 'components.json'), 'actions-button').then((r) => r.stdout),
+    );
+
+    // The server cuts a description at 90 characters without touching the
+    // newlines inside it, so this entry arrives as two physical lines and the
+    // ellipsis that marks the cut is on the second. Reading one line dropped
+    // both, and the entry read as though the server had ended it mid-sentence.
+    expect(printed.split('\n').length).toBeGreaterThan(1);
+    expect(printed.endsWith('...')).toBe(true);
+    // Verbatim from the list rather than reassembled, so any mangling fails.
+    expect(list.text).toContain(printed);
+    expect(list.isError).toBe(false);
+  });
+
+  it('prints what the driver returns for the same manifest, resolved from disk instead of memory', async () => {
+    const root = coreFixture('v1');
+    const raw: unknown = JSON.parse(readFileSync(join(root, 'manifests', 'components.json'), 'utf8'));
+
+    // Two providers over one manifest: the driver answers from a map held in
+    // memory, the CLI from the filesystem, through realpath, a containment
+    // check and the root it computes from the manifest's own path. A wrong root
+    // or a mismatched `..` would diverge the two texts, which is the difference
+    // this compares. The formatter is the same on both sides by construction.
+    const direct = await getDocumentation(mcp, filesFor(mcp, raw, leavesOf(root)), 'actions-button');
+    const result = await view(join(root, 'manifests', 'components.json'), 'actions-button');
+
+    expect(direct.isError).toBe(false);
+    // Non-empty and distinctive, so the comparison is not two empty strings.
+    expect(direct.text.split('\n')).toContain('# Button');
+    expect(direct.text.split('\n')).toContain('## Props');
+    expect(documentationSection(result.stdout)).toBe(direct.text);
   });
 });

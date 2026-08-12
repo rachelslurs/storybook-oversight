@@ -57,9 +57,12 @@ jobs:
       - name: Check for linter errors
         run: pnpm lint
 
-  # The only job that earns a Node matrix. The three packages ship zero runtime
-  # dependencies and no native modules, and the addon runs in the browser, so
-  # Node version reaches its runtime not at all. The exception is the CLI:
+  # The only job that earns a Node matrix. The addon and the rules engine ship
+  # zero runtime dependencies and no native modules, and the addon runs in the
+  # browser, so Node version reaches its runtime not at all. The CLI declares
+  # one, `@storybook/mcp`, which `oversight agent-view` renders with; a lint run
+  # never loads it, and bundling it away so the claim holds for all three again
+  # is tracked in #116. The exception that earns the matrix is still the CLI:
   # `packages/cli/src/config.ts` parses argv with `parseArgs` from `node:util`,
   # which is the one API here that has changed across majors, and `cli.test.ts`
   # drives the built binary through `spawnSync`.
