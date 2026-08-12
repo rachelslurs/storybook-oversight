@@ -830,6 +830,21 @@ describe('agent-view (#105)', () => {
     expect(result.stdout.split('\n')).toContain('# Button');
   });
 
+  it('rejects a docs.json holding a bare null in the words the other foreign files get', async () => {
+    // `null` parses, so the guard runs, and it reads `v` off the parsed value
+    // before the clause that would reject it. The TypeError that raises reaches
+    // the refusal note in place of the sentence written for a reader.
+    const path = fixture(CLEAN);
+    writeFileSync(join(dir, 'docs.json'), 'null');
+
+    const result = await showAgentView({ manifestPath: path, id: 'guides--install' });
+
+    expect(result.code).toBe(2);
+    expect(result.stdout).toContain(
+      'The docs manifest was not read: docs.json beside the manifest is some other document, not a Storybook docs manifest.',
+    );
+  });
+
   const withDescriptions = (entries: Record<string, string>): RawManifest => ({
     v: 0,
     meta: { docgen: 'react-docgen-typescript' },

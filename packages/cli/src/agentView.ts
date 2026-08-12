@@ -200,12 +200,16 @@ function docsManifest(body: string): { body: string; entries: Record<string, unk
   const shape = parsed as { v?: unknown; docs?: unknown };
   // `v` is 0 or 1, not any number: a `v: 2` file clears a typeof check, reaches
   // `parseManifest` and throws outside the tolerance this gate exists to reach.
+  // `parsed` is tested first because the cast above is erased at runtime, and a
+  // file holding `null` parses: reading `v` off it raises a TypeError that goes
+  // out as the refusal reason in place of this sentence. Every other primitive
+  // answers `undefined` there and is rejected by the same clause.
   // Entry-level shape stays upstream's to validate; this only keeps a document
   // that is plainly not a docs manifest away from it. The residue: a real docs
   // manifest whose entries drift from the rendering copy's schema at an
   // unchanged `v` passes here, throws inside `parseManifest`, and fails every
   // get-documentation call loudly, with no refusal note to explain it.
-  if ((shape.v !== 0 && shape.v !== 1) || typeof shape.docs !== 'object' || shape.docs === null) {
+  if (parsed === null || (shape.v !== 0 && shape.v !== 1) || typeof shape.docs !== 'object' || shape.docs === null) {
     throw new Error('docs.json beside the manifest is some other document, not a Storybook docs manifest.');
   }
   return { body, entries: shape.docs as Record<string, unknown> };
