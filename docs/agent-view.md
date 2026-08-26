@@ -8,7 +8,7 @@ Nothing here is a claim about what a model does with the text. See [What this do
 
 ## How this was measured
 
-Against `@storybook/mcp` 0.8.0, the version `@storybook/addon-mcp` 0.7.0 pins, with Storybook 10.5.7.
+Against `@storybook/mcp` 0.8.0, the version `@storybook/addon-mcp` 0.7.0 pins, with Storybook 10.5.10.
 
 The measurements come from invoking the server's exported tool registrars against an in-memory manifest, so the text below is produced by the shipped code path rather than by a reimplementation of it. The formatters themselves are internal to `@storybook/mcp` and cannot be imported. `packages/agent-view` holds the harness, the variants, and a snapshot of every rendering described here; `pnpm test:unit` runs it.
 
