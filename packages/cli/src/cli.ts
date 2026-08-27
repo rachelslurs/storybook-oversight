@@ -22,6 +22,7 @@ async function main(): Promise<number> {
     cwd: process.cwd(),
     env: process.env,
     isTTY: process.stdout.isTTY === true,
+    columns: process.stdout.columns,
   });
 
   if (config.kind === 'help') {

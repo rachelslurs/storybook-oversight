@@ -53,14 +53,27 @@ With no argument it reads `storybook-static/manifests/components.json`. In GitHu
 ```
 storybook-static/manifests/components.json (docgen: react-docgen-typescript)
 
+Badge
+  warning  component-description-missing  Badge has no description for the MCP or the Docs page to show.
+           hint: Add prose to the component JSDoc block, outside any tag.
+
+Banner
+  info     deprecated-tag  Banner is marked @deprecated: Use Toast for transient messages, or Card for persistent ones.
+
 Card
-  warning  prop-descriptions-missing   Card has 2 undocumented props. (props: title, elevated)
+  warning  prop-descriptions-missing  Card has 2 undocumented props. (props: title, elevated)
            hint: Add a JSDoc comment to each undocumented prop.
   error    required-prop-undocumented  Card has required prop without documentation. (props: title)
            hint: Add a JSDoc comment to each required prop.
 
-✖ 2 findings (1 error, 1 warning, 0 info), 1 of 42 entries affected
+Tile
+  error    docs-link-dangling  Tile links to unknown manifest ids: data-display-ghost--docs.
+           hint: Point the link at an id the manifest has, or remove the link.
+
+✖ 5 findings (2 errors, 2 warnings, 1 info), 4 of 6 entries affected
 ```
+
+The sample above is the output written to a pipe or a file, where no line is broken. When stdout is a terminal, a message too long to fit wraps and its continuation indents to the message column, so the severity and rule columns stay where they are. `--format json`, `--format github` and the Actions job summary are never wrapped.
 
 The dimmed `hint:` line is the rule's one-line fix. `deprecated-tag` has none, since it reports a fact rather than a defect, and a run of findings from one rule prints the line once. The same text reaches the `hint` field in `--format json`, the second line of each `--format github` annotation, and the Message column of the Actions step summary.
 
@@ -77,8 +90,9 @@ Findings are grouped by entry, headed with the entry's component name. When anot
 A repo-wide extraction failure makes `docgen-missing` fire once per entry and `story-extraction-error` once per failing story, several per entry, so text output would render hundreds of near-identical findings. When one rule's findings touch at least 10 distinct entries and at least half the manifest's entries, they leave the per-entry groups and render as one line per error signature (the same one-line summary the messages use), stating the count, the share, and the diagnosis:
 
 ```
-  error  docgen-missing  122 of 123 entries: No component found: We could not detect the component from your story file. Specify meta.component.
-         hint: Set typescript.reactDocgen to 'react-docgen-typescript', or give the root tsconfig your sources.
+  error  docgen-missing  122 of 123 entries: Error: No component found: We could not detect the component from your story file. Specify meta.component.
+         hint: Check the export shape and the story's meta.component first, then typescript.reactDocgen.
+  Findings above are collapsed; re-run with --json for the per-entry list.
 ```
 
 Because the summary skips the message's `File: <path>` location line, entries that share a diagnosis share a row instead of fragmenting on their per-entry paths. Signatures on fewer than 10 entries pool into one leftovers line ("8 other errors"). The Actions step summary collapses the same way, so both surfaces stay the same size on the same input. The tally still counts every finding, and `--format json` keeps the per-entry list.
