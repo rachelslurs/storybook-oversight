@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Finding } from 'oversight-core';
-import { formatGithub, formatJson, formatStepSummary, formatStylish } from './format';
+import { formatGithub, formatJson, formatStepSummary, formatStylish, wrapMessage } from './format';
 import type { LintSummary } from './types';
 
 // Hints mirror what the linter attaches: one per rule, none on `deprecated-tag`.
@@ -701,6 +701,53 @@ describe('formatStylish: mass-failure collapse', () => {
     expect(out.split('\n').filter((l) => l.trim().startsWith('hint:'))).toHaveLength(1);
     expect(out).toContain(`hint: ${hint}`);
     expect(out).toContain('Findings above are collapsed');
+  });
+});
+
+describe('wrapMessage', () => {
+  // The guidance the CLI prints when no manifest is at the path, which is the
+  // longest thing it writes to stderr.
+  const GUIDANCE =
+    'No components manifest at storybook-static/manifests/components.json.\n' +
+    'Storybook 10.3 and later emit one when `features.componentsManifest` is enabled in .storybook/main.ts. @storybook/addon-mcp enables it for you.\n' +
+    'Below Storybook 10.1 no configuration produces a components manifest.';
+
+  it('breaks at spaces, so no word is split across two lines', () => {
+    const wrapped = wrapMessage(GUIDANCE, 96);
+    for (const line of wrapped.split('\n')) expect(line.length).toBeLessThanOrEqual(96);
+    // A terminal breaks at the cell it runs out on. Every word that went in
+    // has to come out whole.
+    const words = (text: string) => text.split(/\s+/).filter(Boolean);
+    expect(words(wrapped)).toEqual(words(GUIDANCE));
+  });
+
+  it('keeps the breaks the message already has', () => {
+    // Each line is its own statement, so wrapping must not run two together.
+    const wrapped = wrapMessage(GUIDANCE, 96);
+    expect(wrapped.split('\n')[0]).toBe('No components manifest at storybook-static/manifests/components.json.');
+    expect(wrapped.split('\n').length).toBeGreaterThan(GUIDANCE.split('\n').length);
+  });
+
+  it('indents a continuation so one statement still reads as one', () => {
+    const lines = wrapMessage(GUIDANCE, 96).split('\n');
+    const head = lines.findIndex((line) => line.startsWith('Storybook 10.3'));
+    expect(head).toBeGreaterThan(-1);
+    expect(lines[head + 1].startsWith('  ')).toBe(true);
+  });
+
+  it('leaves a line carrying its own alignment unwrapped', () => {
+    // An unhandled error's text reaches this too, and re-flowing on single
+    // spaces would close up a column it had lined up.
+    const aligned = `key${' '.repeat(8)}value that runs past the width given here and keeps going for a while`;
+    expect(wrapMessage(aligned, 60)).toBe(aligned);
+    expect(aligned.length).toBeGreaterThan(60);
+  });
+
+  it('leaves the message alone when there is no terminal to measure', () => {
+    // The control for the tests above: stderr redirected to a file or a CI log
+    // keeps whole lines, so nothing greps a break this put in.
+    expect(wrapMessage(GUIDANCE, 0)).toBe(GUIDANCE);
+    expect(GUIDANCE.split('\n').some((line) => line.length > 96)).toBe(true);
   });
 });
 

@@ -3,6 +3,7 @@ import { appendFileSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildConfig, HELP } from './config';
+import { wrapMessage } from './format';
 import { run } from './run';
 
 function readVersion(): string {
@@ -15,6 +16,15 @@ function readVersion(): string {
   } catch {
     return '0.0.0';
   }
+}
+
+/** The width to wrap stderr guidance to. Read off stderr rather than stdout:
+ *  the two streams are redirected independently, and a run whose report goes
+ *  to a file still shows its diagnostics in the terminal. */
+function errorWidth(): number {
+  const { columns } = process.stderr;
+  if (process.stderr.isTTY !== true || typeof columns !== 'number' || !Number.isFinite(columns)) return 0;
+  return columns;
 }
 
 async function main(): Promise<number> {
@@ -34,7 +44,7 @@ async function main(): Promise<number> {
     return 0;
   }
   if (config.kind === 'error') {
-    process.stderr.write(`oversight: ${config.message}\n`);
+    process.stderr.write(`${wrapMessage(`oversight: ${config.message}`, errorWidth())}\n`);
     return 2;
   }
 
@@ -45,7 +55,7 @@ async function main(): Promise<number> {
 
   const result = await run(config.options);
   if (result.stdout) process.stdout.write(`${result.stdout}\n`);
-  if (result.stderr) process.stderr.write(`${result.stderr}\n`);
+  if (result.stderr) process.stderr.write(`${wrapMessage(result.stderr, errorWidth())}\n`);
 
   // GitHub Actions job summary, appended when running under Actions.
   const summaryPath = process.env.GITHUB_STEP_SUMMARY;
@@ -68,6 +78,7 @@ main()
   .catch((err: unknown) => {
     // Node's default for an unhandled rejection is also a non-zero exit, but
     // saying so here keeps the exit-code matrix readable from one place.
-    process.stderr.write(`oversight: ${err instanceof Error ? err.message : String(err)}\n`);
+    const message = `oversight: ${err instanceof Error ? err.message : String(err)}`;
+    process.stderr.write(`${wrapMessage(message, errorWidth())}\n`);
     process.exitCode = 2;
   });
