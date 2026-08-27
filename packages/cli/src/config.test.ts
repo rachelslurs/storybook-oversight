@@ -121,6 +121,16 @@ describe('buildConfig', () => {
     expect(runConfig([], ctx({ isTTY: true, env: { NO_COLOR: '1' } })).color).toBe(false);
   });
 
+  it('takes the wrap width from the terminal, and zero when there is none', () => {
+    // Zero is what the formatter reads as "do not wrap", so a report redirected
+    // to a file or a CI log keeps whole lines.
+    expect(runConfig([], ctx({ isTTY: true, columns: 96 })).width).toBe(96);
+    expect(runConfig([], ctx({ isTTY: false, columns: 96 })).width).toBe(0);
+    expect(runConfig([], ctx({ isTTY: true })).width).toBe(0);
+    // FORCE_COLOR paints a redirected report; it does not give it a width.
+    expect(runConfig([], ctx({ isTTY: false, columns: 96, env: { FORCE_COLOR: '1' } })).width).toBe(0);
+  });
+
   describe('config file', () => {
     let dir: string;
     beforeEach(() => {

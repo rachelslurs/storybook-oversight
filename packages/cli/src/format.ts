@@ -71,6 +71,30 @@ function row(headPlain: string, headPainted: string, body: string, width: number
   return wrapBody(body, width - headPlain.length).map((part, i) => (i === 0 ? headPainted + part : indent + part));
 }
 
+/**
+ * Wrap a plain multi-line message to `width`, keeping the breaks it already
+ * has. Continuations indent by two so one wrapped statement still reads as one
+ * statement beside the others.
+ *
+ * A terminal wraps at the cell it runs out on, which lands mid-word. Breaking
+ * at spaces is the whole of what this buys, so it is worth doing on prose that
+ * has no columns to preserve.
+ */
+export function wrapMessage(text: string, width: number): string {
+  if (width < MIN_WRAP_WIDTH) return text;
+  return text
+    .split('\n')
+    .flatMap((line) =>
+      // A run of spaces is alignment the line is carrying, and re-flowing on
+      // single spaces would flatten it. The guidance messages are prose; an
+      // unhandled error's text reaching here may not be.
+      line.length <= width || / {2}/.test(line)
+        ? [line]
+        : wrapBody(line, width - 2).map((part, i) => (i === 0 ? part : `  ${part}`)),
+    )
+    .join('\n');
+}
+
 function plural(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
