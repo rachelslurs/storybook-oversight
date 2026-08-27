@@ -21,6 +21,9 @@ export type RunOptions = {
   /** Show only errors in console output (counts and exit code are unaffected). */
   quiet: boolean;
   color: boolean;
+  /** Terminal width the stylish output wraps to; 0 when stdout is not a
+   *  terminal, which leaves output unwrapped for pipes, files and CI logs. */
+  width: number;
 };
 
 /** buildConfig either yields options to run, or short-circuits (help/version/error). */
@@ -34,6 +37,8 @@ export type Context = {
   cwd: string;
   env: Record<string, string | undefined>;
   isTTY: boolean;
+  /** `process.stdout.columns`, which is undefined when stdout is not a terminal. */
+  columns?: number;
 };
 
 /** The shape read from `oversight.config.json` (all fields optional). */
@@ -52,6 +57,16 @@ function resolveColor(ctx: Context): boolean {
   const force = ctx.env.FORCE_COLOR;
   if (force !== undefined) return force !== '0' && force !== 'false';
   return ctx.isTTY;
+}
+
+/** The width stylish output wraps to. Zero whenever there is no terminal to
+ *  measure, so redirected output keeps its full-length lines: a wrap baked
+ *  into a file or a CI log is a line break someone else's grep has to handle.
+ *  Unlike color, no environment variable overrides this; the terminal is the
+ *  only thing that knows. */
+function resolveWidth(ctx: Context): number {
+  if (!ctx.isTTY || typeof ctx.columns !== 'number' || !Number.isFinite(ctx.columns)) return 0;
+  return ctx.columns;
 }
 
 export const HELP = `oversight: lint a Storybook MCP components manifest
@@ -218,6 +233,7 @@ export function buildConfig(argv: string[], ctx: Context): ConfigResult {
       format,
       quiet: Boolean(values.quiet),
       color,
+      width: resolveWidth(ctx),
     },
   };
 }

@@ -24,6 +24,53 @@ function paint(text: string, code: string, on: boolean): string {
   return on && text ? `${code}${text}${ANSI.reset}` : text;
 }
 
+/** Below this many columns the hanging indent takes most of the row, so
+ *  wrapping makes the output more ragged than the terminal's own soft wrap
+ *  does. Doubles as the "not a terminal" guard: width is 0 when stdout is
+ *  piped, and nothing should wrap into a file or a CI log. */
+const MIN_WRAP_WIDTH = 40;
+
+/**
+ * Split `body` into lines of at most `avail` columns without breaking a token.
+ * A token longer than `avail` takes a line to itself and overflows: manifest
+ * ids and prop lists are what a reader copies out of the report, and a break
+ * inside one makes it unusable.
+ */
+function wrapBody(body: string, avail: number): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const token of body.split(' ')) {
+    if (line === '') line = token;
+    else if (line.length + 1 + token.length <= avail) line += ` ${token}`;
+    else {
+      lines.push(line);
+      line = token;
+    }
+  }
+  lines.push(line);
+  return lines;
+}
+
+/**
+ * One finding row: a head whose columns must not move, and a body that may
+ * wrap beneath it, indented to the body column.
+ *
+ * The terminal's own soft wrap restarts a continuation at column 0, which
+ * leaves the severity and rule columns unfindable a few findings down the
+ * page. That is invisible at a developer's usual width and is the whole of
+ * the output at a zoomed one.
+ *
+ * `headPlain` measures; `headPainted` prints. They are separate because the
+ * severity and rule are colored before the row is assembled, and ANSI escapes
+ * count toward `String.length` but occupy no columns, so measuring the painted
+ * head would wrap early by the width of the escapes.
+ */
+function row(headPlain: string, headPainted: string, body: string, width: number): string[] {
+  if (width < MIN_WRAP_WIDTH || headPlain.length + body.length <= width) return [headPainted + body];
+  const indent = ' '.repeat(headPlain.length);
+  return wrapBody(body, width - headPlain.length).map((part, i) => (i === 0 ? headPainted + part : indent + part));
+}
+
 function plural(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
@@ -84,12 +131,16 @@ function withProps(message: string, props: string[] | undefined): string {
  * the line verbatim; only the first of a run prints. Indented to the rule
  * column so it reads as a continuation, not a finding.
  */
-function hintLines(width: number, on: boolean): (hint: string | undefined) => string[] {
+function hintLines(severityWidth: number, wrapWidth: number, on: boolean): (hint: string | undefined) => string[] {
   let last: string | undefined;
   return (hint) => {
     const repeat = hint === last;
     last = hint;
-    return hint === undefined || repeat ? [] : [paint(`${' '.repeat(width + 4)}hint: ${hint}`, ANSI.dim, on)];
+    if (hint === undefined || repeat) return [];
+    // The whole line is one color, so each wrapped part is painted separately
+    // and closes its own escape rather than one run spanning a line break.
+    const head = `${' '.repeat(severityWidth + 4)}hint: `;
+    return row(head, head, hint, wrapWidth).map((line) => paint(line, ANSI.dim, on));
   };
 }
 
@@ -221,39 +272,61 @@ function collapseMassFailures(findings: Finding[], entryCount: number): { rows: 
 }
 
 /** ESLint `stylish`-style output, grouped by manifest entry instead of by file. */
-export function formatStylish(summary: LintSummary, options: { color: boolean; quiet: boolean }): string {
+export function formatStylish(
+  summary: LintSummary,
+  options: { color: boolean; quiet: boolean; width?: number },
+): string {
   const on = options.color;
+  // Absent when a caller has no terminal to measure, which `row` reads as
+  // "do not wrap".
+  const wrapWidth = options.width ?? 0;
   const shown = options.quiet ? summary.findings.filter((d) => d.severity === 'error') : summary.findings;
   const { rows, visible } = collapseMassFailures(shown, summary.entryCount);
   const groups = groupByComponent(visible);
   const lines: string[] = [];
 
+  // One pad for the whole report, not one per group. Computed per group, a
+  // section holding only errors started its rule column two columns left of a
+  // section holding a warning, so the eye had no fixed column to scan down.
+  const severityWidth = Math.max(0, ...rows.map((r) => r.severity.length), ...visible.map((d) => d.severity.length));
+
+  // The docgen note drops to its own indented line only when the pair does not
+  // fit. Splitting it unconditionally would spend a line at every width to fix
+  // a wrap that happens at none of the usual ones.
   const docgen = summary.extractor === null ? '' : ` (docgen: ${summary.extractor})`;
-  lines.push(paint(summary.manifestPath, ANSI.bold, on) + paint(docgen, ANSI.dim, on));
+  if (docgen !== '' && wrapWidth >= MIN_WRAP_WIDTH && summary.manifestPath.length + docgen.length > wrapWidth) {
+    lines.push(paint(summary.manifestPath, ANSI.bold, on));
+    lines.push(paint(`  ${docgen.trimStart()}`, ANSI.dim, on));
+  } else {
+    lines.push(paint(summary.manifestPath, ANSI.bold, on) + paint(docgen, ANSI.dim, on));
+  }
   lines.push('');
 
   if (rows.length > 0) {
-    const width = Math.max(...rows.map((r) => r.severity.length));
-    const hintOf = hintLines(width, on);
+    const hintOf = hintLines(severityWidth, wrapWidth, on);
     for (const r of rows) {
-      const severity = paint(r.severity.padEnd(width), SEVERITY_COLOR[r.severity], on);
+      const severity = paint(r.severity.padEnd(severityWidth), SEVERITY_COLOR[r.severity], on);
       const rule = paint(r.rule, ANSI.dim, on);
-      lines.push(`  ${severity}  ${rule}  ${reachOf(r, summary.entryCount)}: ${r.message}`);
+      const headPlain = `  ${r.severity.padEnd(severityWidth)}  ${r.rule}  `;
+      lines.push(
+        ...row(headPlain, `  ${severity}  ${rule}  `, `${reachOf(r, summary.entryCount)}: ${r.message}`, wrapWidth),
+      );
       lines.push(...hintOf(r.hint));
     }
-    lines.push(paint('  Findings above are collapsed; re-run with --json for the per-entry list.', ANSI.dim, on));
+    const note = 'Findings above are collapsed; re-run with --json for the per-entry list.';
+    lines.push(...row('  ', '  ', note, wrapWidth).map((line) => paint(line, ANSI.dim, on)));
     lines.push('');
   }
 
   const label = labeller(summary);
   const render = (title: string, detail: string, diags: Finding[]) => {
     lines.push(paint(title, ANSI.bold, on) + paint(detail, ANSI.dim, on));
-    const width = Math.max(...diags.map((d) => d.severity.length));
-    const hintOf = hintLines(width, on);
+    const hintOf = hintLines(severityWidth, wrapWidth, on);
     for (const d of diags) {
-      const severity = paint(d.severity.padEnd(width), SEVERITY_COLOR[d.severity], on);
+      const severity = paint(d.severity.padEnd(severityWidth), SEVERITY_COLOR[d.severity], on);
       const rule = paint(d.rule, ANSI.dim, on);
-      lines.push(`  ${severity}  ${rule}  ${withProps(d.message, d.props)}`);
+      const headPlain = `  ${d.severity.padEnd(severityWidth)}  ${d.rule}  `;
+      lines.push(...row(headPlain, `  ${severity}  ${rule}  `, withProps(d.message, d.props), wrapWidth));
       lines.push(...hintOf(d.hint));
     }
     lines.push('');
@@ -270,12 +343,19 @@ export function formatStylish(summary: LintSummary, options: { color: boolean; q
   // The summary counts the full set, so `--quiet` never changes the tally.
   const { errors, warnings, infos, entryCount } = summary;
   const total = errors + warnings + infos;
+  // Continuations indent by two so a wrapped tally reads as one statement
+  // rather than as a second, unmarked line of output.
+  const tally = (text: string, tone: string) => {
+    // Wrapped to two columns short of the width, because the continuation
+    // indent is added after the split and would otherwise push it back over.
+    const parts = wrapWidth < MIN_WRAP_WIDTH || text.length <= wrapWidth ? [text] : wrapBody(text, wrapWidth - 2);
+    lines.push(...parts.map((line, i) => paint(i === 0 ? line : `  ${line}`, tone, on)));
+  };
   if (total === 0) {
-    lines.push(paint(`✓ No findings in ${entryCount} ${entriesWord(entryCount)}.`, ANSI.green, on));
+    tally(`✓ No findings in ${entryCount} ${entriesWord(entryCount)}.`, ANSI.green);
   } else {
     const detail = `${plural(errors, 'error')}, ${plural(warnings, 'warning')}, ${infos} info`;
-    const tone = errors > 0 ? ANSI.red : ANSI.yellow;
-    lines.push(paint(`✖ ${plural(total, 'finding')} (${detail})${entryShare(summary)}`, tone, on));
+    tally(`✖ ${plural(total, 'finding')} (${detail})${entryShare(summary)}`, errors > 0 ? ANSI.red : ANSI.yellow);
   }
   return lines.join('\n');
 }
