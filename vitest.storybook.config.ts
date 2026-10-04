@@ -82,9 +82,11 @@ export default defineConfig(async () => ({
   // Discovered on first use otherwise, which reloads the page mid-run and fails
   // the story that triggered it with a "Failed to fetch dynamically imported
   // module" that looks nothing like the real assertion. `storybook/internal/csf`
-  // is the Docs block's: discovered late once, it reloaded mid-run and failed
-  // every story file with "Vitest failed to find the current suite". The failure
-  // did not reproduce from a cold or a warm cache afterward.
+  // is the Docs block's. One run logged "new dependencies optimized:
+  // storybook/internal/csf ... reloading" and failed every story file with
+  // "Vitest failed to find the current suite". The failure did not reproduce
+  // from a cold or a warm cache, so whether this entry prevents it is not
+  // established; it is the entry Vitest's reload warning asks for.
   optimizeDeps: { include: ['storybook/test', 'storybook/internal/csf'] },
   test: {
     name: 'storybook',

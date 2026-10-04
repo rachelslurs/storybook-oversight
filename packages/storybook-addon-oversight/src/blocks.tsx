@@ -101,7 +101,7 @@ function useAnchorId(): string | undefined {
 }
 
 type MetaOf = {
-  csfFile: { meta: { id?: string; parameters?: { oversight?: OversightConfig } } };
+  csfFile: { meta: { id?: string | null; parameters?: { oversight?: OversightConfig } } };
 };
 
 /**
@@ -145,7 +145,9 @@ export function Oversight() {
   // raw while the story ids and the manifest key are built as `button`. The
   // panel matches on a story id and never sees the raw form.
   const rawId = meta.csfFile.meta.id;
-  const componentId = rawId === undefined ? undefined : sanitize(rawId);
+  // `null` passes Storybook's own checks when every story sets `__id`, and
+  // `sanitize` would throw on it outside the try below.
+  const componentId = typeof rawId === 'string' ? sanitize(rawId) : undefined;
   const options = meta.csfFile.meta.parameters?.oversight ?? {};
 
   const [raw, setRaw] = useState<RawManifest | null | 'loading'>('loading');

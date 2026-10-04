@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
+import { loadCsf } from 'storybook/internal/csf-tools';
 import { StoryStore } from 'storybook/preview-api';
 import { Oversight } from './blocks';
 import { DEMO_MANIFEST, whichTheme } from './testing';
@@ -138,24 +139,27 @@ describe('Oversight manifest states', () => {
 });
 
 describe('Oversight component id', () => {
-  // The meta comes from Storybook's own CSF processing rather than a literal,
-  // because the bug is in what that processing hands back: it sanitizes
-  // `id || title` and then spreads the default export over it, so an explicit
-  // id survives raw. A hand-written `{ id: 'ex-doc' }` is the shape it emits
-  // only when no id is set, which is the case that already worked.
+  // Both halves come from Storybook rather than literals, because the bug is in
+  // how they relate. The preview's CSF processing sanitizes `id || title` and
+  // then spreads the default export over it, so an explicit id survives raw in
+  // the meta the block reads. The indexer builds story ids from the sanitized
+  // id, and addon-mcp keys the manifest by a story id's prefix.
   it('finds the entry when the stories meta sets an id that is not already sanitized', async () => {
-    // `processCSFFile` is typed as a preview-api export but not shipped as one;
-    // the store holds the same function, memoized, and it is what DocsContext
-    // reads `csfFile` from
+    const exportsAsSource = "export default { id: 'Ex_Doc', title: 'Examples/Ex Doc' };\nexport const Primary = {};";
+    const indexed = loadCsf(exportsAsSource, { makeTitle: (title) => title!, fileName: 'ExDoc.stories.tsx' }).parse();
+    const manifestKey = indexed.indexInputs[0]?.__id?.split('--')[0];
+    expect(manifestKey).toBe('ex-doc');
+    expect(DEMO_MANIFEST.components).toHaveProperty([manifestKey!]);
+
+    // `processCSFFile` is internal to preview-api; the store holds the same
+    // function, memoized, and it is what DocsContext reads `csfFile` from
     const store = new StoryStore({ v: 5, entries: {} }, async () => ({}), {});
-    const { meta, stories } = store.processCSFFileWithCache(
+    const { meta } = store.processCSFFileWithCache(
       { default: { id: 'Ex_Doc', title: 'Examples/Ex Doc' }, Primary: {} },
       './ExDoc.stories.tsx',
       'Examples/Ex Doc',
     );
-    // one object carries both forms: the story id the panel matches on is
-    // sanitized, the meta id the block reads is not, so the raw one cannot pass
-    expect(Object.keys(stories)).toEqual(['ex-doc--primary']);
+    // the raw and sanitized forms differ, so matching on the raw one cannot pass
     expect(meta.id).toBe('Ex_Doc');
     state.meta = meta;
 
