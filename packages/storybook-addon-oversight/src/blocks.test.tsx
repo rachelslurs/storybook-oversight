@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
+import { StoryStore } from 'storybook/preview-api';
 import { Oversight } from './blocks';
 import { DEMO_MANIFEST, whichTheme } from './testing';
 
@@ -18,11 +19,11 @@ vi.mock('@storybook/addon-docs/blocks', () => ({
       {children as never}
     </h2>
   ),
-  useOf: () => ({ csfFile: { meta: { id: 'ex-doc' } } }),
+  useOf: () => ({ csfFile: { meta: state.meta } }),
 }));
 
 // Each test sets the outcome it needs; `beforeEach` restores a manifest that loads.
-const state = vi.hoisted(() => ({ parseFailed: false, manifest: null as unknown }));
+const state = vi.hoisted(() => ({ parseFailed: false, manifest: null as unknown, meta: {} as { id?: string } }));
 
 vi.mock('./manifestSource', () => ({
   createManifestSource: () => ({
@@ -37,6 +38,7 @@ vi.mock('./manifestSource', () => ({
 beforeEach(() => {
   state.parseFailed = false;
   state.manifest = DEMO_MANIFEST;
+  state.meta = { id: 'ex-doc' };
 });
 
 afterEach(cleanup);
@@ -132,5 +134,34 @@ describe('Oversight manifest states', () => {
     render(<Oversight />);
 
     expect(await screen.findByText(/@storybook\/addon-mcp/)).toBeTruthy();
+  });
+});
+
+describe('Oversight component id', () => {
+  // The meta comes from Storybook's own CSF processing rather than a literal,
+  // because the bug is in what that processing hands back: it sanitizes
+  // `id || title` and then spreads the default export over it, so an explicit
+  // id survives raw. A hand-written `{ id: 'ex-doc' }` is the shape it emits
+  // only when no id is set, which is the case that already worked.
+  it('finds the entry when the stories meta sets an id that is not already sanitized', async () => {
+    // `processCSFFile` is typed as a preview-api export but not shipped as one;
+    // the store holds the same function, memoized, and it is what DocsContext
+    // reads `csfFile` from
+    const store = new StoryStore({ v: 5, entries: {} }, async () => ({}), {});
+    const { meta, stories } = store.processCSFFileWithCache(
+      { default: { id: 'Ex_Doc', title: 'Examples/Ex Doc' }, Primary: {} },
+      './ExDoc.stories.tsx',
+      'Examples/Ex Doc',
+    );
+    // one object carries both forms: the story id the panel matches on is
+    // sanitized, the meta id the block reads is not, so the raw one cannot pass
+    expect(Object.keys(stories)).toEqual(['ex-doc--primary']);
+    expect(meta.id).toBe('Ex_Doc');
+    state.meta = meta;
+
+    render(<Oversight />);
+
+    expect(await screen.findByRole('link', { name: 'MDN' })).toBeTruthy();
+    expect(screen.queryByText('No manifest entry for this component.')).toBeNull();
   });
 });

@@ -6,6 +6,7 @@ import { ThemeProvider, ensure, styled, themes, useTheme } from 'storybook/themi
 import { buildReport } from 'oversight-core';
 import type { RawManifest } from 'oversight-core';
 import * as previewApi from 'storybook/preview-api';
+import { sanitize } from 'storybook/internal/csf';
 import { createRuntimeManifestSource } from './manifestLoad';
 import type { GetService } from './manifestLoad';
 import { DEFAULT_DEBUGGER_LINK } from './config';
@@ -139,7 +140,12 @@ function DocsLink({ label, target }: { label: string; target: string }) {
 export function Oversight() {
   const anchorId = useAnchorId();
   const meta = useOf('meta', ['meta']) as unknown as MetaOf;
-  const componentId = meta.csfFile.meta.id;
+  // Not the manifest key as given: Storybook sanitizes `id || title` and then
+  // spreads the meta over the result, so an explicit `id: "Button"` comes back
+  // raw while the story ids and the manifest key are built as `button`. The
+  // panel matches on a story id and never sees the raw form.
+  const rawId = meta.csfFile.meta.id;
+  const componentId = rawId === undefined ? undefined : sanitize(rawId);
   const options = meta.csfFile.meta.parameters?.oversight ?? {};
 
   const [raw, setRaw] = useState<RawManifest | null | 'loading'>('loading');
