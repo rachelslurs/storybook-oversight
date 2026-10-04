@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Finding } from 'oversight-core';
-import { formatGithub, formatJson, formatStepSummary, formatStylish } from './format';
+import { formatGithub, formatJson, formatStepSummary, formatStylish, wrapMessage } from './format';
 import type { LintSummary } from './types';
 
 // Hints mirror what the linter attaches: one per rule, none on `deprecated-tag`.
@@ -129,6 +129,14 @@ describe('formatStylish', () => {
     expect(quiet).toContain('2 warnings');
   });
 
+  it('pads severity to one width for the whole report, not per section', () => {
+    // `Old` holds an info finding alone; `Card` holds a warning and an error.
+    // Computed per section, Old's rule column started three columns left of
+    // Card's, so there was no fixed column to scan down.
+    expect(out).toContain('  info     deprecated-tag  Old is deprecated.');
+    expect(out).toContain('  error    required-prop-undocumented  Card has a required prop. (props: title)');
+  });
+
   it('prints the hint as a continuation line aligned to the rule column', () => {
     const lines = out.split('\n');
     const finding = lines.indexOf('  error    required-prop-undocumented  Card has a required prop. (props: title)');
@@ -189,6 +197,133 @@ describe('formatStylish', () => {
       { color: false, quiet: false },
     );
     expect(rendered.split('\n').filter((l) => l.trim().startsWith('hint:'))).toHaveLength(2);
+  });
+});
+
+describe('formatStylish: terminal width', () => {
+  const LONG = 'Card has no description for the MCP or the Docs page to show, and this sentence runs on.';
+  const wide: Finding = {
+    rule: 'component-description-missing',
+    severity: 'warning',
+    componentId: 'ui-card',
+    message: LONG,
+    hint: 'Add prose to the component JSDoc block, outside any tag, so the MCP has something to read.',
+  };
+  const one = summaryOf([wide], { entryCount: 1, names: new Map([['ui-card', 'Card']]) });
+  // Built rather than written as a literal: an escape character inside a
+  // regular expression is what `no-control-regex` exists to catch.
+  const ANSI_PATTERN = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g');
+  const strip = (text: string) => text.replace(ANSI_PATTERN, '');
+
+  it('leaves every line inside the width it was given', () => {
+    const out = formatStylish(one, { color: false, quiet: false, width: 72 });
+    const over = out.split('\n').filter((line) => line.length > 72);
+    expect(over).toEqual([]);
+  });
+
+  it('does not wrap when no width is given, so a pipe or a file keeps whole lines', () => {
+    // The control for the test above: the same summary must overflow 72
+    // columns when nothing tells the formatter how wide the terminal is.
+    const out = formatStylish(one, { color: false, quiet: false });
+    expect(out.split('\n').some((line) => line.length > 72)).toBe(true);
+  });
+
+  it('indents a continuation to the message column, not to column 0', () => {
+    const lines = formatStylish(one, { color: false, quiet: false, width: 72 }).split('\n');
+    const head = lines.findIndex((line) => line.includes('component-description-missing'));
+    expect(head).toBeGreaterThan(-1);
+    const column = lines[head].indexOf('Card has no description');
+    expect(column).toBeGreaterThan(0);
+    const continuation = lines[head + 1];
+    expect(continuation.slice(0, column)).toBe(' '.repeat(column));
+    expect(continuation.slice(column)).not.toBe('');
+  });
+
+  it('wraps a hint under its own label rather than at column 0', () => {
+    const lines = formatStylish(one, { color: false, quiet: false, width: 72 }).split('\n');
+    const head = lines.findIndex((line) => line.includes('hint:'));
+    expect(head).toBeGreaterThan(-1);
+    const column = lines[head].indexOf('hint: ') + 'hint: '.length;
+    const continuation = lines[head + 1];
+    expect(continuation.slice(0, column)).toBe(' '.repeat(column));
+    expect(continuation.trim()).not.toBe('');
+  });
+
+  it('measures visible columns, so color changes nothing about where lines break', () => {
+    // ANSI escapes count toward String.length and occupy no columns, so a
+    // formatter that measured the painted line would wrap a colored report
+    // early and produce a different set of line breaks than a plain one.
+    const plain = formatStylish(one, { color: false, quiet: false, width: 72 });
+    const colored = formatStylish(one, { color: true, quiet: false, width: 72 });
+    expect(strip(colored)).toBe(plain);
+    // Control: the colored run really did paint something, so the equality
+    // above is not two identical plain strings agreeing with each other.
+    expect(colored).not.toBe(plain);
+  });
+
+  it('overflows a token longer than the space left rather than breaking it', () => {
+    // Manifest ids and prop lists are what a reader copies out of the report.
+    const id = 'data-display-ghost--docs-and-a-tail-that-cannot-fit-in-the-column';
+    const dangling: Finding = {
+      rule: 'docs-link-dangling',
+      severity: 'error',
+      componentId: 'ui-tile',
+      message: `Tile links to unknown manifest ids: ${id}.`,
+    };
+    const out = formatStylish(summaryOf([dangling], { entryCount: 1, names: new Map([['ui-tile', 'Tile']]) }), {
+      color: false,
+      quiet: false,
+      width: 72,
+    });
+    expect(out).toContain(id);
+  });
+
+  it('keeps the tally inside the width once it has to wrap', () => {
+    // The tally indents its continuation after the split, so a wrap computed
+    // against the full width put that line two columns back over it.
+    const lines = formatStylish(summaryOf(findings, { entryCount: 2, names: summary.names }), {
+      color: false,
+      quiet: false,
+      width: 60,
+    }).split('\n');
+    const start = lines.findIndex((line) => line.startsWith('✖'));
+    expect(start).toBeGreaterThan(-1);
+    const tally = lines.slice(start);
+    // Control: at 60 columns this tally has to wrap, so the width assertion
+    // below is measuring a continuation rather than a single short line.
+    expect(tally.length).toBeGreaterThan(1);
+    expect(tally.filter((line) => line.length > 60)).toEqual([]);
+    expect(tally[1].startsWith('  ')).toBe(true);
+  });
+
+  it('keeps the tally inside every width it can wrap at', () => {
+    // One width proves nothing here: whether the indent pushes a continuation
+    // back over the edge depends on where the last space happens to fall, so
+    // a single width can pass an implementation that overflows at the next.
+    // Counts long enough to wrap to three lines at the narrow end of the
+    // sweep. The overflow shows on a middle line, which greedy wrapping fills
+    // to within a column or two of the edge, and never on a short last one.
+    const summaryAt = summaryOf(findings, {
+      entryCount: 100000,
+      names: summary.names,
+      errors: 5,
+      warnings: 7,
+      infos: 3000,
+    });
+    const over: string[] = [];
+    for (let width = 40; width <= 80; width += 1) {
+      const lines = formatStylish(summaryAt, { color: false, quiet: false, width }).split('\n');
+      const start = lines.findIndex((line) => line.startsWith('✖'));
+      over.push(...lines.slice(start).filter((line) => line.length > width));
+    }
+    expect(over).toEqual([]);
+  });
+
+  it('leaves the report unwrapped below the width where wrapping helps', () => {
+    // At a very narrow width the hanging indent would take most of the row,
+    // so the terminal's own soft wrap is the better of two bad renderings.
+    const out = formatStylish(one, { color: false, quiet: false, width: 20 });
+    expect(out.split('\n').some((line) => line.length > 20)).toBe(true);
   });
 });
 
@@ -566,6 +701,53 @@ describe('formatStylish: mass-failure collapse', () => {
     expect(out.split('\n').filter((l) => l.trim().startsWith('hint:'))).toHaveLength(1);
     expect(out).toContain(`hint: ${hint}`);
     expect(out).toContain('Findings above are collapsed');
+  });
+});
+
+describe('wrapMessage', () => {
+  // The guidance the CLI prints when no manifest is at the path, which is the
+  // longest thing it writes to stderr.
+  const GUIDANCE =
+    'No components manifest at storybook-static/manifests/components.json.\n' +
+    'Storybook 10.3 and later emit one when `features.componentsManifest` is enabled in .storybook/main.ts. @storybook/addon-mcp enables it for you.\n' +
+    'Below Storybook 10.1 no configuration produces a components manifest.';
+
+  it('breaks at spaces, so no word is split across two lines', () => {
+    const wrapped = wrapMessage(GUIDANCE, 96);
+    for (const line of wrapped.split('\n')) expect(line.length).toBeLessThanOrEqual(96);
+    // A terminal breaks at the cell it runs out on. Every word that went in
+    // has to come out whole.
+    const words = (text: string) => text.split(/\s+/).filter(Boolean);
+    expect(words(wrapped)).toEqual(words(GUIDANCE));
+  });
+
+  it('keeps the breaks the message already has', () => {
+    // Each line is its own statement, so wrapping must not run two together.
+    const wrapped = wrapMessage(GUIDANCE, 96);
+    expect(wrapped.split('\n')[0]).toBe('No components manifest at storybook-static/manifests/components.json.');
+    expect(wrapped.split('\n').length).toBeGreaterThan(GUIDANCE.split('\n').length);
+  });
+
+  it('indents a continuation so one statement still reads as one', () => {
+    const lines = wrapMessage(GUIDANCE, 96).split('\n');
+    const head = lines.findIndex((line) => line.startsWith('Storybook 10.3'));
+    expect(head).toBeGreaterThan(-1);
+    expect(lines[head + 1].startsWith('  ')).toBe(true);
+  });
+
+  it('leaves a line carrying its own alignment unwrapped', () => {
+    // An unhandled error's text reaches this too, and re-flowing on single
+    // spaces would close up a column it had lined up.
+    const aligned = `key${' '.repeat(8)}value that runs past the width given here and keeps going for a while`;
+    expect(wrapMessage(aligned, 60)).toBe(aligned);
+    expect(aligned.length).toBeGreaterThan(60);
+  });
+
+  it('leaves the message alone when there is no terminal to measure', () => {
+    // The control for the tests above: stderr redirected to a file or a CI log
+    // keeps whole lines, so nothing greps a break this put in.
+    expect(wrapMessage(GUIDANCE, 0)).toBe(GUIDANCE);
+    expect(GUIDANCE.split('\n').some((line) => line.length > 96)).toBe(true);
   });
 });
 

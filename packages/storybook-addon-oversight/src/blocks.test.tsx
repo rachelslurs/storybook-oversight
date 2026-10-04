@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
+import { loadCsf } from 'storybook/internal/csf-tools';
+import { StoryStore } from 'storybook/preview-api';
 import { Oversight } from './blocks';
 import { DEMO_MANIFEST, whichTheme } from './testing';
 
@@ -18,11 +20,11 @@ vi.mock('@storybook/addon-docs/blocks', () => ({
       {children as never}
     </h2>
   ),
-  useOf: () => ({ csfFile: { meta: { id: 'ex-doc' } } }),
+  useOf: () => ({ csfFile: { meta: state.meta } }),
 }));
 
 // Each test sets the outcome it needs; `beforeEach` restores a manifest that loads.
-const state = vi.hoisted(() => ({ parseFailed: false, manifest: null as unknown }));
+const state = vi.hoisted(() => ({ parseFailed: false, manifest: null as unknown, meta: {} as { id?: string } }));
 
 vi.mock('./manifestSource', () => ({
   createManifestSource: () => ({
@@ -37,6 +39,7 @@ vi.mock('./manifestSource', () => ({
 beforeEach(() => {
   state.parseFailed = false;
   state.manifest = DEMO_MANIFEST;
+  state.meta = { id: 'ex-doc' };
 });
 
 afterEach(cleanup);
@@ -132,5 +135,37 @@ describe('Oversight manifest states', () => {
     render(<Oversight />);
 
     expect(await screen.findByText(/@storybook\/addon-mcp/)).toBeTruthy();
+  });
+});
+
+describe('Oversight component id', () => {
+  // Both halves come from Storybook rather than literals, because the bug is in
+  // how they relate. The preview's CSF processing sanitizes `id || title` and
+  // then spreads the default export over it, so an explicit id survives raw in
+  // the meta the block reads. The indexer builds story ids from the sanitized
+  // id, and addon-mcp keys the manifest by a story id's prefix.
+  it('finds the entry when the stories meta sets an id that is not already sanitized', async () => {
+    const exportsAsSource = "export default { id: 'Ex_Doc', title: 'Examples/Ex Doc' };\nexport const Primary = {};";
+    const indexed = loadCsf(exportsAsSource, { makeTitle: (title) => title!, fileName: 'ExDoc.stories.tsx' }).parse();
+    const manifestKey = indexed.indexInputs[0]?.__id?.split('--')[0];
+    expect(manifestKey).toBe('ex-doc');
+    expect(DEMO_MANIFEST.components).toHaveProperty([manifestKey!]);
+
+    // `processCSFFile` is internal to preview-api; the store holds the same
+    // function, memoized, and it is what DocsContext reads `csfFile` from
+    const store = new StoryStore({ v: 5, entries: {} }, async () => ({}), {});
+    const { meta } = store.processCSFFileWithCache(
+      { default: { id: 'Ex_Doc', title: 'Examples/Ex Doc' }, Primary: {} },
+      './ExDoc.stories.tsx',
+      'Examples/Ex Doc',
+    );
+    // the raw and sanitized forms differ, so matching on the raw one cannot pass
+    expect(meta.id).toBe('Ex_Doc');
+    state.meta = meta;
+
+    render(<Oversight />);
+
+    expect(await screen.findByRole('link', { name: 'MDN' })).toBeTruthy();
+    expect(screen.queryByText('No manifest entry for this component.')).toBeNull();
   });
 });

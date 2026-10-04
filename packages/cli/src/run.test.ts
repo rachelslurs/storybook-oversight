@@ -23,7 +23,7 @@ function fixture(manifest: unknown): string {
 }
 
 function options(over: Partial<RunOptions> & { manifestPath: string }): RunOptions {
-  return { lint: {}, maxWarnings: Infinity, format: 'text', quiet: false, color: false, ...over };
+  return { lint: {}, maxWarnings: Infinity, format: 'text', quiet: false, color: false, width: 0, ...over };
 }
 
 const CLEAN: RawManifest = {
